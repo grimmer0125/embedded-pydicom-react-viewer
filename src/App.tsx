@@ -16,8 +16,6 @@ const dropZoneStyle = {
   height: 150,
 };
 
-const MAX_WIDTH_SINGLE_MODE = 1280;
-const MAX_HEIGHT_SINGLE_MODE = 1000;
 const MAX_WIDTH_SERIES_MODE = 400;
 const MAX_HEIGHT_SERIES_MODE = 400;
 
@@ -29,8 +27,7 @@ function App() {
   // NOTE: do some initialization
   useEffect(() => {
     initPyodide();
-  }, []); // [] means only 1 time, if no [], means every update
-
+  }, []); // [] means only 1 time, if no [], means every update this will be called
 
   const onDropFiles = async (acceptedFiles: any[]) => {
     if (acceptedFiles.length > 0) {
@@ -76,16 +73,6 @@ function App() {
   }
 
   const renderFrameByPythonData = async (image2dUnit8Array: Array<Uint8Array>, min: number, max: number) => {
-
-    // ignore 
-    // 1. possible window center & width mode (need work with rescale equation)
-    // 2. RGB mode1, RGB mode2
-    // 3. MONOCHROME1 inverted color 
-    // 4. multiple frame 
-    // 5. corona & sagittal views
-    // 6. scale (shrink to viewer size )
-    // 7. get (optional) stored max/min from dicom ?? 
-
     //** extra step
     const rawDataWidth  = image2dUnit8Array[0].length;
     const rawDataHeight = image2dUnit8Array.length; 
@@ -183,7 +170,6 @@ function App() {
               alignItems: "center",
             }}
           >
-            {/* {isCommonAxialView ? <div>{"A"}</div> : null}{" "} */}
             <div
               style={{
                 display: "flex",
@@ -191,17 +177,13 @@ function App() {
                 alignItems: "center",
               }}
             >
-              {/* {isCommonAxialView ? <div>{"R"}</div> : null}{" "} */}
               <canvas
-                // onMouseDown={this.onMouseCanvasDown}
                 ref={myCanvasRef}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}
                 style={{ backgroundColor: "black" }}
               />
-              {/* {isCommonAxialView ? <div>{"L"}</div> : null}{" "} */}
             </div>
-            {/* {isCommonAxialView ? <div>{"P"}</div> : null}{" "} */}
           </div>
         </div>
 
