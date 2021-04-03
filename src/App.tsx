@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 
 import Dropzone from "react-dropzone";
 import { loadDicomAsync } from "./utility";
@@ -23,6 +23,9 @@ function App() {
 
   const my_js_module = useRef<any>({});
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [isPyodideLoading, setPyodideLoading] = useState(true);
+
 
   // NOTE: do some initialization
   useEffect(() => {
@@ -53,6 +56,7 @@ function App() {
     await pyodide.runPythonAsync(pythonCode);
     pyodide.registerJsModule("my_js_module", my_js_module.current);
     console.log("finish initializing Pyodide")
+    setPyodideLoading(false);
   }
 
   const parseByPython = async (buffer:ArrayBuffer) =>{
@@ -120,7 +124,7 @@ function App() {
       <div>
         <div className="flex-container">
           <div>
-            DICOM Image Viewer
+            DICOM Image Viewer, {isPyodideLoading?"loading python runtime, do not upload file now":""} 
           </div>
         </div>
 
