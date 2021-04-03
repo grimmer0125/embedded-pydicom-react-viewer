@@ -12,6 +12,10 @@ Besides it is an interesting thing to use Python in browser, using Python DICOM 
 
 https://github.com/pyodide/pyodide
 
+### Other similar github repos using Pyodide + Pydicom
+1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide)
+2. [https://github.com/pymedphys/pymedphys](https://github.com/pymedphys/pymedphys)
+
 ## Not handle 
 
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
