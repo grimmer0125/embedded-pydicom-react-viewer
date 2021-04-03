@@ -1,5 +1,5 @@
 {
-  "name": "medical-dicom-visualization-reactapp-using-python-in-browser",
+  "name": "embedded-python-dicom-visualization-reactapp",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
