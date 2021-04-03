@@ -1,8 +1,10 @@
 # Embedded Python DICOM visualization ReactApp
 
+This is a demo project and only can show a part of DICOM files. 
+
 ## Not handle 
 
-Below are already handled in another project https://github.com/grimmer0125/dicom-web-viewer, not in this demo project
+Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer
 
 1. possible window center & width mode (need work with rescale equation)
 2. RGB mode1, RGB mode2
