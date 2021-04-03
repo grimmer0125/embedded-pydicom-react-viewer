@@ -49,50 +49,21 @@ function App() {
   }
 
   const initPyodide = async () =>{
-    const pythonCode = `
-      import setuptools
-      import micropip
-      import io
-      await micropip.install('pydicom')
-      print("install pydicom ok")        
-    `;
-
-    console.log("start to use python code, initialize Pyodide")
+    console.log("initialize Pyodide, python browser runtime")
     await languagePluginLoader;
     await pyodide.loadPackage(['numpy', 'micropip']);
+    const pythonCode = await (await fetch('python/pyodide_init.py')).text();
     await pyodide.runPythonAsync(pythonCode);
-  
     pyodide.registerJsModule("my_js_module", my_js_module.current);
-
-
     console.log("finish initializing Pyodide")
   }
 
   const parseByPython = async (buffer:ArrayBuffer) =>{
 
-    const pythonCode = `
-      import pydicom
-      from pydicom.pixel_data_handlers.util import apply_modality_lut
-      from my_js_module import buffer 
-      print("get buffer")
-      # print(buffer) #  memoryview object.
-      ds = pydicom.dcmread(io.BytesIO(buffer))
-      name = ds.PatientName
-      print("family name:"+name.family_name)
-      arr = ds.pixel_array
-      image = apply_modality_lut(arr, ds)
-      min = image.min() 
-      max = image.max() 
-      print(min)
-      print(max)
-      name2 = name.family_name
-      image, min, max # use image, name will result [data, proxy] after toJS <- not happen anymore
-    `;
-
     my_js_module.current["buffer"] = buffer;
 
-
     console.log("start to use python to parse parse dicom data")
+    const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     const result = await pyodide.runPythonAsync(pythonCode);
 
     const result2 = result.toJs();
@@ -100,7 +71,7 @@ function App() {
     const min = result2[1];
     const max = result2[2]
     result.destroy();
-    console.log('done')
+    console.log('parsing dicom done')
     return { data: image2dUnit8Array, min, max} ;
   }
 
