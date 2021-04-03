@@ -25,6 +25,23 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>React App</title>
+
+    <style>
+      .flex-container {
+        display: flex;
+        justify-content: center;
+      }
+      * {
+        font-size: 16px;
+        font-family: 'Roboto';
+      }
+    </style>
+
+    <script type="text/javascript">
+      // set the Pyodide files URL (packages.json, pyodide.asm.data etc)
+      window.languagePluginUrl = 'https://cdn.jsdelivr.net/pyodide/v0.17.0a2/full/';
+    </script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.17.0a2/full/pyodide.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
