@@ -12,6 +12,10 @@ Besides it is an interesting thing to use Python in browser, using Python DICOM 
 
 https://github.com/pyodide/pyodide
 
+Remaining questions:
+1. https://pyodide.org/en/latest/development/new-packages.html
+    1. For a pure Python package, will it be faster after building it to a pyodide package? Comparing with installing original python package with `micropip`. Will its size become larger?
+
 ### Other similar github repos using Pyodide + Pydicom
 1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide)
 2. [https://github.com/pymedphys/pymedphys](https://github.com/pymedphys/pymedphys)
@@ -31,7 +35,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 There are two more optional steps we can do 
 1. host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
-    1. pyodide webassembly/js files 
-    2. pyodide packages (e.g. numpy.js)
-    3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI) 
+    1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files 
+    2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
+    3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB) 
 3. move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.  
