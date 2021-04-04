@@ -32,6 +32,6 @@ Below non handled items are done in another project https://github.com/grimmer01
 There are two more optional stpes we can do 
 1. host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
     1. pyodide webassembly/js files 
-    2. pyodide packages (e.g. numpy)
+    2. pyodide packages (e.g. numpy.js)
     3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI) 
 3. move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.  
