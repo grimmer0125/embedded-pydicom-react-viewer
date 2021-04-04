@@ -26,7 +26,6 @@ function App() {
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
 
-
   // NOTE: do some initialization
   useEffect(() => {
     initPyodide();
@@ -43,7 +42,10 @@ function App() {
   };  
 
   const loadFile = async (file: any) => {
-    const buffer = await loadDicomAsync(file);   
+    const buffer = await loadDicomAsync(file); 
+    // NOTE: besides get return value (python code last line expression), 
+    // python data can be retrieved by accessing python global object:
+    // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version; 
     const { data, min, max}  = await parseByPython(buffer);
     renderFrameByPythonData(data, min, max);    
   }
@@ -77,7 +79,6 @@ function App() {
   }
 
   const renderFrameByPythonData = async (image2dUnit8Array: Array<Uint8Array>, min: number, max: number) => {
-    //** extra step
     const rawDataWidth  = image2dUnit8Array[0].length;
     const rawDataHeight = image2dUnit8Array.length; 
     
