@@ -29,7 +29,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 ## For production usage
 
-There are two more optional stpes we can do 
+There are two more optional steps we can do 
 1. host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
     1. pyodide webassembly/js files 
     2. pyodide packages (e.g. numpy.js)
