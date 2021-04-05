@@ -15,6 +15,7 @@ https://github.com/pyodide/pyodide
 Remaining issues:
 1. https://pyodide.org/en/latest/development/new-packages.html
     1. For a pure Python package, will it be faster after building it to a pyodide package? Comparing with installing original python package with `micropip`. Will its size become larger?
+2. I opened a issue here about re-use python object, https://github.com/pyodide/pyodide/issues/1426
 
 ### Other GitHub repos using Pyodide + Pydicom
 1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide)
