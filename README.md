@@ -12,11 +12,11 @@ Besides it is an interesting thing to use Python in browser, using Python DICOM 
 
 https://github.com/pyodide/pyodide
 
-Remaining questions:
+Remaining issues:
 1. https://pyodide.org/en/latest/development/new-packages.html
     1. For a pure Python package, will it be faster after building it to a pyodide package? Comparing with installing original python package with `micropip`. Will its size become larger?
 
-### Other similar github repos using Pyodide + Pydicom
+### Other GitHub repos using Pyodide + Pydicom
 1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide)
 2. [https://github.com/pymedphys/pymedphys](https://github.com/pymedphys/pymedphys)
 
