@@ -14,9 +14,7 @@ ref:
 1. https://github.com/pyodide/pyodide
 2. https://pyodide.org/en/latest/development/new-packages.html
 
-I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about 
-1. how to properly re-use python object 
-2. pyodide package vs using micropip load python normal package. Compare their performance & bundle size
+I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how to properly re-use python object. 
 
 ### Other GitHub repos using Pyodide + Pydicom
 1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide)
