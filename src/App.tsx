@@ -54,6 +54,10 @@ function App() {
     console.log("initialize Pyodide, python browser runtime")
     await languagePluginLoader;
     await pyodide.loadPackage(['numpy', 'micropip']);
+    
+    // NOTE
+    // https://pyodide.org/en/0.17.0a2/usage/faq.html
+    // pyodide.runPython(await fetch('https://some_url/...')) <- doc seems missing .text() part
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();
     await pyodide.runPythonAsync(pythonCode);
     pyodide.registerJsModule("my_js_module", my_js_module.current);
