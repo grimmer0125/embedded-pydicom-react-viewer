@@ -1,6 +1,8 @@
 # Embedded Python DICOM visualization ReactApp
 
-This is a demo project and only can show a part of DICOM files. 
+This project demonstrates 
+1. How to use Python in browser, living with ReactApp.   
+2. Use Python to parse DICOM files (only supprot some kind of DICOM) and pass data to JS, then draw it on Canvas. 
 
 ## Why to make this
 
