@@ -46,8 +46,8 @@ function App() {
     // NOTE: besides get return value (python code last line expression), 
     // python data can be retrieved by accessing python global object:
     // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version; 
-    const { data, min, max}  = await parseByPython(buffer);
-    renderFrameByPythonData(data, min, max);    
+    const { data, min, max, width, height}  = await parseByPython(buffer);
+    renderFrameByPythonData(data, min, max, width, height);    
   }
 
   const initPyodide = async () =>{
@@ -76,16 +76,15 @@ function App() {
     const result2 = result.toJs();
     const image2dUnit8Array = result2[0];
     const min = result2[1];
-    const max = result2[2]
+    const max = result2[2];
+    const width = result2[3];
+    const height = result2[4];
     result.destroy();
     console.log('parsing dicom done')
-    return { data: image2dUnit8Array, min, max} ;
+    return { data: image2dUnit8Array, min, max, width, height} ;
   }
 
-  const renderFrameByPythonData = async (image2dUnit8Array: Array<Uint8Array>, min: number, max: number) => {
-    const rawDataWidth  = image2dUnit8Array[0].length;
-    const rawDataHeight = image2dUnit8Array.length; 
-    
+  const renderFrameByPythonData = async (imageUnit8Array: Uint8Array, min: number, max: number, rawDataWidth: number, rawDataHeight: number) => {
     const canvasRef = myCanvasRef;
 
     if (!canvasRef.current) {
@@ -100,27 +99,14 @@ function App() {
     const ctx = c.getContext("2d");
     if (!ctx) {
       return;
-    }
-    const imgData = ctx.createImageData(rawDataWidth, rawDataHeight);
-    const { data } = imgData;     
-
-    for (let i = 0, k = 0; i < data.byteLength; i += 4, k += 1) {
-      let row = Math.floor(k/rawDataWidth);
-      let column = k% rawDataWidth; 
-      let value = image2dUnit8Array[row][column];
-
-      if (max && min) {
-        const delta = max - min;
-
-        value = ((value - min) * 255) / delta;
-      }
-
-      data[i] = value;
-      data[i + 1] = value;
-      data[i + 2] = value;
-      data[i + 3] = 255;
     } 
     
+    // NOTE: 2nd memory copy/allocation. original the way of using JS to flatten 2d array does not have extra memory operation
+    // const imgData = ctx.createImageData(rawDataWidth, rawDataHeight);
+    const imageUint8ClampedArray =  new Uint8ClampedArray(imageUnit8Array); 
+
+    // no allocate new memory 
+    const imgData = new ImageData(imageUint8ClampedArray,rawDataWidth,rawDataHeight);
     ctx.putImageData(imgData, 0, 0);
   }
 
@@ -132,7 +118,6 @@ function App() {
             DICOM Image Viewer, {isPyodideLoading?"loading python runtime, do not upload file now":""} 
           </div>
         </div>
-
         <div>
           <div className="flex-container">
             <Dropzone
@@ -160,11 +145,7 @@ function App() {
               </div>
             </Dropzone>                        
           </div>
-          {/* optional some UI */}
         </div>      
-        {/* optional some UI */}
-
-        {/* canvas part */}
         <div
           style={{
             display: "flex",
@@ -195,7 +176,6 @@ function App() {
             </div>
           </div>
         </div>
-
       </div>
     </div>  
   );
