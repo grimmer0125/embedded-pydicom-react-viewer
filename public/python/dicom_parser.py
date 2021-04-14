@@ -10,6 +10,6 @@ arr = ds.pixel_array
 image = apply_modality_lut(arr, ds)
 min = image.min()
 max = image.max()
-print("min:"+min)
-print("max:"+max)
+print(f'pixel (after lut) min:{min}')
+print(f'pixel (after lut) max:{max}')
 image, min, max
