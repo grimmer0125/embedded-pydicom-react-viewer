@@ -46,8 +46,8 @@ function App() {
     // NOTE: besides get return value (python code last line expression), 
     // python data can be retrieved by accessing python global object:
     // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version; 
-    const { data, min, max, width, height}  = await parseByPython(buffer);
-    renderFrameByPythonData(data, min, max, width, height);    
+    const { data, width, height}  = await parseByPython(buffer);
+    renderFrameByPythonData(data, width, height);    
   }
 
   const initPyodide = async () =>{
@@ -75,16 +75,16 @@ function App() {
 
     const result2 = result.toJs(1);
     const pyBufferData = result2[0].getBuffer("u8clamped");
-    const min = result2[1];
-    const max = result2[2]; 
+    // const min = result2[1];
+    // const max = result2[2]; 
     const width = result2[3];
     const height = result2[4];
     result.destroy();
     console.log('parsing dicom done')
-    return { data: pyBufferData.data, min, max, width, height} ;
+    return { data: pyBufferData.data, width, height} ;
   }
 
-  const renderFrameByPythonData = async (imageUnit8Array: Uint8ClampedArray, min: number, max: number, rawDataWidth: number, rawDataHeight: number) => {
+  const renderFrameByPythonData = async (imageUnit8Array: Uint8ClampedArray, rawDataWidth: number, rawDataHeight: number) => {
     const canvasRef = myCanvasRef;
 
     if (!canvasRef.current) {
