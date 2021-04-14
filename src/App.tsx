@@ -73,18 +73,18 @@ function App() {
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     const result = await pyodide.runPythonAsync(pythonCode);
 
-    const result2 = result.toJs();
-    const image2dUnit8Array = result2[0];
+    const result2 = result.toJs(1);
+    const pyBufferData = result2[0].getBuffer("u8clamped");
     const min = result2[1];
-    const max = result2[2];
+    const max = result2[2]; 
     const width = result2[3];
     const height = result2[4];
     result.destroy();
     console.log('parsing dicom done')
-    return { data: image2dUnit8Array, min, max, width, height} ;
+    return { data: pyBufferData.data, min, max, width, height} ;
   }
 
-  const renderFrameByPythonData = async (imageUnit8Array: Uint8Array, min: number, max: number, rawDataWidth: number, rawDataHeight: number) => {
+  const renderFrameByPythonData = async (imageUnit8Array: Uint8ClampedArray, min: number, max: number, rawDataWidth: number, rawDataHeight: number) => {
     const canvasRef = myCanvasRef;
 
     if (!canvasRef.current) {
@@ -100,13 +100,9 @@ function App() {
     if (!ctx) {
       return;
     } 
-    
-    // NOTE: 2nd memory copy/allocation. original the way of using JS to flatten 2d array does not have extra memory operation
-    // const imgData = ctx.createImageData(rawDataWidth, rawDataHeight);
-    const imageUint8ClampedArray =  new Uint8ClampedArray(imageUnit8Array); 
 
     // no allocate new memory 
-    const imgData = new ImageData(imageUint8ClampedArray,rawDataWidth,rawDataHeight);
+    const imgData = new ImageData(imageUnit8Array,rawDataWidth,rawDataHeight);
     ctx.putImageData(imgData, 0, 0);
   }
 
