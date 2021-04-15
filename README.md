@@ -84,12 +84,14 @@ Make sure you have Node.js (v14.16+), [Yarn](https://yarnpkg.com/), Python (3.9.
 either 
 ```
 $ poetry shell
-$ uvicorn main:app --reload
+$ uvicorn main:app
 ```
 or 
 ```
-$ poetry run uvicorn main:app --reload
+$ poetry run uvicorn main:app
 ```
+
+Using `uvicorn main:app --reload` is for development but we already have create react app built-in development live server.
 
 ## Issues 
 
