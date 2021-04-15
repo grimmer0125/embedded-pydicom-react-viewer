@@ -44,7 +44,7 @@ There are two more optional steps we can do
 
 ## Install dependencies
 
-Make sure you have Node.js (v14.16+), Python (3.6+) and [Poetry](https://python-poetry.org/) installed. 
+Make sure you have Node.js (v14.16+), [Yarn](https://yarnpkg.com/), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed. 
 
 1. `yarn install`
 2. `poetry install`
