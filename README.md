@@ -44,18 +44,18 @@ There are two more optional steps we can do
 
 ## Install dependencies
 
-Make sure you have Node.js (v14.16+), [Yarn](https://yarnpkg.com/), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed. 
+Make sure you have Node.js (v14.16+), [Yarn](https://yarnpkg.com/), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created. 
 
 1. `yarn install`
 2. `poetry install`
 
 ## Production - Use Python FastAPI to host React app 
 
-1. `yarn build`
+1. `yarn build` to build reactapp 
 
-2. 
+2. To launch FastAPI, 
 
-Either 
+either 
 ```
 $ poetry shell
 $ uvicorn main:app --reload

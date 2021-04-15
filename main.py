@@ -4,10 +4,10 @@ from typing import Optional
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-app.mount("/build", StaticFiles(directory="build"), name="build")
+app.mount("/", StaticFiles(directory="build", html = True), name="build")
 
 
-@app.get("/")
+@app.get("/test")
 def read_root():
     return {"Hello": "World"}
 
