@@ -1,7 +1,7 @@
 # Embedded Python DICOM visualization ReactApp
 
-This project demonstrates 
-1. How to use Python in browser, living with ReactApp.   
+This experimental project demonstrates 
+1. How to use Python in browser, working with ReactApp.   
 2. Use Python to parse DICOM files (only supprot some kind of DICOM) and pass data to JS, then draw it on Canvas. 
 
 ## Why to make this
@@ -99,4 +99,4 @@ Using `uvicorn main:app --reload` is for development but we already have create 
 
 ## Issues 
 
-1. [Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512*512 array operation. Using pure JavaScript/TypeScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author saies WebAssembly may takes `3~5x` slow). The better way might be (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.
+1. [Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512*512 array operation. Using pure JavaScript/TypeScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The better way might be (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.
