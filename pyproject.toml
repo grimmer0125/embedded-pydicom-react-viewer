@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "embedded-python-dicom-visualization-reactapp"
+version = "0.1.0"
+description = ""
+authors = ["Grimmer <grimmer0125@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.63.0"
+uvicorn = {extras = ["standard"], version = "^0.13.4"}
+aiofiles = "^0.6.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

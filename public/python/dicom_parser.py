@@ -36,4 +36,9 @@ print("2d grey array flattens to 1d RGB array ok")
 # so we need to use int(min), int(max)
 print(f'min type is:{type(min)}')  # numpy.uint16
 print(f'max type is:{type(width)}')
+
+if __name__ == '__main__':
+    # will not be executed
+    print("it is main, for testing")
+
 image, int(min), int(max), width, height
