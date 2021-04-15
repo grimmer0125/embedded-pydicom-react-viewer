@@ -42,7 +42,7 @@ await micropip.install('pydicom')
 
 ```
 
-### Use latest dev instead of 0.17.0a2 Pydicom
+### Use latest dev instead of 0.17.0a2 Pyodide
 
 Since we need to use `getBuffer` method to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2d grey array to 1d RGBA array, we need to allocate 1d RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code. 
 
