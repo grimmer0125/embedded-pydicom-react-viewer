@@ -4,8 +4,8 @@ import Dropzone from "react-dropzone";
 import { loadDicomAsync } from "./utility";
 const { fromEvent } = require("file-selector");
 
-declare var languagePluginLoader:any;
 declare var pyodide:any;
+declare var loadPyodide:any;
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -52,7 +52,8 @@ function App() {
 
   const initPyodide = async () =>{
     console.log("initialize Pyodide, python browser runtime")
-    await languagePluginLoader;
+    await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
+
     await pyodide.loadPackage(['numpy', 'micropip']);
     
     // NOTE
@@ -75,8 +76,6 @@ function App() {
 
     const result2 = result.toJs(1);
     const pyBufferData = result2[0].getBuffer("u8clamped");
-    // const min = result2[1];
-    // const max = result2[2]; 
     const width = result2[3];
     const height = result2[4];
     result.destroy();
