@@ -52,7 +52,8 @@ function App() {
 
   const initPyodide = async () =>{
     console.log("initialize Pyodide, python browser runtime")
-    await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
+    // await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
+    await loadPyodide({ indexURL : "pyodide/" }); 
 
     await pyodide.loadPackage(['numpy', 'micropip']);
     

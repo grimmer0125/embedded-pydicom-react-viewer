@@ -36,7 +36,7 @@ for i_row in range(0, height):
         image[k + 1] = value
         image[k + 2] = value
         image[k + 3] = 255
-print("2d grey array flattens to 1d RGB array ok")
+print("2d grey array flattens to 1d RGBA array ok")
 
 # ISSUE: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
 # so we need to use int(min), int(max)
