@@ -1,0 +1,5 @@
+node_modules
+public/pyodide
+build
+**/__pycache__
+*.pyc
