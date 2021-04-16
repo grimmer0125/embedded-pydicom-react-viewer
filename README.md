@@ -22,7 +22,11 @@ I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how 
 
 ### Setup Pyodide [do not ignore]
 
-The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip and you can just execute `sh download_pyodide.sh` in terminal which will download+unzip+move to `public/pyodide`. These Pyodide fiels were download from `https://cdn.jsdelivr.net/`, not built from scratch. 
+The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip and you can just execute 
+
+`$ sh download_pyodide.sh` 
+
+in terminal which will download+unzip+move to `public/pyodide`. These Pyodide fiels were download from `https://cdn.jsdelivr.net/`, not built from scratch. 
 
 Or you can comment these
 ```
@@ -74,14 +78,17 @@ Besides above medical file cases, there are some optional things we can do
 4. Dockerization
 5. Bundle some testing DICOM files
 
-## Install dependencies for intel and Mac M1 (arm) machines
+## Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
-https://github.com/nvm-sh/nvm January 2021: there are no pre-compiled NodeJS binaries for versions prior to 15.x for Apple's new M1 chip (arm64 architecture). v14.16 supports M1 but need compilation (auto done by nvm).
+https://github.com/nvm-sh/nvm January 2021: there are no pre-compiled NodeJS binaries for versions prior to 15.x for Apple's new M1 chip (arm64 architecture). v14.16 supports M1 but need compilation (auto done by nvm). p.s. nvm seems to still build 15.14.0 
 
-Make sure you have Node.js (v15.14.0+), [Yarn](https://yarnpkg.com/), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created. 
+Make sure you have Node.js (v15.14.0+), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed first. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created. 
 
-1. `yarn install`
-2. `poetry install`
+Then 
+1. `npm install --global yarn`
+2. `yarn set version berry`
+3. `yarn install`
+3. `poetry install`
 
 ## Production - Use Python FastAPI to host React app 
 
@@ -100,6 +107,11 @@ $ poetry run uvicorn main:app
 ```
 
 Using `uvicorn main:app --reload` is for development but we already have create react app built-in development live server.
+
+
+## Use Docker to run 
+1. `docker build --progress=plain -t pyodide_reactapp .` 
+2. `docker run -p 8000:8000 -d pyodide_reactapp`
 
 ## Issues 
 

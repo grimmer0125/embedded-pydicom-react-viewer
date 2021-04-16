@@ -3,13 +3,15 @@ from pydicom.pixel_data_handlers.util import apply_modality_lut
 from my_js_module import buffer
 import numpy as np
 
-print("get buffer from javascript, copy memory to wasm heap")
+print("get buffer from javascript, copied memory to wasm heap, start to read dicom")
 # print(buffer) #  memoryview object.
 ds = pydicom.dcmread(io.BytesIO(buffer))
+print("read dicom ok")
 # name = ds.PatientName
 # print("family name:"+name.family_name)
 arr = ds.pixel_array
 image2d = apply_modality_lut(arr, ds)
+print("start to get max/min")
 min = image2d .min()
 max = image2d .max()
 print(f'pixel (after lut) min:{min}')
