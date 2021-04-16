@@ -20,7 +20,7 @@ ref:
 
 I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how to properly re-use python object. 
 
-### Setup Pyodide [do not ignore]
+### Setup Pyodide [do not skip]
 
 The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip and you can just execute 
 
@@ -119,10 +119,10 @@ Using `uvicorn main:app --reload` is for development but we already have create 
 
 Cross compliation for intel/m1 takes much more time than normal `docker build`. Building + Pushing to docker hub takes 20~30min. Several times. 
 
-1. docker buildx create --use --name m1_builder
-2. docker buildx use m1_builder
-3. docker buildx inspect --bootstrap
-4. docker buildx build --platform linux/amd64,linux/arm64 --push -t grimmer0125/pyodide-react-dicom-viewer:0.2 .
+1. `docker buildx create --use --name m1_builder`
+2. `docker buildx use m1_builder`
+3. `docker buildx inspect --bootstrap`
+4. `docker buildx build --platform linux/amd64,linux/arm64 --push -t grimmer0125/pyodide-react-dicom-viewer:0.2 .`
 
 ## Use remote docker image to run
 
