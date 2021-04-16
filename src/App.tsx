@@ -111,7 +111,7 @@ function App() {
       <div>
         <div className="flex-container">
           <div>
-            DICOM Image Viewer {isPyodideLoading?"loading python runtime, do not upload file now":""} 
+            DICOM Image Viewer {isPyodideLoading?", loading python runtime, do not upload file now":""} 
           </div>
         </div>
         <div>

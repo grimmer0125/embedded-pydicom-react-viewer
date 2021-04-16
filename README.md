@@ -115,6 +115,15 @@ Using `uvicorn main:app --reload` is for development but we already have create 
 2. `docker run -p 8000:8000 -d pyodide-react-dicom-viewer`
 3. open http://localhost:8000/ and drag a DICOM file to view. 
 
+### Build a universal docker image (amd64/arm64) 
+
+Cross compliation for intel/m1 takes much more time than normal `docker build`. Building + Pushing to docker hub takes 20~30min. Several times. 
+
+1. docker buildx create --use --name m1_builder
+2. docker buildx use m1_builder
+3. docker buildx inspect --bootstrap
+4. docker buildx build --platform linux/amd64,linux/arm64 --push -t grimmer0125/pyodide-react-dicom-viewer:0.2 .
+
 ## Use remote docker image to run
 
 1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.1`
