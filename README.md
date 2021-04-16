@@ -75,8 +75,9 @@ Besides above medical file cases, there are some optional things we can do
     2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
     3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB) 
 3. move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.  
-4. Dockerization
+4. [done] Dockerization
 5. Bundle some testing DICOM files
+6. Introduction to medical files and pyodide
 
 ## Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
