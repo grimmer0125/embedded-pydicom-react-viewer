@@ -4,6 +4,8 @@ This experimental project demonstrates
 1. How to use Python in browser, working with ReactApp.   
 2. Use Python to parse DICOM files (only supprot some kind of DICOM) and pass data to JS, then draw it on Canvas. 
 
+Tested on macOS Big Sur (intel/M1), Chrome 89. 
+
 ## Why to make this
 
 Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantanges. 
@@ -72,7 +74,7 @@ Besides above medical file cases, there are some optional things we can do
 4. Dockerization
 5. Bundle some testing DICOM files
 
-## Install dependencies
+## Install dependencies for intel and Mac M1 (arm) machines
 
 Make sure you have Node.js (v14.16+), [Yarn](https://yarnpkg.com/), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created. 
 
