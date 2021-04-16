@@ -22,7 +22,7 @@ I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how 
 
 ### Setup Pyodide [do not ignore]
 
-The current code alreasy uses local latest Pyodide dev version to speed up loading, just download it once, https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/untagged-93d9591f4af9212e43f1/pyodide.zip, unzip it, then move `pyoide` folder to `public/pyodide`. These Pyoide fiels are download from `https://cdn.jsdelivr.net/`, not built from scratch. 
+The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once, https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/untagged-93d9591f4af9212e43f1/pyodide.zip, unzip it, then move `pyoide` folder to `public/pyodide`. These Pyoide fiels are download from `https://cdn.jsdelivr.net/`, not built from scratch. 
 
 Or you can comment these
 ```
