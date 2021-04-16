@@ -22,7 +22,7 @@ I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how 
 
 ### Setup Pyodide [do not ignore]
 
-The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once, https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/untagged-93d9591f4af9212e43f1/pyodide.zip, unzip it, then move `pyoide` folder to `public/pyodide`. These Pyoide fiels are download from `https://cdn.jsdelivr.net/`, not built from scratch. 
+The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once, https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip, unzip it, then move `pyoide` folder to `public/pyodide`. These Pyoide fiels are download from `https://cdn.jsdelivr.net/`, not built from scratch. 
 
 Or you can comment these
 ```
@@ -103,6 +103,6 @@ Using `uvicorn main:app --reload` is for development but we already have create 
 
 ## Issues 
 
-1. [Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512*512 array operation. Using pure JavaScript/TypeScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The better way might be 
+1. [Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The better way might be 
     1. (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.
     2. Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image + flatten?
