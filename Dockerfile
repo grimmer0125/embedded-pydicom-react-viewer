@@ -11,7 +11,7 @@ FROM ubuntu:20.04
 # 15.14+
 # RUN apt-get install -y nodejs 
 # ENV WORK_DIR /root/pyodide-reactapp
-WORKDIR /root/pyodide_dicom_react_viewer
+WORKDIR /root/pyodide_react_dicom_viewer
 
 # replace shell with bash so we can source files
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh

@@ -109,10 +109,16 @@ $ poetry run uvicorn main:app
 
 Using `uvicorn main:app --reload` is for development but we already have create react app built-in development live server.
 
+## Build local Docker to run 
 
-## Use Docker to run 
-1. `docker build --progress=plain -t pyodide_reactapp .` 
-2. `docker run -p 8000:8000 -d pyodide_reactapp`
+1. `docker build --progress=plain -t pyodide-react-dicom-viewer .` 
+2. `docker run -p 8000:8000 -d pyodide-react-dicom-viewer`
+3. open http://localhost:8000/ and drag a DICOM file to view. 
+
+## Use remote docker image to run
+
+1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.1`
+2. open http://localhost:8000/ and drag a DICOM file to view. 
 
 ## Issues 
 
