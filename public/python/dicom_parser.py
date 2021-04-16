@@ -23,22 +23,22 @@ print(f'width:{width};height:{height}')
 # 2d -> 1d -> 1d *4 (each array value -copy-> R+G+B+A)
 # NOTE: 1st memory copy/allocation
 image = np.zeros(4*width*height, dtype="uint8")
-print("allocate a 1d array")
+print("allocated a 1d array, start to flatten 2d grey array to RGBA 1d array + normalization")
+
 value_range = max - min
 
-# ISSUE: Below may takes 4s for a 512x512 image, even already use 2nd method: two loop. 
-# still 3.5~4s
-# Using JS is much faster: <0.5s 
+# ISSUE: Below may takes 3~4s for a 512x512 image, Using JS is much faster: <0.5s !!
+# Also, the wired thing is image2d.min()/max() is fast. Need more study/measurement.
 for i_row in range(0, height):
     for j_col in range(0, width):
         store_value = image2d[i_row][j_col]
         value = (store_value - min) * 255 / value_range
-        k =  4* (i_row*width + j_col) 
+        k = 4 * (i_row*width + j_col)
         image[k] = value
         image[k + 1] = value
         image[k + 2] = value
         image[k + 3] = 255
-print("2d grey array flattens to 1d RGBA array ok")
+print("2d grey array flattens to 1d RGBA array + normalization ok")
 
 # ISSUE: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
 # so we need to use int(min), int(max)
