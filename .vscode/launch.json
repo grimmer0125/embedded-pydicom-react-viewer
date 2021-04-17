@@ -1,11 +1,23 @@
 {
     "version": "0.2.0",
-    "configurations": [{
-        "type": "chrome",
-        "request": "launch",
-        "name": "Launch Chrome For localhost",
-        "url": "http://localhost:3000",
-        "webRoot": "${workspaceFolder}",
-        "runtimeArgs": ["--auto-open-devtools-for-tabs", "--disable-web-security"]
-    }]
+    "configurations": [
+        {
+            "name": "Python: current file",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome For localhost",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "runtimeArgs": [
+                "--auto-open-devtools-for-tabs",
+                "--disable-web-security"
+            ]
+        }
+    ]
 }
