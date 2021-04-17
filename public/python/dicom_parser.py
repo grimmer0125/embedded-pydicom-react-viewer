@@ -7,11 +7,17 @@ import time
 print("get buffer from javascript, copied memory to wasm heap, start to read dicom")
 # print(buffer) #  memoryview object.
 # file_name = "image-00000-ot.dcm"
-ds = pydicom.dcmread(io.BytesIO(buffer))  # file_name
+ds = pydicom.dcmread(io.BytesIO(buffer), force=True)  # file_name
 print("read dicom ok")
 # name = ds.PatientName
 # print("family name:"+name.family_name)
-arr = ds.pixel_array
+try:
+    arr = ds.pixel_array
+except:
+    ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+    arr = ds.pixel_array
+print("read dicom ok2")
+
 image2d = apply_modality_lut(arr, ds)
 print("start to get max/min")
 
@@ -19,23 +25,37 @@ start = time.time()
 min = image2d.min()
 end = time.time()
 # 0.0009999275207519531 / 0.0002989768981933594 (pyodide : local python)
-print(f"1. min:{end-start}")
+print(f"1. min time :{end-start}")
 start = time.time()
 max = image2d.max()
 end = time.time()
-print(f"2. max:{end-start}")  # 0.0 / 0.00027108192443847656
+print(f"2. max time :{end-start}")  # 0.0 / 0.00027108192443847656
 print(f'pixel (after lut) min:{min}')
-print(f'pixel (after lut) max:{max}')
+print(f'pixel (after lut) max:{max}')  # 255
 width = len(image2d[0])
 height = len(image2d)
 print(f'width:{width};height:{height}')
+
+# ref: https://towardsdatascience.com/normalization-techniques-in-python-using-numpy-b998aa81d754
+# or use sklearn.preprocessing.minmax_scale, https://stackoverflow.com/a/55526862
+# scale = np.frompyfunc(lambda x, min, max: (x - min) / (max - min), 3, 1)
+
+start = time.time()
+print(f"center pixel:{image2d[256][256]}")
+value_range = max - min
+#   # 0.003, if no astype, just 0.002. using // become 0.02
+image2d = (image2d-min)*255/value_range  # .astype("uint8")
+# bb = scale(image2d, min, max)
+print(f"normalize time:{time.time()-start}")  # 0.002s
+print(f"after normalize, center pixel:{image2d[256][256]}")  # same
+# print(f"data3:{bb[256][256]}")  # 109
+# image2d = bb
 
 # 2d -> 1d -> 1d *4 (each array value -copy-> R+G+B+A)
 # NOTE: 1st memory copy/allocation
 image = np.zeros(4*width*height, dtype="uint8")
 print("allocated a 1d array, start to flatten 2d grey array to RGBA 1d array + normalization")
 
-value_range = max - min
 
 # ISSUE: Below may takes 3~4s for a 512x512 image, Using JS is much faster: <0.5s !!
 # Also, the wired thing is image2d.min()/max() is fast. Need more study/measurement.
@@ -58,7 +78,11 @@ for i_row in range(0, height):
         delta1 += time.time() - start
         start = time.time()
         # 4.2840001583099365 / 0.32952332496643066
-        value = (store_value - min) * 255 / value_range
+        # Issue:  (store_value - min) * 255 / value_range
+        # 1. slow
+        # 2. final image seems wrong
+        value = store_value  #
+        # value = store_value
         delta2 += time.time() - start
         start = time.time()
         # 0.41300106048583984 / 0.04794716835021973
@@ -76,7 +100,9 @@ for i_row in range(0, height):
         start = time.time()
         image[k + 3] = 255  # 0.3860006332397461 / 0.04797720909118652
         delta7 += time.time() - start
-print("2d grey array flattens to 1d RGBA array + normalization ok")
+
+total = delta1 + delta2 + delta3 + delta4 + delta5 + delta6 + delta7
+print(f"2d grey array flattens to 1d RGBA array + normalization ok:{total}")
 
 print(f"{delta1}, {delta2}, {delta3}, {delta4}, {delta5}, {delta6}, {delta7}")
 
