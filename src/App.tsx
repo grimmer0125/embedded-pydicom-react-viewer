@@ -4,8 +4,8 @@ import Dropzone from "react-dropzone";
 import { loadDicomAsync } from "./utility";
 const { fromEvent } = require("file-selector");
 
-declare var pyodide:any;
-declare var loadPyodide:any;
+declare var pyodide: any;
+declare var loadPyodide: any;
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -39,24 +39,24 @@ function App() {
 
       loadFile(acceptedFiles[0]);
     }
-  };  
+  };
 
   const loadFile = async (file: any) => {
-    const buffer = await loadDicomAsync(file); 
+    const buffer = await loadDicomAsync(file);
     // NOTE: besides get return value (python code last line expression), 
     // python data can be retrieved by accessing python global object:
     // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version; 
-    const { data, width, height}  = await parseByPython(buffer);
-    renderFrameByPythonData(data, width, height);    
+    const { data, width, height } = await parseByPython(buffer);
+    renderFrameByPythonData(data, width, height);
   }
 
-  const initPyodide = async () =>{
+  const initPyodide = async () => {
     console.log("initialize Pyodide, python browser runtime")
     // await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
-    await loadPyodide({ indexURL : "pyodide/" }); 
+    await loadPyodide({ indexURL: "pyodide/" });
 
     await pyodide.loadPackage(['numpy', 'micropip']);
-    
+
     // NOTE
     // https://pyodide.org/en/0.17.0a2/usage/faq.html
     // pyodide.runPython(await fetch('https://some_url/...')) <- doc seems missing .text() part
@@ -67,7 +67,7 @@ function App() {
     setPyodideLoading(false);
   }
 
-  const parseByPython = async (buffer:ArrayBuffer) =>{
+  const parseByPython = async (buffer: ArrayBuffer) => {
 
     my_js_module.current["buffer"] = buffer;
 
@@ -81,7 +81,7 @@ function App() {
     const height = result2[4];
     result.destroy();
     console.log('parsing dicom done')
-    return { data: pyBufferData.data, width, height} ;
+    return { data: pyBufferData.data, width, height };
   }
 
   const renderFrameByPythonData = async (imageUnit8Array: Uint8ClampedArray, rawDataWidth: number, rawDataHeight: number) => {
@@ -99,10 +99,10 @@ function App() {
     const ctx = c.getContext("2d");
     if (!ctx) {
       return;
-    } 
+    }
 
     // no allocate new memory 
-    const imgData = new ImageData(imageUnit8Array,rawDataWidth,rawDataHeight);
+    const imgData = new ImageData(imageUnit8Array, rawDataWidth, rawDataHeight);
     ctx.putImageData(imgData, 0, 0);
   }
 
@@ -111,7 +111,7 @@ function App() {
       <div>
         <div className="flex-container">
           <div>
-            DICOM Image Viewer {isPyodideLoading?", loading python runtime, do not upload file now":""} 
+            DICOM Image Viewer {isPyodideLoading ? ", loading python runtime, do not upload file now" : ""}
           </div>
         </div>
         <div>
@@ -135,13 +135,13 @@ function App() {
                   <p>
                     {" "}
                     Try dropping DICOM image file here, <br />
-                    or click here to select file to view. <br />                  
+                    or click here to select file to view. <br />
                   </p>
                 </div>
               </div>
-            </Dropzone>                        
+            </Dropzone>
           </div>
-        </div>      
+        </div>
         <div
           style={{
             display: "flex",
@@ -173,7 +173,7 @@ function App() {
           </div>
         </div>
       </div>
-    </div>  
+    </div>
   );
 }
 
