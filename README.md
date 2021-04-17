@@ -12,7 +12,7 @@ Besides it is an interesting thing to use Python in browser, using Python DICOM 
 1. Although my another Chrome extension/Web project, https://github.com/grimmer0125/dicom-web-viewer uses 3-party JavaScript DICOM parser library but it seems not manintained. The other JavaScript/TypeScript DICOM parser library might be too heavy to use. 
 2. Scientists usually use Python DICOM parser library, and using the same language/library is a good thing. 
 
-## Python Browser runtime - Pyodide
+## Python 3.8 Browser runtime - Pyodide 
 
 ref: 
 1. https://github.com/pyodide/pyodide
@@ -126,7 +126,7 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
 
 ## Use remote docker image to run
 
-1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.1`
+1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.2`
 2. open http://localhost:8000/ and drag a DICOM file to view. 
 
 ## Issues 
