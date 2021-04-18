@@ -129,6 +129,10 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
 1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.2`
 2. open http://localhost:8000/ and drag a DICOM file to view. 
 
+## Sample DICOM file
+
+- https://drive.google.com/file/d/1TlkESdkBqi-zTXePzxxvjiFZCBcSE8r2/view?usp=sharing
+
 ## Issues 
 
 1. ~~[Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be~~
@@ -136,10 +140,16 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
     1. ~~(can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
     2. ~~[Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.~~
 
+Speed (using above sample file to test, `image-00000-ot.dcm`): 
+1. numpy array + manual iteration calculation in local python ~= numpy array + numpy array operation ~= JS ArrayBuffer/int8ClampedArray + manual iteration calculation (very fast) >> 
+2. Python list + manual iteration calculation > (5s)
+3. numpy array + manual iteration calculation in pyodide. (7s)
+
+p.s.
+1. I did not record JS accurate time cost but it is fast. 
+2. Local Python is much faster than Pyodide Python in browser.
+
 ## Development 
 
 Please use VS Code and bulit-in TypeScript/Python formatter setting. Please install Python autopep8 out of thie project environment and mare sure the VS Code setting. Also, you can enable "format on save". 
 
-## Sample DICOM file
-
-- https://drive.google.com/file/d/1TlkESdkBqi-zTXePzxxvjiFZCBcSE8r2/view?usp=sharing
