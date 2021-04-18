@@ -20,15 +20,13 @@ const MAX_WIDTH_SERIES_MODE = 400;
 const MAX_HEIGHT_SERIES_MODE = 400;
 
 function App() {
-
   const my_js_module = useRef<any>({});
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
 
-  // NOTE: do some initialization
   useEffect(() => {
-    initPyodide();
+    initPyodide(); // do some initialization
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
   const onDropFiles = async (acceptedFiles: any[]) => {
@@ -52,13 +50,9 @@ function App() {
 
   const initPyodide = async () => {
     console.log("initialize Pyodide, python browser runtime")
-    // await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
     await loadPyodide({ indexURL: "pyodide/" });
-
     await pyodide.loadPackage(['numpy', 'micropip']);
-
-    // NOTE
-    // https://pyodide.org/en/0.17.0a2/usage/faq.html
+    // NOTE: https://pyodide.org/en/0.17.0a2/usage/faq.html
     // pyodide.runPython(await fetch('https://some_url/...')) <- doc seems missing .text() part
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();
     await pyodide.runPythonAsync(pythonCode);
@@ -68,13 +62,10 @@ function App() {
   }
 
   const parseByPython = async (buffer: ArrayBuffer) => {
-
-    my_js_module.current["buffer"] = buffer;
-
     console.log("start to use python to parse parse dicom data")
+    my_js_module.current["buffer"] = buffer;
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     const result = await pyodide.runPythonAsync(pythonCode);
-
     const result2 = result.toJs(1);
     const pyBufferData = result2[0].getBuffer("u8clamped");
     const width = result2[3];
@@ -86,7 +77,6 @@ function App() {
 
   const renderFrameByPythonData = async (imageUnit8Array: Uint8ClampedArray, rawDataWidth: number, rawDataHeight: number) => {
     const canvasRef = myCanvasRef;
-
     if (!canvasRef.current) {
       console.log("canvasRef is not ready, return");
       return;
@@ -123,17 +113,13 @@ function App() {
               onDrop={onDropFiles}
             >
               <div
+                className="flex-column-justify-align-center"
                 style={{
                   height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
                 }}
               >
                 <div>
                   <p>
-                    {" "}
                     Try dropping DICOM image file here, <br />
                     or click here to select file to view. <br />
                   </p>
@@ -143,25 +129,13 @@ function App() {
           </div>
         </div>
         <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-          }}
+          className="flex-container"
         >
           <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+            className="flex-column-justify-align-center"
           >
             <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+              className="flex-column_align-center"
             >
               <canvas
                 ref={myCanvasRef}
