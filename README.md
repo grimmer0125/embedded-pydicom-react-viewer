@@ -1,4 +1,4 @@
-# Embedded Python DICOM visualization ReactApp
+# Embedded Pydicom React Viewer
 
 This experimental project demonstrates 
 1. How to use Python in browser, working with ReactApp.   
