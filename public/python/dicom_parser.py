@@ -163,10 +163,18 @@ def main():
         print("you are not in pyodide or your JS does not register my_js_module, just do local python stuff")
         # start to do some local Python stuff, e.g. testing
         ds = get_pydicom_dataset_from_local_file(
-            "public/python/image-00000-ot.dcm")
+            "dicom/image-00000-ot.dcm")
     image2d = get_manufacturer_independent_pixel_image2d_array(ds)
     _max, _min = get_image2d_maxmin(image2d)
     width, height = get_image2d_dimension(image2d)
+
+    if ds[0x28, 0x04].value == "MONOCHROME1":
+        print("invert color for monochrome1")
+        # -100 ~ 300
+        start = time.time()
+        image2d = _max - image2d + _min
+        print(f"invert monochrome1 time:{time.time()-start}")
+
     image2d = normalize_image2d(image2d, _max, _min)
     image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
 

@@ -60,12 +60,15 @@ Since we need to use `getBuffer` method to eliminate memory allocation/copy, tha
 
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
-1. possible window center & width mode (need work with rescale equation)
-2. RGB mode1
-3. MONOCHROME1 inverted color 
-4. multiple frame 
-5. coronal & sagittal views & judge if current is AxialView or not 
-6. scale (resize to viewer size)
+-  DICOME FILE 
+    - Transfer Syntax: JPEG (50, 70 etc)
+    - ~~Photometric: MONOCHROME1, inverted color~~     
+    - Photometric: RGB 
+    - Photometric: PALETTE
+-  possible window center & width mode (need work with rescale equation)
+-  multiple frame 
+-  coronal & sagittal views & judge if current is AxialView or not 
+-  scale (resize to viewer size)
 
 ##  todo list
 
@@ -131,7 +134,8 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
 
 ## Sample DICOM file
 
-- https://drive.google.com/file/d/1TlkESdkBqi-zTXePzxxvjiFZCBcSE8r2/view?usp=sharing
+- https://drive.google.com/file/d/1TlkESdkBqi-zTXePzxxvjiFZCBcSE8r2/view?usp=sharing, `image-00000-ot.dcm`
+- https://barre.dev/medical/samples/
 
 ## Issues 
 
