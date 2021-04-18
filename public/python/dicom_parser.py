@@ -1,18 +1,24 @@
 import pydicom
 from pydicom.pixel_data_handlers.util import apply_modality_lut
-from my_js_module import buffer
 import numpy as np
 import time
+from io import BytesIO
 
 
-def get_pydicom_dataset_obj():
+def get_pydicom_dataset_from_js_buffer(buffer_memory):
     print("get buffer from javascript, copied memory to wasm heap, start to read dicom")
     # print(buffer) #  memoryview object.
     # file_name = "image-00000-ot.dcm"
-    ds = pydicom.dcmread(io.BytesIO(buffer), force=True)  # file_name
+    ds = pydicom.dcmread(BytesIO(buffer_memory), force=True)
     print("read dicom ok")
     # patient_name = ds.PatientName
     # print("patient family name:"+patient_name.family_name)
+    return ds
+
+
+def get_pydicom_dataset_from_local_file(path):
+    ds = pydicom.dcmread(path, force=True)
+    print("read dicom ok")
     return ds
 
 
@@ -21,6 +27,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
     try:
         arr = ds.pixel_array
     except:
+        print("possible no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
         ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
         arr = ds.pixel_array
     print("read dicom pixel_array ok")
@@ -31,17 +38,17 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
 def get_image2d_maxmin(image2d):
     print("start to get max/min")
     start = time.time()
-    min = image2d.min()
+    _min = image2d.min()
     end = time.time()
     # 0.0009999275207519531 / 0.0002989768981933594 (pyodide : local python)
     print(f"1. min time :{end-start}")
     start = time.time()
-    max = image2d.max()
+    _max = image2d.max()
     end = time.time()
     print(f"2. max time :{end-start}")  # 0.0 / 0.00027108192443847656
-    print(f'pixel (after lut) min:{min}')
-    print(f'pixel (after lut) max:{max}')  # 255
-    return max, min
+    print(f'pixel (after lut) min:{_min}')
+    print(f'pixel (after lut) max:{_max}')  # 255
+    return _max, _min
 
 
 def get_image2d_dimension(image2d):
@@ -51,7 +58,10 @@ def get_image2d_dimension(image2d):
     return width, height
 
 
-def normalize_image2d(image2d):
+def normalize_image2d(image2d, _max, _min):
+    width = len(image2d[0])
+    height = len(image2d)
+
     print("start to flatten 2d grey array to RGBA 1d array + normalization")
     # step1: normalize
     start = time.time()
@@ -60,16 +70,19 @@ def normalize_image2d(image2d):
     # ref: https://towardsdatascience.com/normalization-techniques-in-python-using-numpy-b998aa81d754
     # or use sklearn.preprocessing.minmax_scale, https://stackoverflow.com/a/55526862
     # scale = np.frompyfunc(lambda x, min, max: (x - min) / (max - min), 3, 1)
-    value_range = max - min
+    value_range = _max - _min
     # 0.003, if no astype, just 0.002. using // become 0.02
     # or using colormap is another fast way,
-    image2d = (((image2d-min)/value_range)*255).astype("uint8")
+    image2d = (((image2d-_min)/value_range)*255).astype("uint8")
     print(f"normalize time:{time.time()-start}")
     print(f"after normalize, center pixel:{image2d[width//2][height//2]}")
     return image2d
 
 
 def flatten_grey_image2d_to_rgba_1d_image_array(image2d):
+    width = len(image2d[0])
+    height = len(image2d)
+
     # https://stackoverflow.com/questions/63783198/how-to-convert-2d-array-into-rgb-image-in-python
     # step2: 2D grey -> 2D RGBA -> Flattn to 1D RGBA
     start = time.time()
@@ -86,10 +99,13 @@ def flatten_grey_image2d_to_rgba_1d_image_array(image2d):
 def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d):
     ''' This is depreciated 
     '''
+    width = len(image2d[0])
+    height = len(image2d)
+
     # 2d -> 1d -> 1d *4 (each array value -copy-> R+G+B+A)
     # NOTE: 1st memory copy/allocation
     image = np.zeros(4*width*height, dtype="uint8")
-    print("allocated a 1d array, start to flatten 2d grey array to RGBA 1d array + normalization")
+    print("allocated a 1d array, start to flatten 2d grey array to RGBA 1d array")
     # ISSUE: Below may takes 3~4s for a 512x512 image, Using JS is much faster: <0.5s !!
     # Also, the wired thing is image2d.min()/max() is fast. Need more study/measurement.
     delta1 = 0
@@ -110,7 +126,7 @@ def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d):
             delta1 += time.time() - start
             start = time.time()
             # 4.2840001583099365 / 0.32952332496643066
-            # Issue:  (store_value - min) * 255 / value_range
+            # Issue:  (store_value - min) * 255 / value_range <- normalization
             # 1. slow
             # 2. final image seems wrong
             value = store_value  #
@@ -134,25 +150,36 @@ def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d):
             delta7 += time.time() - start
     total = delta1 + delta2 + delta3 + delta4 + delta5 + delta6 + delta7
     print(
-        f"2d grey array flattens to 1d RGBA array + normalization ok:{total}")
+        f"2d grey array flattens to 1d RGBA array ok:{total}")
     print(f"{delta1}, {delta2}, {delta3}, {delta4}, {delta5}, {delta6}, {delta7}")
 
 
-ds = get_pydicom_dataset_obj()
-image2d = get_manufacturer_independent_pixel_image2d_array(ds)
+def main():
+    try:
+        from my_js_module import buffer  # pylint: disable=import-error
+        print("you are in pyodide & get my_js_module")
+        ds = get_pydicom_dataset_from_js_buffer(buffer)
+    except ModuleNotFoundError:
+        print("you are not in pyodide or your JS does not register my_js_module, just do local python stuff")
+        # start to do some local Python stuff, e.g. testing
+        ds = get_pydicom_dataset_from_local_file(
+            "public/python/image-00000-ot.dcm")
+    image2d = get_manufacturer_independent_pixel_image2d_array(ds)
+    _max, _min = get_image2d_maxmin(image2d)
+    width, height = get_image2d_dimension(image2d)
+    image2d = normalize_image2d(image2d, _max, _min)
+    image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
 
-max, min = get_image2d_maxmin(image2d)
-width, height = get_image2d_dimension(image2d)
-image2d = normalize_image2d(image2d)
-image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
+    # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
+    # so we need to use int(min), int(max)
+    print(f'min type is:{type(_min)}')  # numpy.uint16
+    print(f'max type is:{type(width)}')
+    return image, int(_min), int(_max), width, height
 
-# Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
-# so we need to use int(min), int(max)
-print(f'min type is:{type(min)}')  # numpy.uint16
-print(f'max type is:{type(width)}')
 
-if __name__ == '__main__':
-    # will not be executed in pyodide context
-    print("it is in __main__")
+main()
 
-image, int(min), int(max), width, height
+# if __name__ == '__main__':
+# will not be executed in pyodide context, after testing
+# print("it is in __main__")
+# maint()
