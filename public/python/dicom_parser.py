@@ -11,8 +11,11 @@ ds = pydicom.dcmread(io.BytesIO(buffer), force=True)  # file_name
 print("read dicom ok")
 # name = ds.PatientName
 # print("family name:"+name.family_name)
-arr = ds.pixel_array
-
+try:
+    arr = ds.pixel_array
+except:
+    ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+    arr = ds.pixel_array
 print("read dicom pixel_array ok")
 
 image2d = apply_modality_lut(arr, ds)
