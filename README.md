@@ -56,12 +56,12 @@ Since we need to use `getBuffer` method to eliminate memory allocation/copy, tha
 1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide), draw canvas in Pyodide runtime
 2. [https://github.com/pymedphys/pymedphys](https://github.com/pymedphys/pymedphys), mainly for DICOM-RT
 
-## Not handle cases on medical files
+## Not handle/test cases on medical files
 
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 1. possible window center & width mode (need work with rescale equation)
-2. RGB mode1, RGB mode2
+2. RGB mode1
 3. MONOCHROME1 inverted color 
 4. multiple frame 
 5. coronal & sagittal views & judge if current is AxialView or not 
