@@ -154,13 +154,11 @@ def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d):
     print(f"{delta1}, {delta2}, {delta3}, {delta4}, {delta5}, {delta6}, {delta7}")
 
 
-def main():
-    try:
+def main(is_pyodide_context: bool):
+    if is_pyodide_context:
         from my_js_module import buffer  # pylint: disable=import-error
-        print("you are in pyodide & get my_js_module")
         ds = get_pydicom_dataset_from_js_buffer(buffer)
-    except ModuleNotFoundError:
-        print("you are not in pyodide or your JS does not register my_js_module, just do local python stuff")
+    else:
         # start to do some local Python stuff, e.g. testing
         ds = get_pydicom_dataset_from_local_file(
             "dicom/image-00000-ot.dcm")
@@ -185,9 +183,25 @@ def main():
     return image, int(_min), int(_max), width, height
 
 
-main()
+result = None
+try:
+    import js
+    print("you are in pyodide")
+    result = main(True)
+except ModuleNotFoundError:
+    is_pyodide_context = False
+    print("you are not in pyodide, just do local python stuff")
+    import line_profiler
+    profile = line_profiler.LineProfiler()
+    # using @profile is another way
+    # TODO: wrap @profile with is_pyodide_context so we can use it both in local python or pyodide
+    main_wrap = profile(main)
+    result = main_wrap(False)
+    profile.print_stats()
+result
+
 
 # if __name__ == '__main__':
 # will not be executed in pyodide context, after testing
 # print("it is in __main__")
-# maint()
+# main()
