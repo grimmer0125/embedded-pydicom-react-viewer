@@ -82,6 +82,7 @@ def normalize_image2d(image2d, _max, _min):
 def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d):
     # color-by-pixel
     # Planar Configuration = 0 -> R1, G1, B1, R2, G2, B2, …
+    # e.g. US-RGB-8-esopecho.dcm (120, 256, 3)
     width = len(image2d[0])
     height = len(image2d)
     alpha = np.full((height, width), 255)
@@ -93,30 +94,22 @@ def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d):
 
 
 def flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d):
-    # color by plane ???????
-
+    # color by plane
     # Planar Configuration = 1 -> R1, R2, R3, …, G1, G2, G3, …, B1, B2, B3
-    return image2d
+    # e.g. US-RGB-8-epicard.dcm (480, 640, 3)
 
+    # ISSUE:
+    # The shape of testing DICOM file is like planar 0 and below just work
+    # weird for RGB w/ planar 1 !!!
 
-def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d):
-    # color-by-pixel
-    # Planar Configuration = 0 -> R1, G1, B1, R2, G2, B2, …
-    width = len(image2d[0])
-    height = len(image2d)
-    alpha = np.full((height, width), 255)
-    stacked = np.dstack((image2d, alpha))
-    print(f"shape:{stacked.shape}")
-    image = stacked.flatten()
-    image = image.astype("uint8")
-    return image
+    # Originally I guess the shape is not correcct, found out the below link :
+    # https://stackoverflow.com/questions/42650233/how-to-access-rgb-pixel-arrays-from-dicom-files-using-pydicom
+    # image2d = image2d.reshape([image2d.shape[1], image2d.shape[2], 3]) <- not work
 
+    # The final trial is just use the same function as planar 0
+    # The only possible explanation is pydicom automatically read it as same shape for both cases
 
-def flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d):
-    # color by plane ???????
-
-    # Planar Configuration = 1 -> R1, R2, R3, …, G1, G2, G3, …, B1, B2, B3
-    return image2d
+    return flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
 
 
 def flatten_grey_image2d_to_rgba_1d_image_array(image2d):
@@ -237,19 +230,9 @@ def main(is_pyodide_context: bool):
         print(f"planar:{planar_config}. dimension:{image2d.shape}")  # 0 or 1
 
         if planar_config == 0:
-            # (120, 256, 3), echo
             image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
         else:
-            # US-RGB-8-epicard.dcm
-            # ISSUE:
-            # (480, 640, 3) <- shape is like planar 0 and below just work
-            # weird for RGB w/ planar 1 !!! pydicom automatically read it as same shape for both cases???
-            image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
-
-            # Originally I guess the shape is not correcct, found out the below link :
-            # https://stackoverflow.com/questions/42650233/how-to-access-rgb-pixel-arrays-from-dicom-files-using-pydicom
-            # image2d = image2d.reshape([image2d.shape[1], image2d.shape[2], 3]) <- not work
-            # do not expect the handle is the same as planar 0 !!
+            image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
     else:
         image2d = normalize_image2d(image2d, _max, _min)
         image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
@@ -280,6 +263,5 @@ result
 
 
 # if __name__ == '__main__':
-# will not be executed in pyodide context, after testing
-# print("it is in __main__")
-# main()
+#   will not be executed in pyodide context, after testing
+#   print("it is in __main__")
