@@ -63,8 +63,8 @@ Below non handled items are done in another project https://github.com/grimmer01
 -  DICOME FILE 
     - Transfer Syntax: JPEG (50, 51, 57, 70 etc). 51, 57 not tested. 50 & 70 needes fixes.
     - ~~Photometric: MONOCHROME1, inverted color~~     
-    - Photometric: RGB 
-    - Photometric: PALETTE
+    - ~~Photometric: RGB with planar 0, 1~~
+    - ~~Photometric: PALETTE~~
 -  possible window center & width mode (need work with rescale equation)
 -  multiple frame 
 -  coronal & sagittal views & judge if current is AxialView or not 
