@@ -79,14 +79,35 @@ def normalize_image2d(image2d, _max, _min):
     return image2d
 
 
+def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d):
+    # color-by-pixel
+    # Planar Configuration = 0 -> R1, G1, B1, R2, G2, B2, …
+    width = len(image2d[0])
+    height = len(image2d)
+    alpha = np.full((height, width), 255)
+    stacked = np.dstack((image2d, alpha))
+    print(f"shape:{stacked.shape}")
+    image = stacked.flatten()
+    image = image.astype("uint8")
+    return image
+
+
+def flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d):
+    # color by plane ???????
+
+    # Planar Configuration = 1 -> R1, R2, R3, …, G1, G2, G3, …, B1, B2, B3
+    return image2d
+
+
 def flatten_grey_image2d_to_rgba_1d_image_array(image2d):
+    # 3 planes. R plane (z=0), G plane (z=1), B plane (z=2)
     width = len(image2d[0])
     height = len(image2d)
 
     # https://stackoverflow.com/questions/63783198/how-to-convert-2d-array-into-rgb-image-in-python
     # step2: 2D grey -> 2D RGBA -> Flattn to 1D RGBA
     start = time.time()
-    alpha = np.full((width, height), 255)  # ~
+    alpha = np.full((height, width), 255)  # ~
     stacked = np.dstack((image2d, image2d, image2d, alpha))
     print(f"stacked shape:{stacked.shape}")  # 512x 512x 4
     image = stacked.flatten()
@@ -166,15 +187,28 @@ def main(is_pyodide_context: bool):
     _max, _min = get_image2d_maxmin(image2d)
     width, height = get_image2d_dimension(image2d)
 
-    if ds[0x28, 0x04].value == "MONOCHROME1":
+    photometric = ds[0x28, 0x04].value
+    print(f"photometric:{photometric}")
+    if photometric == "MONOCHROME1":
         print("invert color for monochrome1")
         # -100 ~ 300
         start = time.time()
         image2d = _max - image2d + _min
         print(f"invert monochrome1 time:{time.time()-start}")
 
-    image2d = normalize_image2d(image2d, _max, _min)
-    image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
+    if photometric == "RGB":
+        planar_config = ds[0x0028, 0x0006].value
+        print(f"planar:{planar_config}. dimension:{image2d.shape}")  # 0 or 1
+
+        if planar_config == 0:
+            # (120, 256, 3), echo
+            image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
+        else:
+            # (480, 640, 3) ?
+            image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
+    else:
+        image2d = normalize_image2d(image2d, _max, _min)
+        image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
 
     # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
     # so we need to use int(min), int(max)
