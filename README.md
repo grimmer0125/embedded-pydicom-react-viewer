@@ -79,18 +79,19 @@ Below non handled items are done in another project https://github.com/grimmer01
 ##  todo list
 
 Besides adding back above medical file cases/features, there are some optional things we can do 
-1. [Done] host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
+1. [Done] Host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
     1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files 
     2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
     3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB) 
-3. move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.  
+3. Move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.  
 4. [done] Dockerization
 5. Bundle some testing DICOM files
 6. Introduction to medical files and pyodide
 7. Make a Python package
 8. 3D visualization
 9. Help to improve Pyodide
-10. Add tests
+10. Refactor
+11. Add tests
 
 ## Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
