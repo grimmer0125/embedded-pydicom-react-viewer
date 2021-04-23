@@ -14,6 +14,8 @@ Besides it is an interesting thing to use Python in browser, using Python DICOM 
 
 ## Screenshot
 
+OT-MONO2-8-hip.dcm from https://barre.dev/medical/samples/
+
 ![alt tag](https://raw.githubusercontent.com/grimmer0125/embedded-pydicom-react-viewer/master/public/screenshot.png)
 
 ## Python 3.8 Browser runtime - Pyodide 
@@ -76,7 +78,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 ##  todo list
 
-Besides above medical file cases, there are some optional things we can do 
+Besides adding back above medical file cases/features, there are some optional things we can do 
 1. [Done] host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
     1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files 
     2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
@@ -85,6 +87,9 @@ Besides above medical file cases, there are some optional things we can do
 4. [done] Dockerization
 5. Bundle some testing DICOM files
 6. Introduction to medical files and pyodide
+7. Make a Python package
+8. 3D visualization
+9. Help to improve Pyodide
 
 ## Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
@@ -138,7 +143,6 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
 
 ## Sample DICOM file
 
-- https://drive.google.com/file/d/1TlkESdkBqi-zTXePzxxvjiFZCBcSE8r2/view?usp=sharing, `image-00000-ot.dcm`
 - https://barre.dev/medical/samples/
 - http://www.rubomedical.com/dicom_files/ (some are `DICOM jpeg 1.2.840.10008.1.2.4.50`)
 
@@ -149,7 +153,7 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
     1. ~~(can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
     2. ~~[Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.~~
 
-Speed (using above sample file to test, `image-00000-ot.dcm`): 
+Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/): 
 1. numpy array + manual iteration calculation in local python ~= numpy array + numpy array operation ~= JS ArrayBuffer/int8ClampedArray + manual iteration calculation (very fast) >> 
 2. Python list + manual iteration calculation > (5s)
 3. numpy array + manual iteration calculation in pyodide. (7s)
