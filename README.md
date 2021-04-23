@@ -90,6 +90,7 @@ Besides adding back above medical file cases/features, there are some optional t
 7. Make a Python package
 8. 3D visualization
 9. Help to improve Pyodide
+10. Add tests
 
 ## Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
