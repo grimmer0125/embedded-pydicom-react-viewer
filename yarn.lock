@@ -5179,6 +5179,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"d4c-queue@npm:^1.3.6":
+  version: 1.3.6
+  resolution: "d4c-queue@npm:1.3.6"
+  dependencies:
+    denque: ^1.5.0
+  checksum: f6cf8ba742cfd4703a06dc13b5c7568811adde94925e9fb68c83dcfc7c7f50df62a2c289f225bfb9d1308fd738beb7367565c01f2dc770f14a4623dcfc896e0d
+  languageName: node
+  linkType: hard
+
 "d@npm:1, d@npm:^1.0.1":
   version: 1.0.1
   resolution: "d@npm:1.0.1"
@@ -5387,6 +5396,13 @@ __metadata:
   version: 1.0.0
   resolution: "delegates@npm:1.0.0"
   checksum: 7459e34d29cadd9bfd340728bfcc70ea96da5d940fb197298b523f805822680e583cba3ec34d36a18004325f1ec9de55e202a92b414d01db18cd87bb8a2ae5bd
+  languageName: node
+  linkType: hard
+
+"denque@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "denque@npm:1.5.0"
+  checksum: 3564778cda60c7dee3f1d71e397e50e6b39a8c06118aab9843b9396cb621b3191ab56d13de5237b8beee2b87bec485e8239c58ca3133472d2d1eaa3d2d518022
   languageName: node
   linkType: hard
 
@@ -5706,11 +5722,13 @@ __metadata:
     "@types/node": ^12.0.0
     "@types/react": ^17.0.0
     "@types/react-dom": ^17.0.0
+    d4c-queue: ^1.3.6
     file-selector: ^0.1.12
     react: ^17.0.2
     react-dom: ^17.0.2
     react-dropzone: ^7.0.1
     react-scripts: 4.0.3
+    reflect-metadata: ^0.1.13
     typescript: ^4.1.2
     web-vitals: ^1.0.1
   languageName: unknown
@@ -12322,6 +12340,13 @@ fsevents@^1.2.7:
     indent-string: ^4.0.0
     strip-indent: ^3.0.0
   checksum: 78c8aa0a1076f47e0e198bfc8a9aa7d4ae3163c6951bd5de1015e47661bba62ea36573337bbeb4b309b48cc71954edbe43ae4aa3163db1996a781b757c5c47d7
+  languageName: node
+  linkType: hard
+
+"reflect-metadata@npm:^0.1.13":
+  version: 0.1.13
+  resolution: "reflect-metadata@npm:0.1.13"
+  checksum: 629101e6c8b7e0d3166fa51953f908f45b5c73dbaf1375c4f8c3ed62221b870c951343b9b031d0c49957e7262a88020f41be25731ee85b5d779f12c7cec66005
   languageName: node
   linkType: hard
 

@@ -9,7 +9,7 @@ Tested on macOS Big Sur (intel/M1), Chrome 89.
 
 Its usage is simple. Just drag a DICOM file into the panel to view.
 
-Download from [Sample DICOM file](#sample-dicom-file)
+Download from [DICOM sample file](#dicom-sample-file)
 
 ## Motivation
 
@@ -132,19 +132,21 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
 
 ### Use remote docker image to run
 
+Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-viewer
+
 1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.3`
 2. open http://localhost:8000/ and drag a DICOM file to view.
 
-## Sample DICOM file
+## DICOM sample file
 
 - https://barre.dev/medical/samples/
 - http://www.rubomedical.com/dicom_files/ (some are `DICOM jpeg 1.2.840.10008.1.2.4.50`)
 
-## Not handle/test cases on DICOM medical files
+## DICOM medical files - Not handle/test cases
 
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
-- DICOME FILE
+- DICOM FILE
   - Transfer Syntax: JPEG (50, 51, 57, 70 etc). 51, 57 not tested. 50 & 70 needes fixes.
   - ~~Photometric: MONOCHROME1, inverted color~~
   - ~~Photometric: RGB with planar 0, 1~~
