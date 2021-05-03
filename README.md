@@ -1,16 +1,22 @@
 # Embedded Pydicom React Viewer
 
-This experimental project demonstrates 
-1. How to use Python in browser, working with ReactApp.   
-2. Use Python to parse DICOM files (only supprot some kind of DICOM) and pass data to JS, then draw it on Canvas. 
+This experimental project demonstrates
 
-Tested on macOS Big Sur (intel/M1), Chrome 89. 
+1. How to use Python in browser, working with ReactApp.
+2. Use Python to parse DICOM files (only supprot some kind of DICOM) and pass data to JS, then draw it on Canvas.
 
-## Why to make this
+Tested on macOS Big Sur (intel/M1), Chrome 89.
 
-Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantanges. 
-1. Although my another Chrome extension/Web project, https://github.com/grimmer0125/dicom-web-viewer uses 3-party JavaScript DICOM parser library but it seems not manintained. The other JavaScript/TypeScript DICOM parser library might be too heavy to use. 
-2. Scientists usually use Python DICOM parser library, and using the same language/library is a good thing. 
+Its usage is simple. Just drag a DICOM file into the panel to view.
+
+Download from [Sample DICOM file](#sample-dicom-file)
+
+## Motivation
+
+Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantanges.
+
+1. Although my another Chrome extension/Web project, https://github.com/grimmer0125/dicom-web-viewer uses 3-party JavaScript DICOM parser library but it seems not manintained. The other JavaScript/TypeScript DICOM parser library might be too heavy to use.
+2. Scientists usually use Python DICOM parser library, and using the same language/library is a good thing.
 
 ## Screenshot
 
@@ -18,29 +24,40 @@ OT-MONO2-8-hip.dcm from https://barre.dev/medical/samples/
 
 ![alt tag](https://raw.githubusercontent.com/grimmer0125/embedded-pydicom-react-viewer/master/public/screenshot.png)
 
-## Python 3.8 Browser runtime - Pyodide 
+## Python 3.8 Browser runtime - Pyodide
 
-ref: 
+ref:
+
 1. https://github.com/pyodide/pyodide
 2. https://pyodide.org/en/latest/development/new-packages.html
 
-I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how to properly re-use python object. 
+I opened a issue here, https://github.com/pyodide/pyodide/issues/1426 about how to properly re-use python object.
 
-### Setup Pyodide [do not skip]
+### Other GitHub repos using Pyodide + Pydicom
 
-The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip and you can just execute 
+1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide), draw canvas in Pyodide runtime
+2. [https://github.com/pymedphys/pymedphys](https://github.com/pymedphys/pymedphys), mainly for DICOM-RT
 
-`$ sh download_pyodide.sh` 
+## Development
 
-in terminal which will download+unzip+move to `public/pyodide`. These Pyodide fiels were download from `https://cdn.jsdelivr.net/`, not built from scratch. 
+Please use VS Code and bulit-in TypeScript/Python formatter setting. Please install Python autopep8 out of thie project environment and mare sure the VS Code setting. Also, you can enable "format on save".
+
+### Setup Pyodide
+
+The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip and you can just execute
+
+`$ sh download_pyodide.sh`
+
+in terminal which will download+unzip+move to `public/pyodide`. These Pyodide fiels were download from `https://cdn.jsdelivr.net/`, not built from scratch.
 
 Or you can comment these
+
 ```
 <script src="pyodide/pyodide.js"></script>
 
-await loadPyodide({ indexURL : "pyodide/" }); 
+await loadPyodide({ indexURL : "pyodide/" });
 
-await micropip.install('pyodide/pydicom-2.1.2-py3-none-any.whl') 
+await micropip.install('pyodide/pydicom-2.1.2-py3-none-any.whl')
 ```
 
 and replace by below to fetch from CDN
@@ -50,121 +67,125 @@ and replace by below to fetch from CDN
 
 await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
 
-await micropip.install('pydicom') 
+await micropip.install('pydicom')
 
 ```
 
-### Use latest dev instead of 0.17.0a2 Pyodide
+#### Why use latest dev instead of 0.17.0a2 Pyodide
 
-Since we need to use `getBuffer` method to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2d grey array to 1d RGBA array, we need to allocate 1d RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code. 
+Since we need to use `getBuffer` method to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2d grey array to 1d RGBA array, we need to allocate 1d RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code.
 
-### Other GitHub repos using Pyodide + Pydicom
-1. [https://github.com/Fincap/onko-pyodide](https://github.com/Fincap/onko-pyodide), draw canvas in Pyodide runtime
-2. [https://github.com/pymedphys/pymedphys](https://github.com/pymedphys/pymedphys), mainly for DICOM-RT
+### Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
-## Not handle/test cases on medical files
+https://github.com/nvm-sh/nvm January 2021: there are no pre-compiled NodeJS binaries for versions prior to 15.x for Apple's new M1 chip (arm64 architecture). v14.16 supports M1 but need compilation (auto done by nvm). p.s. nvm seems to still build 15.14.0
 
-Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
+Make sure you have Node.js (v15.14.0+), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed first. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created.
 
--  DICOME FILE 
-    - Transfer Syntax: JPEG (50, 51, 57, 70 etc). 51, 57 not tested. 50 & 70 needes fixes.
-    - ~~Photometric: MONOCHROME1, inverted color~~     
-    - ~~Photometric: RGB with planar 0, 1~~
-    - ~~Photometric: PALETTE~~
--  possible window center & width mode (need work with rescale equation)
--  multiple frame 
--  coronal & sagittal views & judge if current is AxialView or not 
--  scale (resize to viewer size)
+Then
 
-##  todo list
-
-Besides adding back above medical file cases/features, there are some optional things we can do 
-1. [Done] Host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
-    1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files 
-    2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
-    3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB) 
-3. Move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.  
-4. [done] Dockerization
-5. Bundle some testing DICOM files
-6. Introduction to medical files and pyodide
-7. Make a Python package
-8. 3D visualization
-9. Help to improve Pyodide
-10. Refactor
-11. Add tests
-
-## Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
-
-https://github.com/nvm-sh/nvm January 2021: there are no pre-compiled NodeJS binaries for versions prior to 15.x for Apple's new M1 chip (arm64 architecture). v14.16 supports M1 but need compilation (auto done by nvm). p.s. nvm seems to still build 15.14.0 
-
-Make sure you have Node.js (v15.14.0+), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed first. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created. 
-
-Then 
 1. `npm install --global yarn`
 2. `yarn set version berry`
 3. `yarn install`
-3. `poetry install`
+4. `poetry install`
 
-## Production - Use Python FastAPI to host React app 
+### Start coding
 
-1. `yarn build` to build reactapp 
+Just `yarn start`
 
-2. To launch FastAPI, 
+## Production - Use Python FastAPI to host React app
 
-either 
+1. `yarn build` to build reactapp
+
+2. To launch FastAPI,
+
+either
+
 ```
 $ poetry shell
 $ uvicorn main:app
 ```
-or 
+
+or
+
 ```
 $ poetry run uvicorn main:app
 ```
 
 Using `uvicorn main:app --reload` is for development but we already have create react app built-in development live server.
 
-## Build local Docker to run 
+## Docker images - another testing way
 
-1. `docker build --progress=plain -t pyodide-react-dicom-viewer .` 
+### Build a docker image to run (either on amd64 or arm64)
+
+1. `docker build --progress=plain -t pyodide-react-dicom-viewer .`
 2. `docker run -p 8000:8000 -d pyodide-react-dicom-viewer`
-3. open http://localhost:8000/ and drag a DICOM file to view. 
+3. open http://localhost:8000/ and drag a DICOM file to view.
 
-### Build a universal docker image (amd64/arm64) 
+### Build a universal docker image (supporting amd64/arm64)
 
-Cross compliation for intel/m1 takes much more time than normal `docker build`. Building + Pushing to docker hub takes 20~30min. Several times. 
+Cross compliation for intel/m1 takes much more time than normal `docker build`. Building + Pushing to docker hub takes 20~30min. Several times.
 
 1. `docker buildx create --use --name m1_builder`
 2. `docker buildx use m1_builder`
 3. `docker buildx inspect --bootstrap`
 4. `docker buildx build --platform linux/amd64,linux/arm64 --push -t grimmer0125/pyodide-react-dicom-viewer:0.3 .`
 
-## Use remote docker image to run
+### Use remote docker image to run
 
 1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.3`
-2. open http://localhost:8000/ and drag a DICOM file to view. 
+2. open http://localhost:8000/ and drag a DICOM file to view.
 
 ## Sample DICOM file
 
 - https://barre.dev/medical/samples/
 - http://www.rubomedical.com/dicom_files/ (some are `DICOM jpeg 1.2.840.10008.1.2.4.50`)
 
-## Issues 
+## Not handle/test cases on DICOM medical files
 
-1. ~~[Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be~~
+Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
-    1. ~~(can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
-    2. ~~[Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.~~
+- DICOME FILE
+  - Transfer Syntax: JPEG (50, 51, 57, 70 etc). 51, 57 not tested. 50 & 70 needes fixes.
+  - ~~Photometric: MONOCHROME1, inverted color~~
+  - ~~Photometric: RGB with planar 0, 1~~
+  - ~~Photometric: PALETTE~~
+- possible window center & width mode (need work with rescale equation)
+- multiple frame
+- coronal & sagittal views & judge if current is AxialView or not
+- scale (resize to viewer size)
 
-Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/): 
-1. numpy array + manual iteration calculation in local python ~= numpy array + numpy array operation ~= JS ArrayBuffer/int8ClampedArray + manual iteration calculation (very fast) >> 
+## Issues
+
+1. ~~[Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be~~
+
+   1. ~~(can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
+   2. ~~[Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.~~
+
+Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/):
+
+1. numpy array + manual iteration calculation in local python ~= numpy array + numpy array operation ~= JS ArrayBuffer/int8ClampedArray + manual iteration calculation (very fast) >>
 2. Python list + manual iteration calculation > (5s)
 3. numpy array + manual iteration calculation in pyodide. (7s)
 
 p.s.
-1. I did not record JS accurate time cost but it is fast. 
+
+1. I did not record JS accurate time cost but it is fast.
 2. Local Python is much faster than Pyodide Python in browser.
 
-## Development 
+## todo list
 
-Please use VS Code and bulit-in TypeScript/Python formatter setting. Please install Python autopep8 out of thie project environment and mare sure the VS Code setting. Also, you can enable "format on save". 
+Besides adding back above medical file cases/features, there are some optional things we can do
 
+1. [Done] Host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
+   1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files
+   2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
+   3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB)
+2. Move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.
+3. [done] Dockerization
+4. Bundle some testing DICOM files
+5. Introduction to medical files and pyodide
+6. Make a Python package
+7. 3D visualization
+8. Help to improve Pyodide
+9. Refactor
+10. Add tests
