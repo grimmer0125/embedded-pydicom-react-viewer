@@ -128,13 +128,13 @@ Cross compliation for intel/m1 takes much more time than normal `docker build`. 
 1. `docker buildx create --use --name m1_builder`
 2. `docker buildx use m1_builder`
 3. `docker buildx inspect --bootstrap`
-4. `docker buildx build --platform linux/amd64,linux/arm64 --push -t grimmer0125/pyodide-react-dicom-viewer:0.3 .`
+4. `docker buildx build --platform linux/amd64,linux/arm64 --push -t grimmer0125/pyodide-react-dicom-viewer:0.4 .`
 
 ### Use remote docker image to run
 
 Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-viewer
 
-1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.3`
+1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.4`
 2. open http://localhost:8000/ and drag a DICOM file to view.
 
 ## DICOM sample file
@@ -158,10 +158,10 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 ## Issues
 
-1. ~~[Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be~~
+1. [Solved][Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
 
-   1. ~~(can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
-   2. ~~[Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.~~
+   1. (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
+   2. [Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.
 
 Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/):
 
@@ -183,7 +183,7 @@ Besides adding back above medical file cases/features, there are some optional t
    2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
    3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB)
 2. Move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.
-3. [done] Dockerization
+3. [Done] Dockerization
 4. Bundle some testing DICOM files
 5. Introduction to medical files and pyodide
 6. Make a Python package
@@ -191,3 +191,5 @@ Besides adding back above medical file cases/features, there are some optional t
 8. Help to improve Pyodide
 9. Refactor
 10. Add tests
+12. Fix [DICOM medical files - Not handle/test cases](#dicom-medical-files---not-handletest-cases)
+
