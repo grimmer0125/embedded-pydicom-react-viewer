@@ -193,3 +193,7 @@ Besides adding back above medical file cases/features, there are some optional t
 10. Add tests
 12. Fix [DICOM medical files - Not handle/test cases](#dicom-medical-files---not-handletest-cases)
 
+## Misc
+
+This project is using my another TypeScript npm library, [d4c-queue](https://www.npmjs.com/package/d4c-queue), and code is on https://github.com/grimmer0125/d4c-queue/. You can take a look.
+
