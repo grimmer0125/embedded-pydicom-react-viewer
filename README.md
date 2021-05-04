@@ -24,7 +24,7 @@ OT-MONO2-8-hip.dcm from https://barre.dev/medical/samples/
 
 ![alt tag](https://raw.githubusercontent.com/grimmer0125/embedded-pydicom-react-viewer/master/public/screenshot.png)
 
-## Python 3.8 Browser runtime - Pyodide
+## Python 3.8.2 Browser runtime - Pyodide
 
 ref:
 
@@ -158,7 +158,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 ## Issues
 
-1. [Solved][Performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
+1. [Solved][performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
 
    1. (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
    2. [Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.
@@ -191,9 +191,8 @@ Besides adding back above medical file cases/features, there are some optional t
 8. Help to improve Pyodide
 9. Refactor
 10. Add tests
-12. Fix [DICOM medical files - Not handle/test cases](#dicom-medical-files---not-handletest-cases)
+11. Fix [DICOM medical files - Not handle/test cases](#dicom-medical-files---not-handletest-cases)
 
 ## Misc
 
 This project is using my another TypeScript npm library, [d4c-queue](https://www.npmjs.com/package/d4c-queue), and code is on https://github.com/grimmer0125/d4c-queue/. You can take a look.
-

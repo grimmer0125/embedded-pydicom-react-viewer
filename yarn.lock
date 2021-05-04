@@ -5179,12 +5179,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"d4c-queue@npm:^1.3.6":
-  version: 1.3.6
-  resolution: "d4c-queue@npm:1.3.6"
-  dependencies:
-    denque: ^1.5.0
-  checksum: f6cf8ba742cfd4703a06dc13b5c7568811adde94925e9fb68c83dcfc7c7f50df62a2c289f225bfb9d1308fd738beb7367565c01f2dc770f14a4623dcfc896e0d
+"d4c-queue@npm:1.3.12":
+  version: 1.3.12
+  resolution: "d4c-queue@npm:1.3.12"
+  checksum: 88dc2b8679d841368c205f00625250eb1e1abd00e682e62189fbbe7e44e0e19235eec40f22cef3104c6b99de59eaf8c82768b28d2fc0cdf4f868ec8eb2efac0a
   languageName: node
   linkType: hard
 
@@ -5396,13 +5394,6 @@ __metadata:
   version: 1.0.0
   resolution: "delegates@npm:1.0.0"
   checksum: 7459e34d29cadd9bfd340728bfcc70ea96da5d940fb197298b523f805822680e583cba3ec34d36a18004325f1ec9de55e202a92b414d01db18cd87bb8a2ae5bd
-  languageName: node
-  linkType: hard
-
-"denque@npm:^1.5.0":
-  version: 1.5.0
-  resolution: "denque@npm:1.5.0"
-  checksum: 3564778cda60c7dee3f1d71e397e50e6b39a8c06118aab9843b9396cb621b3191ab56d13de5237b8beee2b87bec485e8239c58ca3133472d2d1eaa3d2d518022
   languageName: node
   linkType: hard
 
@@ -5722,7 +5713,7 @@ __metadata:
     "@types/node": ^12.0.0
     "@types/react": ^17.0.0
     "@types/react-dom": ^17.0.0
-    d4c-queue: ^1.3.6
+    d4c-queue: 1.3.12
     file-selector: ^0.1.12
     react: ^17.0.2
     react-dom: ^17.0.2
