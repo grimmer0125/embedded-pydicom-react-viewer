@@ -191,7 +191,7 @@ def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d):
 def main(is_pyodide_context: bool):
     if is_pyodide_context:
         from my_js_module import buffer  # pylint: disable=import-error
-        ds = get_pydicom_dataset_from_js_buffer(buffer)
+        ds = get_pydicom_dataset_from_js_buffer(buffer.to_py())
     else:
         # start to do some local Python stuff, e.g. testing
         ds = get_pydicom_dataset_from_local_file(

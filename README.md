@@ -44,7 +44,7 @@ Please use VS Code and bulit-in TypeScript/Python formatter setting. Please inst
 
 ### Setup Pyodide
 
-The current code alreasy uses local latest Pyodide dev version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.1/pyodide.zip and you can just execute
+The current code uses local built Pyodide 0.17.0 version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.2/pyodide.zip and you can just execute
 
 `$ sh download_pyodide.sh`
 
@@ -71,9 +71,9 @@ await micropip.install('pydicom')
 
 ```
 
-#### Why use latest dev instead of 0.17.0a2 Pyodide
+#### Why use 0.17.0 Pyodide version
 
-Since we need to use `getBuffer` method to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2d grey array to 1d RGBA array, we need to allocate 1d RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code.
+Since we need to use `getBuffer` method which is added in `v0.17.0` to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2D grey array to 1D RGBA array, we need to allocate 1D RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code.
 
 ### Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
@@ -160,8 +160,8 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 1. [Solved][performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
 
-   1. (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2d grey data to 1d RGBA canvas image data.~~
-   2. [Use this way, solved] Or is there any quick way in numpy for flattening a 2d grey array to 1d RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2d.min()/max() is fast. Need more study/profiling.
+   1. (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2D grey data to 1D RGBA canvas image data.~~
+   2. [Use this way, solved] Or is there any quick way in numpy for flattening a 2D grey array to 1D RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2D.min()/max() is fast. Need more study/profiling.
 
 Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/):
 
