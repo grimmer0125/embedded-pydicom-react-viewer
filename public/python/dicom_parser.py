@@ -26,10 +26,15 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
     print("start reading dicom pixel_array")
     try:
         arr = ds.pixel_array
-    except:
-        print("possible no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
-        ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
-        arr = ds.pixel_array
+    except Exception as e:
+        try:
+            print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
+            raise e
+        except:
+            print(
+                "no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
+            ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+            arr = ds.pixel_array
     print("read dicom pixel_array ok")
     image2d = apply_modality_lut(arr, ds)
     return image2d
