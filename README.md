@@ -143,6 +143,10 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 - http://www.rubomedical.com/dicom_files/, some are (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
 - https://github.com/pydicom/pydicom/blob/master/pydicom/data/test_files/
   - JPEG-lossy.dcm: jpeg 51
+- https://github.com/pydicom/pydicom-data/raw/39a2eb31815eec435dc26c322c27aec5cfcbddb6/data/JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
+- https://medistim.com/dicom/
+  - http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
+  - http://medistim.com/wp-content/uploads/2016/07/bmode.dcm ultra sound, 70, multi frame
 
 ## DICOM medical files - Not handle/test cases
 
