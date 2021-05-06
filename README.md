@@ -139,15 +139,17 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 
 ## DICOM sample file
 
-- https://barre.dev/medical/samples/
-- http://www.rubomedical.com/dicom_files/ (some are `DICOM jpeg 1.2.840.10008.1.2.4.50`)
+- https://barre.dev/medical/samples/ contains jpeg 57, 70 (MR-MONO2-12-shoulder, CT-MONO2-16-chest)
+- http://www.rubomedical.com/dicom_files/, some are (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
+- https://github.com/pydicom/pydicom/blob/master/pydicom/data/test_files/
+  - JPEG-lossy.dcm: jpeg 51
 
 ## DICOM medical files - Not handle/test cases
 
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 - DICOM FILE
-  - Transfer Syntax: JPEG (50, 51, 57, 70 etc). 51, 57 not tested. 50 & 70 needes fixes.
+  - Transfer Syntax: JPEG (50, 51, 57, 70 etc). 51, 57 not tested. 50 & 70 need fixes.
   - ~~Photometric: MONOCHROME1, inverted color~~
   - ~~Photometric: RGB with planar 0, 1~~
   - ~~Photometric: PALETTE~~
