@@ -35,7 +35,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
                 "no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
             ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
             arr = ds.pixel_array
-    print("read dicom pixel_array ok")
+    print(f"read dicom pixel_array ok, shape:{arr.shape}")
     image2d = apply_modality_lut(arr, ds)
     return image2d
 
