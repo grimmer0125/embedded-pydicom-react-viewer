@@ -24,15 +24,21 @@ def get_pydicom_dataset_from_local_file(path):
 
 def get_manufacturer_independent_pixel_image2d_array(ds):
     print("start reading dicom pixel_array")
+
+    try:
+        print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
+        has_TransferSyntax = True 
+    except:
+        print("no TransferSyntaxUID")
+        has_TransferSyntax = False
     try:
         arr = ds.pixel_array
     except Exception as e:
-        try:
-            print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
+        if has_TransferSyntax == True:
             raise e
-        except:
+        else:
             print(
-                "no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
+                "read data fail may due to no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
             ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
             arr = ds.pixel_array
     print(f"read dicom pixel_array ok, shape:{arr.shape}")
