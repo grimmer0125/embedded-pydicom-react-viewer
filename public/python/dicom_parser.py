@@ -4,6 +4,21 @@ import numpy as np
 import time
 from io import BytesIO
 
+# try:
+#     import PIL
+#     from PIL import Image, features
+#     HAVE_PIL = True
+#     HAVE_JPEG = features.check_codec("jpg")
+#     HAVE_JPEG2K = features.check_codec("jpg_2000")
+#     print("import pillow done")
+# except ImportError:
+#     HAVE_PIL = False
+#     HAVE_JPEG = False
+#     HAVE_JPEG2K = False
+
+
+from pydicom.encaps import defragment_data, decode_data_sequence
+
 
 def get_pydicom_dataset_from_js_buffer(buffer_memory):
     print("get buffer from javascript, copied memory to wasm heap, start to read dicom")
@@ -27,7 +42,33 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
 
     try:
         print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
-        has_TransferSyntax = True 
+        transfer = ds.file_meta.TransferSyntaxUID
+        has_TransferSyntax = True
+
+        if (transfer == "1.2.840.10008.1.2.4.50" or transfer == "1.2.840.10008.1.2.4.51" or
+                transfer == "1.2.840.10008.1.2.4.57" or transfer == "1.2.840.10008.1.2.4.70"):
+            print(
+                "can not handle by pydicom in pyodide, lack of some pyodide extension")
+            # return None, ds.PixelData
+
+        print(f"pixeldata:{len(ds.PixelData)}")
+
+        pixel_data = defragment_data(ds.PixelData)
+        print(f"pixel_data:{len(pixel_data)}")
+        # return None, pixel_data
+
+        # try:
+        #     fio = BytesIO(ds.PixelData)  # pixel_data)
+        #     image = Image.open(fio)
+        # except Exception as e:
+        #     print(f"pillow error:{e}")
+
+        p2 = pixel_data[:-1]
+
+        # print('pillow done')
+        # JPEG57-MR-MONO2-12-shoulder data:718940 -> data:718924
+        return None, p2
+
     except:
         print("no TransferSyntaxUID")
         has_TransferSyntax = False
@@ -43,7 +84,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
             arr = ds.pixel_array
     print(f"read dicom pixel_array ok, shape:{arr.shape}")
     image2d = apply_modality_lut(arr, ds)
-    return image2d
+    return image2d, None
 
 
 def get_image2d_maxmin(image2d):
@@ -207,11 +248,18 @@ def main(is_pyodide_context: bool):
         # start to do some local Python stuff, e.g. testing
         ds = get_pydicom_dataset_from_local_file(
             "dicom/image-00000-ot.dcm")
-    image2d = get_manufacturer_independent_pixel_image2d_array(ds)
+    image2d, compress_pixel_data = get_manufacturer_independent_pixel_image2d_array(
+        ds)
+    print("after get_manufacturer_independent_pixel_image2d_array")
+    photometric = ds[0x28, 0x04].value
+    if compress_pixel_data != None:
+        # return bytes data
+        # TODO: add width, height ?
+        print(f"photometric:{photometric}")
+        return compress_pixel_data, None, None, None, None,
     _max, _min = get_image2d_maxmin(image2d)
     width, height = get_image2d_dimension(image2d)
 
-    photometric = ds[0x28, 0x04].value
     print(f"photometric:{photometric};shape:{image2d.shape}")
 
     if photometric == "MONOCHROME1":
@@ -251,8 +299,8 @@ def main(is_pyodide_context: bool):
     # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
     # so we need to use int(min), int(max)
     print(f'min type is:{type(_min)}')  # numpy.uint16
-    print(f'max type is:{type(width)}')
-    return image, int(_min), int(_max), width, height
+    print(f'width type is:{type(width)}')
+    return image, width, height, int(_min), int(_max)
 
 
 result = None

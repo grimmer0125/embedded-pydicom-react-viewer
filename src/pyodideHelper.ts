@@ -18,11 +18,27 @@ export const initPyodide = d4c.wrap(async () => {
 export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
     my_js_module["buffer"] = buffer;
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
-    const result = await pyodide.runPythonAsync(pythonCode);
-    const result2 = result.toJs(1);
-    const pyBufferData = result2[0].getBuffer("u8clamped");
-    const width = result2[3];
-    const height = result2[4];
-    result.destroy();
+    const res = await pyodide.runPythonAsync(pythonCode);
+    console.log("after run python")
+    const data = res.toJs(1);
+    console.log("data:", data);
+    console.log(`type:${typeof data}`)
+    if (data[3] === undefined) {
+        // python bytes -> uinit8 array 
+        const data2 = data[0].getBuffer()
+
+        //1048576
+        // 718940
+        console.log("it is compressed data:", data2.data)
+        // return { data: 1, width: 2, height: 3 }
+        return { compressedData: data2.data, width: 1024, height: 1024 }
+    }
+
+    const pyBufferData = data[0].getBuffer("u8clamped");
+    const width = data[1];
+    const height = data[2];
+    res.destroy();
+    /** TODO: need releasing buffer data? pyBufferData.release()
+     * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
     return { data: pyBufferData.data, width, height };
 });
