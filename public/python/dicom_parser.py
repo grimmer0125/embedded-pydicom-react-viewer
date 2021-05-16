@@ -50,7 +50,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
     # transfer = ds.file_meta.TransferSyntaxUID
     # has_TransferSyntax = True
 
-    if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91", "1.2.840.10008.1.2.5"]):
+    if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91"]):
         print(
             "can not handle by pydicom in pyodide, lack of some pyodide extension")
         # return None, ds.PixelData
@@ -179,6 +179,11 @@ def normalize_image2d(image2d, _max, _min):
 
 
 def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d):
+
+    # US-PAL-8-10x-echo.dcm
+    # ValueError: all the input arrays must have same number of dimensions,
+    # but the array at index 0 has 4 dimension(s) and the array at index 1 has 3 dimension(s)
+
     # color-by-pixel
     # Planar Configuration = 0 -> R1, G1, B1, R2, G2, B2, …
     # e.g. US-RGB-8-esopecho.dcm (120, 256, 3)
@@ -304,8 +309,8 @@ def main(is_pyodide_context: bool):
         # TODO: add width, height ?
         print(f"photometric:{photometric}")
         return compress_pixel_data, None, None, None, None,
-    _max, _min = get_image2d_maxmin(image2d)
-    width, height = get_image2d_dimension(image2d)
+    _max, _min = get_image2d_maxmin(image2d[0])
+    width, height = get_image2d_dimension(image2d[0])
 
     print(f"photometric:{photometric};shape:{image2d.shape}")
 
@@ -330,16 +335,21 @@ def main(is_pyodide_context: bool):
         # Mabye it is because its max (dark) is 65536, 16bit
         image2d = normalize_image2d(image2d, _max, _min)
 
+        print("1")
+
         # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
     if photometric == "RGB" or photometric == "PALETTE COLOR":
-        planar_config = ds[0x0028, 0x0006].value
-        print(f"planar:{planar_config}. dimension:{image2d.shape}")  # 0 or 1
+        print("2")
 
-        if planar_config == 0:
-            image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
-        else:
-            image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
+        # planar_config = ds[0x0028, 0x0006].value
+        # print(f"planar:{planar_config}. dimension:{image2d.shape}")  # 0 or 1
+
+        # if planar_config == 0:
+        image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d[0])
+        # else:
+        #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
     else:
+        print("3")
         image2d = normalize_image2d(image2d, _max, _min)
         image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
 

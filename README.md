@@ -13,7 +13,7 @@ Download from [DICOM sample file](#dicom-sample-file)
 
 ## Motivation
 
-Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantanges.
+Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantages.
 
 1. Although my another Chrome extension/Web project, https://github.com/grimmer0125/dicom-web-viewer uses 3-party JavaScript DICOM parser library but it seems not manintained. The other JavaScript/TypeScript DICOM parser library might be too heavy to use.
 2. Scientists usually use Python DICOM parser library, and using the same language/library is a good thing.
@@ -143,7 +143,7 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 - http://www.rubomedical.com/dicom_files/, some (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
 - https://github.com/pydicom/pydicom/blob/master/pydicom/data/test_files/
   - JPEG-lossy.dcm: jpeg 51
-- https://github.com/pydicom/pydicom-data/raw/, JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
+- https://github.com/pydicom/pydicom-data/tree/master/data_store/data, JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
 - https://medistim.com/dicom/
   - http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
   - http://medistim.com/wp-content/uploads/2016/07/bmode.dcm ultra sound, 70, multi frame
@@ -154,19 +154,20 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 - DICOM FILE
-  - Transfer Syntax: 
-      - ~~51 (supported)~~, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
-      - 1.2.840.10008.1.2.5 RLE Lossless (not tested)
-      - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
-      - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)
-      - 1.2.840.10008.1.2.4.91 JPEG2000 (not tested)
+  - Transfer Syntax:
+    - ~~51 (supported)~~, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
+    - ~~1.2.840.10008.1.2.5 RLE Lossless ~~
+    - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
+    - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)
+    - 1.2.840.10008.1.2.4.91 JPEG2000 (not tested)
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1
-  - [done] Photometric: PALETTE 
+  - [done] Photometric: PALETTE
 - possible window center & width mode (need work with rescale equation)
 - multiple frame
 - coronal & sagittal views & judge if current is AxialView or not
 - scale (resize to viewer size)
+- get width & height of compressed DICOM before rendering
 
 ## Issues
 
