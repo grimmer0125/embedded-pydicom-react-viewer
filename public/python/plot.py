@@ -71,7 +71,8 @@ folder_name = "dicom/"
 # local_file = error : 'JPGExtended'  # 'JPEG57-MR-MONO2-12-shoulder'  # 'JPEG-lossy'
 # local_file = error: 'SC_jpeg_no_color_transform'
 # local_file = error: 'SC_rgb_small_odd_jpeg'
-local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # '0002'  # 'tmp'
+# local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # '0002'  # 'tmp'
+
 local_file = folder_name + local_file
 
 # TODO: duplicate
