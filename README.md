@@ -154,10 +154,15 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 - DICOM FILE
-  - Transfer Syntax: ~~50~~, 51, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
-  - ~~Photometric: MONOCHROME1, inverted color~~
-  - ~~Photometric: RGB with planar 0, 1~~
-  - ~~Photometric: PALETTE~~
+  - Transfer Syntax: 
+      - ~~51 (supported)~~, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
+      - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
+      - 1.2.840.10008.1.2.5 RLE Lossless (not tested)
+      - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)
+      - 1.2.840.10008.1.2.4.91 JPEG2000 (not tested)
+  - [done] Photometric: MONOCHROME1, inverted color
+  - [done] Photometric: RGB with planar 0, 1
+  - [done] Photometric: PALETTE 
 - possible window center & width mode (need work with rescale equation)
 - multiple frame
 - coronal & sagittal views & judge if current is AxialView or not
