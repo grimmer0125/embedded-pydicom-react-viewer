@@ -107,8 +107,6 @@ function App() {
     // var base64 = window.btoa(data);
     // const url2 =  "data:image/jpeg;base64," + base64;
 
-    // 可能問題 1. jpeg codec 不是 baseline, 2. pyodide -> js 時那邊出了問題
-
     // works => become not work 
     const my_svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>`; 
     const my_svg_blob = new Blob([my_svg], { type: 'image/svg+xml;charset=utf-8' })
@@ -123,8 +121,10 @@ function App() {
     if (myImg) {
       myImg.onload = function() {
         /// draw image to canvas
-        console.log("on load:", myImg)
-        ctx.drawImage((myImg as any), 0,0, rawDataWidth, rawDataHeight);
+        console.log("on load:", myImg.width, myImg.height)
+        c.width = myImg.width;
+        c.height = myImg.height;
+        ctx.drawImage((myImg as any), 0,0, myImg.width, myImg.height);
       };
       myImg.src = url; //"https://raw.githubusercontent.com/grimmer0125/grimmer0125.github.io/master/images/bio.png";
     }

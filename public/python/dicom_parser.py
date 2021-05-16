@@ -64,8 +64,8 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
                 j2k_precision, j2k_sign = None, None
                 # multiple compressed frames
                 # working case (50):
-                # 1. 0002.dcm, some are [-5], [-4], [-6]
-                # 2. color3d_jpeg_baseline , some frames needs [-1] but some do not need
+                # 1. 0002.dcm, some are [-5], [-4], [-6]. 512x512
+                # 2. color3d_jpeg_baseline , some frames needs [-1] but some do not need. size unknown?
                 frame_count = 0
                 for frame in decode_data_sequence(ds.PixelData):
                     frame_count += 1
@@ -94,8 +94,8 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
                 p2 = pixel_data
             else:
                 print("single frame")
-                # working case:
-                # JPGLosslessP14SV1_1s_1f_8b.dcm, 70
+                # working case but browser can not render DICOM made JPEG Lossless :
+                # JPGLosslessP14SV1_1s_1f_8b.dcm, 70. 1024x768
                 pixel_data = defragment_data(ds.PixelData)
                 p2 = pixel_data
             print(f"pixel_data:{len(pixel_data)}")
