@@ -45,8 +45,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
         transfer = ds.file_meta.TransferSyntaxUID
         has_TransferSyntax = True
 
-        if (transfer == "1.2.840.10008.1.2.4.50" or transfer == "1.2.840.10008.1.2.4.51" or
-                transfer == "1.2.840.10008.1.2.4.57" or transfer == "1.2.840.10008.1.2.4.70"):
+        if (transfer in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91", "1.2.840.10008.1.2.5"]):
             print(
                 "can not handle by pydicom in pyodide, lack of some pyodide extension")
             # return None, ds.PixelData
