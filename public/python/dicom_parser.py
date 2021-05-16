@@ -40,16 +40,21 @@ def get_pydicom_dataset_from_local_file(path):
 def get_manufacturer_independent_pixel_image2d_array(ds):
     print("start reading dicom pixel_array")
 
+    has_TransferSyntax = False
     try:
         print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
-        transfer = ds.file_meta.TransferSyntaxUID
         has_TransferSyntax = True
+    except:
+        print("no TransferSyntaxUID")
 
-        if (transfer in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91", "1.2.840.10008.1.2.5"]):
-            print(
-                "can not handle by pydicom in pyodide, lack of some pyodide extension")
-            # return None, ds.PixelData
-        # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
+    # transfer = ds.file_meta.TransferSyntaxUID
+    # has_TransferSyntax = True
+
+    if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91", "1.2.840.10008.1.2.5"]):
+        print(
+            "can not handle by pydicom in pyodide, lack of some pyodide extension")
+        # return None, ds.PixelData
+    # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
         print("try to get compressed dicom's pixel data")
         try:
             print(f"pixeldata:{len(ds.PixelData)}")
@@ -108,9 +113,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
         except Exception as e:
             print("failed to get compressed data")
             raise e
-    except:
-        print("no TransferSyntaxUID")
-        has_TransferSyntax = False
+
     try:
         arr = ds.pixel_array
     except Exception as e:

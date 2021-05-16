@@ -64,20 +64,20 @@ function App() {
 
   const renderFrameByPythonCompressedData = async (imageUnit8Array: Uint8Array, rawDataWidth: number, rawDataHeight: number) => {
     console.log("renderFrameByPythonCompressedData")
-    // const canvasRef = myCanvasRef;
-    // if (!canvasRef.current) {
-    //   console.log("canvasRef is not ready, return");
-    //   return;
-    // }
-    // const c = canvasRef.current;
-    // c.width = rawDataWidth;
-    // c.height = rawDataHeight;
-    // const ctx = c.getContext("2d");
-    // if (!ctx) {
-    //   return;
-    // }
+    const canvasRef = myCanvasRef;
+    if (!canvasRef.current) {
+      console.log("canvasRef is not ready, return");
+      return;
+    }
+    const c = canvasRef.current;
+    c.width = rawDataWidth;
+    c.height = rawDataHeight;
+    const ctx = c.getContext("2d");
+    if (!ctx) {
+      return;
+    }
 
-    // const myImg = new Image();
+    const myImg = new Image();
 
     // needs arrayBuffe, but feed unit8array
     const buffer = imageUnit8Array.buffer;
@@ -120,13 +120,13 @@ function App() {
       new Blob([content.buffer], { type: 'image/png' } /* (1) */)
     );
 
-    if (myImg?.current) {
-      myImg.current.onload = function() {
+    if (myImg) {
+      myImg.onload = function() {
         /// draw image to canvas
         console.log("on load:", myImg)
-        // ctx.drawImage((myImg as any), 0,0, rawDataWidth, rawDataHeight);
+        ctx.drawImage((myImg as any), 0,0, rawDataWidth, rawDataHeight);
       };
-      myImg.current.src = url; //"https://raw.githubusercontent.com/grimmer0125/grimmer0125.github.io/master/images/bio.png";
+      myImg.src = url; //"https://raw.githubusercontent.com/grimmer0125/grimmer0125.github.io/master/images/bio.png";
     }
   }
 
@@ -192,13 +192,13 @@ function App() {
             <div
               className="flex-column_align-center"
             >
-              <img style={{width:500, height:250}} ref={myImg} />
-              {/* <canvas
+              {/* <img style={{width:500, height:250}} ref={myImg} /> */}
+              <canvas
                 ref={myCanvasRef}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}
                 // style={{ backgroundColor: "black" }}
-              /> */}
+              />
             </div>
           </div>
         </div>
