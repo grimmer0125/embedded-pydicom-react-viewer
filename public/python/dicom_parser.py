@@ -94,8 +94,13 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
                 p2 = pixel_data
             else:
                 print("single frame")
-                # working case but browser can not render DICOM made JPEG Lossless :
-                # JPGLosslessP14SV1_1s_1f_8b.dcm, 70. 1024x768
+                # working case but browser can not render :
+                # - JPGLosslessP14SV1_1s_1f_8b.dcm,  DICOM made JPEG Lossless, 1.2.840.10008.1.2.4.70. 1024x768. local mac is able to view.
+                # - JPEG57-MR-MONO2-12-shoulder.dcm from https://barre.dev/medical/samples/, JPEG Lossless, 1.2.840.10008.1.2.4.57.
+                #   https://products.groupdocs.app/viewer/jpg can be used to view. local mac seeme not able to view (all black)
+                # - JPEG-lossy.dcm 1.2.840.10008.1.2.4.51 from https://github.com/pydicom/pydicom/blob/master/pydicom/data/test_files/JPEG-lossy.dcm,
+                #   https://products.groupdocs.app/viewer/jpg can be used to view, local mac seems not able to view (all black)
+
                 pixel_data = defragment_data(ds.PixelData)
                 p2 = pixel_data
             print(f"pixel_data:{len(pixel_data)}")

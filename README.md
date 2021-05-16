@@ -154,7 +154,7 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 - DICOM FILE
-  - Transfer Syntax: JPEG (~~50~~, 51, 57, 70 etc). 51, 57 not tested. ~~50~~ & 70 need fixes.
+  - Transfer Syntax: ~~50~~, 51, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
   - ~~Photometric: MONOCHROME1, inverted color~~
   - ~~Photometric: RGB with planar 0, 1~~
   - ~~Photometric: PALETTE~~
