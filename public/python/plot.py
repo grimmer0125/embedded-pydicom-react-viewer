@@ -1,3 +1,4 @@
+from threading import local
 import matplotlib.pyplot as plt
 from pydicom import dcmread
 from pydicom.data import get_testdata_file
@@ -5,6 +6,8 @@ from pydicom.data import get_testdata_file
 from pydicom.uid import (
     UID, JPEG2000, JPEG2000Lossless, JPEGBaseline8Bit, JPEGExtended12Bit
 )
+
+from pydicom.encaps import defragment_data, decode_data_sequence
 
 from io import BytesIO
 
@@ -56,12 +59,46 @@ def check_pillow(ds):
     #         "by Pillow if Bits Allocated = 8")
 
 
+# local_file = "dicom/JPEG-lossy.dcm"  # <-51,  70: CT-MONO2-16-chest.dcm"
+# local_file = "dicom/JPGExtended.dcm" # 51 too, but miss some headers
+# local_file = "dicom/SC_rgb_small_odd_jpeg.dcm"  # 50
+# local_file = 'SC_jpeg_no_color_transform.dcm' 50 但我的 extension 也讀不到
+folder_name = "dicom/"
+
+# local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # jpeg_baseline_8bit.dcm'
+# 'dwv-bbmri-53323131 (13)-mr'  # 'CT'  # 0020 CT-MONO2-16-chest'
+# local_file = 'jpeg_ls' <-error # 'jpeg_baseline_8bit' # <-error  # 'itri'  # 'image-00000-ot'
+# local_file = error : 'JPGExtended'  # 'JPEG57-MR-MONO2-12-shoulder'  # 'JPEG-lossy'
+# local_file = error: 'SC_jpeg_no_color_transform'
+# local_file = error: 'SC_rgb_small_odd_jpeg'
+local_file = '0002'  # 'tmp'
+local_file = folder_name + local_file
+
+# TODO: duplicate
+
+
+def get_pixel_data(ds):
+    if getattr(ds, 'NumberOfFrames', 1) > 1:
+        j2k_precision, j2k_sign = None, None
+        # multiple compressed frames
+        frame_count = 0
+        for frame in decode_data_sequence(ds.PixelData):
+            frame_count += 1
+            print(f"frame i:{frame_count}, len:{len(frame)}")
+            if frame_count == 1:
+                pixel_data = frame
+    else:
+        pixel_data = defragment_data(ds.PixelData)
+        print(f"pixel_data:{len(pixel_data)}")
+    return pixel_data
+
+
 def render(fpath=""):
     if fpath == "":
         fpath = get_testdata_file('CT_small.dcm')
-    ds = dcmread(fpath, force=True)
+    ds = dcmread(fpath+".dcm", force=True)
 
-    check_pillow(ds)
+    # check_pillow(ds)
 
     # Normal mode:
     # print()
@@ -81,20 +118,29 @@ def render(fpath=""):
     # # use .get() if not sure the item exists, and want a default value if missing
     # print(f"Slice location...: {ds.get('SliceLocation', '(missing)')}")
 
-    from pydicom.encaps import defragment_data, decode_data_sequence
+    pixel_data = get_pixel_data(ds)
 
-    pixel_data = defragment_data(ds.PixelData)
+    # pixel_data = defragment_data(ds.PixelData)
     print(f"pixel_data:{len(pixel_data)}")
-    # return None, pixel_data
 
-    try:
-        fio = BytesIO(pixel_data)  # pixel_data)
-        image = Image.open(fio)
-    except Exception as e:
-        print(f"pillow error:{e}")
+    p2 = pixel_data[:-1]
 
-    print('pillow done')
+    f = open(fpath+".jpg", "wb")
+    f.write(p2)
+    f.close()
+# return None, pixel_data
 
-    # plot the image using matplotlib
-    plt.imshow(ds.pixel_array, cmap=plt.cm.gray)
-    plt.show()
+# try:
+#     fio = BytesIO(pixel_data)  # pixel_data)
+#     image = Image.open(fio)
+# except Exception as e:
+#     print(f"pillow error:{e}")
+
+# print('pillow done')
+
+# # plot the image using matplotlib
+# plt.imshow(ds.pixel_array, cmap=plt.cm.gray)
+# plt.show()
+
+
+render(local_file)

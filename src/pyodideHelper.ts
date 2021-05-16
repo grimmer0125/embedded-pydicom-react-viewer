@@ -31,7 +31,7 @@ export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
         // 718940
         console.log("it is compressed data:", data2.data)
         // return { data: 1, width: 2, height: 3 }
-        return { compressedData: data2.data, width: 1024, height: 1024 }
+        return { compressedData: data2.data, width: 512, height: 512 }
     }
 
     const pyBufferData = data[0].getBuffer("u8clamped");

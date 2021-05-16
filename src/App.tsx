@@ -118,7 +118,7 @@ function App() {
         console.log("on load:")
         // ctx.drawImage((myImg as any), rawDataWidth, rawDataHeight);
       };
-      myImg.src = url;
+      myImg.src = url2;
     }
   }
 

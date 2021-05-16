@@ -50,11 +50,35 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
             print(
                 "can not handle by pydicom in pyodide, lack of some pyodide extension")
             # return None, ds.PixelData
-
+        # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
         print(f"pixeldata:{len(ds.PixelData)}")
 
-        pixel_data = defragment_data(ds.PixelData)
-        print(f"pixel_data:{len(pixel_data)}")
+        if getattr(ds, 'NumberOfFrames', 1) > 1:
+            j2k_precision, j2k_sign = None, None
+            # multiple compressed frames
+            frame_count = 0
+            for frame in decode_data_sequence(ds.PixelData):
+                frame_count += 1
+                print(f"frame i:{frame_count}, len:{len(frame)}")
+                if frame_count == 1:
+                    pixel_data = frame
+                # im = _decompress_single_frame(
+                #     frame,
+                #     transfer_syntax,
+                #     ds.PhotometricInterpretation
+                # )
+                # if 'YBR' in ds.PhotometricInterpretation:
+                #     im.draft('YCbCr', (ds.Rows, ds.Columns))
+                # pixel_bytes.extend(im.tobytes())
+
+                # if not j2k_precision:
+                #     params = get_j2k_parameters(frame)
+                #     j2k_precision = params.setdefault("precision", ds.BitsStored)
+                #     j2k_sign = params.setdefault("is_signed", None)
+
+        else:
+            pixel_data = defragment_data(ds.PixelData)
+            print(f"pixel_data:{len(pixel_data)}")
         # return None, pixel_data
 
         # try:
@@ -63,7 +87,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
         # except Exception as e:
         #     print(f"pillow error:{e}")
 
-        p2 = pixel_data[:-1]
+        p2 = pixel_data[:-5]
 
         # print('pillow done')
         # JPEG57-MR-MONO2-12-shoulder data:718940 -> data:718924
