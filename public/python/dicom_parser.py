@@ -4,6 +4,21 @@ import numpy as np
 import time
 from io import BytesIO
 
+# try:
+#     import PIL
+#     from PIL import Image, features
+#     HAVE_PIL = True
+#     HAVE_JPEG = features.check_codec("jpg")
+#     HAVE_JPEG2K = features.check_codec("jpg_2000")
+#     print("import pillow done")
+# except ImportError:
+#     HAVE_PIL = False
+#     HAVE_JPEG = False
+#     HAVE_JPEG2K = False
+
+
+from pydicom.encaps import defragment_data, decode_data_sequence
+
 
 def get_pydicom_dataset_from_js_buffer(buffer_memory):
     print("get buffer from javascript, copied memory to wasm heap, start to read dicom")
@@ -25,12 +40,80 @@ def get_pydicom_dataset_from_local_file(path):
 def get_manufacturer_independent_pixel_image2d_array(ds):
     print("start reading dicom pixel_array")
 
+    has_TransferSyntax = False
     try:
         print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
-        has_TransferSyntax = True 
+        has_TransferSyntax = True
     except:
         print("no TransferSyntaxUID")
-        has_TransferSyntax = False
+
+    # transfer = ds.file_meta.TransferSyntaxUID
+    # has_TransferSyntax = True
+
+    if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91", "1.2.840.10008.1.2.5"]):
+        print(
+            "can not handle by pydicom in pyodide, lack of some pyodide extension")
+        # return None, ds.PixelData
+    # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
+        print("try to get compressed dicom's pixel data")
+        try:
+            print(f"pixeldata:{len(ds.PixelData)}")
+
+            if getattr(ds, 'NumberOfFrames', 1) > 1:
+                print("multi frame")
+                j2k_precision, j2k_sign = None, None
+                # multiple compressed frames
+                # working case (50):
+                # 1. 0002.dcm, some are [-5], [-4], [-6]. 512x512
+                # 2. color3d_jpeg_baseline , some frames needs [-1] but some do not need. size unknown?
+                frame_count = 0
+                for frame in decode_data_sequence(ds.PixelData):
+                    frame_count += 1
+                    print(f"frame i:{frame_count}, len:{len(frame)}")
+                    # a = frame[0]
+                    # b = frame[1]
+                    # c = frame[len(frame)-2]
+                    # d = frame[len(frame)-1]
+                    # print(f"{a},{b},{c},{d}")
+                    if frame_count == 1:
+                        pixel_data = frame
+                    # im = _decompress_single_frame(
+                    #     frame,
+                    #     transfer_syntax,
+                    #     ds.PhotometricInterpretation
+                    # )
+                    # if 'YBR' in ds.PhotometricInterpretation:
+                    #     im.draft('YCbCr', (ds.Rows, ds.Columns))
+                    # pixel_bytes.extend(im.tobytes())
+
+                    # if not j2k_precision:
+                    #     params = get_j2k_parameters(frame)
+                    #     j2k_precision = params.setdefault("precision", ds.BitsStored)
+                    #     j2k_sign = params.setdefault("is_signed", None)
+                # TODO: what is the rule of -5/-1? But even not using pixel_data[:-1], pixel_data[:-5], still work
+                p2 = pixel_data
+            else:
+                print("single frame")
+                # working case but browser can not render DICOM made JPEG Lossless :
+                # JPGLosslessP14SV1_1s_1f_8b.dcm, 70. 1024x768
+                pixel_data = defragment_data(ds.PixelData)
+                p2 = pixel_data
+            print(f"pixel_data:{len(pixel_data)}")
+            # return None, pixel_data
+
+            # try:
+            #     fio = BytesIO(ds.PixelData)  # pixel_data)
+            #     image = Image.open(fio)
+            # except Exception as e:
+            #     print(f"pillow error:{e}")
+
+            # print('pillow done')
+            # JPEG57-MR-MONO2-12-shoulder data:718940 -> data:718924
+            return None, p2
+        except Exception as e:
+            print("failed to get compressed data")
+            raise e
+
     try:
         arr = ds.pixel_array
     except Exception as e:
@@ -43,7 +126,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
             arr = ds.pixel_array
     print(f"read dicom pixel_array ok, shape:{arr.shape}")
     image2d = apply_modality_lut(arr, ds)
-    return image2d
+    return image2d, None
 
 
 def get_image2d_maxmin(image2d):
@@ -207,11 +290,18 @@ def main(is_pyodide_context: bool):
         # start to do some local Python stuff, e.g. testing
         ds = get_pydicom_dataset_from_local_file(
             "dicom/image-00000-ot.dcm")
-    image2d = get_manufacturer_independent_pixel_image2d_array(ds)
+    image2d, compress_pixel_data = get_manufacturer_independent_pixel_image2d_array(
+        ds)
+    print("after get_manufacturer_independent_pixel_image2d_array")
+    photometric = ds[0x28, 0x04].value
+    if compress_pixel_data != None:
+        # return bytes data
+        # TODO: add width, height ?
+        print(f"photometric:{photometric}")
+        return compress_pixel_data, None, None, None, None,
     _max, _min = get_image2d_maxmin(image2d)
     width, height = get_image2d_dimension(image2d)
 
-    photometric = ds[0x28, 0x04].value
     print(f"photometric:{photometric};shape:{image2d.shape}")
 
     if photometric == "MONOCHROME1":
@@ -251,8 +341,8 @@ def main(is_pyodide_context: bool):
     # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
     # so we need to use int(min), int(max)
     print(f'min type is:{type(_min)}')  # numpy.uint16
-    print(f'max type is:{type(width)}')
-    return image, int(_min), int(_max), width, height
+    print(f'width type is:{type(width)}')
+    return image, width, height, int(_min), int(_max)
 
 
 result = None
