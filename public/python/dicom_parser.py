@@ -54,6 +54,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
         print(f"pixeldata:{len(ds.PixelData)}")
 
         if getattr(ds, 'NumberOfFrames', 1) > 1:
+            print("multi frame")
             j2k_precision, j2k_sign = None, None
             # multiple compressed frames
             frame_count = 0
@@ -75,10 +76,15 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
                 #     params = get_j2k_parameters(frame)
                 #     j2k_precision = params.setdefault("precision", ds.BitsStored)
                 #     j2k_sign = params.setdefault("is_signed", None)
-
+            # TODO: what is the rule of -5, and is it always ?
+            p2 = pixel_data[:-5]
         else:
+            print("single frame")
             pixel_data = defragment_data(ds.PixelData)
-            print(f"pixel_data:{len(pixel_data)}")
+            # TODO: 1. in some file, its ending is [-1], why?
+            #       2. does
+            p2 = pixel_data  # [:-1]
+        print(f"pixel_data:{len(pixel_data)}")
         # return None, pixel_data
 
         # try:
@@ -86,8 +92,6 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
         #     image = Image.open(fio)
         # except Exception as e:
         #     print(f"pillow error:{e}")
-
-        p2 = pixel_data[:-5]
 
         # print('pillow done')
         # JPEG57-MR-MONO2-12-shoulder data:718940 -> data:718924

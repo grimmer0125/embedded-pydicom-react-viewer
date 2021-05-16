@@ -71,13 +71,14 @@ folder_name = "dicom/"
 # local_file = error : 'JPGExtended'  # 'JPEG57-MR-MONO2-12-shoulder'  # 'JPEG-lossy'
 # local_file = error: 'SC_jpeg_no_color_transform'
 # local_file = error: 'SC_rgb_small_odd_jpeg'
-local_file = '0002'  # 'tmp'
+local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # '0002'  # 'tmp'
 local_file = folder_name + local_file
 
 # TODO: duplicate
 
 
 def get_pixel_data(ds):
+    print(f"PixelData:{len(ds.PixelData)}")
     if getattr(ds, 'NumberOfFrames', 1) > 1:
         j2k_precision, j2k_sign = None, None
         # multiple compressed frames
@@ -123,7 +124,10 @@ def render(fpath=""):
     # pixel_data = defragment_data(ds.PixelData)
     print(f"pixel_data:{len(pixel_data)}")
 
-    p2 = pixel_data[:-1]
+    b = pixel_data[len(pixel_data)-2]
+    a = pixel_data[len(pixel_data)-1]
+    p2 = pixel_data
+    print(f"p2 data:{len(p2)}")
 
     f = open(fpath+".jpg", "wb")
     f.write(p2)
