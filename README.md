@@ -137,7 +137,7 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 1. `docker run -p 8000:8000 grimmer0125/pyodide-react-dicom-viewer:0.4`
 2. open http://localhost:8000/ and drag a DICOM file to view.
 
-## DICOM sample file
+## DICOM sample file sites
 
 - https://barre.dev/medical/samples/ contains jpeg 57, 70 (MR-MONO2-12-shoulder, CT-MONO2-16-chest)
 - pydicom lib
@@ -150,6 +150,8 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
   - http://medistim.com/wp-content/uploads/2016/07/bmode.dcm ultra sound, 70, multi frame
 
 ### Tested sample files
+
+They are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/v0.2/dicom_samples.zip
 
 - CT-MONO2-16-ort: 1.2.840.10008.1.2, MONOCHROME2
 - JPEG57-MR-MONO2-12-shoulder: 1.2.840.10008.1.2.4.57 MONOCHROME2
