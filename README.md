@@ -164,6 +164,8 @@ They are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewe
 
 ## DICOM medical files - not handle cases
 
+pydicom suported transfer syntax: https://pydicom.github.io/pydicom/dev/old/image_data_handlers.html
+
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 - DICOM FILE
@@ -187,7 +189,8 @@ Below non handled items are done in another project https://github.com/grimmer01
 - get width & height of compressed DICOM before rendering
 - PhotometricInterpretation: YBR case
 
-Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled. ref https://www.dicomlibrary.com/dicom/transfer-syntax/
+Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled. 
+ref https://www.dicomlibrary.com/dicom/transfer-syntax/
 
 ## Issues
 
