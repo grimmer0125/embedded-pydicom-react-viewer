@@ -176,7 +176,7 @@ Below non handled items are done in another project https://github.com/grimmer01
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1
   - [done] Photometric: PALETTE
-  - 1.2.840.10008.1.2.1 Explicit VR, Little Endian (not testd)
+  - ~~1.2.840.10008.1.2.1 Explicit VR, Little Endian (not testd)~~
   - ~~1.2.840.10008.1.2.2 Explicit VR, Big Endian (testd)~~
 - possible window center & width mode (need work with rescale equation)
 - multiple frame
@@ -185,8 +185,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 - get width & height of compressed DICOM before rendering
 - PhotometricInterpretation: YBR case
 
-Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled. ref https://www.dicomlibrary.com/dicom/transfer-syntax/ 
-
+Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled. ref https://www.dicomlibrary.com/dicom/transfer-syntax/
 
 ## Issues
 
