@@ -142,7 +142,7 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 - https://barre.dev/medical/samples/ contains jpeg 57, 70 (MR-MONO2-12-shoulder, CT-MONO2-16-chest)
 - pydicom lib
   - https://github.com/pydicom/pydicom-data/tree/master/data_store/data JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
-  - https://github.com/pydicom/pydicom/blob/master/pydicom/data/test_files/JPEG-lossy.dcm: jpeg 51
+  - https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files: jpeg 51
 - Daikon lib https://github.com/rii-mango/Daikon/tree/master/tests
 - http://www.rubomedical.com/dicom_files/, some (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
 - https://medistim.com/dicom/
