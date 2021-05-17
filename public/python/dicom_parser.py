@@ -37,28 +37,22 @@ def get_pydicom_dataset_from_local_file(path):
     return ds
 
 
-def get_manufacturer_independent_pixel_image2d_array(ds):
-    print("start reading dicom pixel_array")
-
-    has_TransferSyntax = False
-    try:
-        print(f"check its transferSyntax:{ds.file_meta.TransferSyntaxUID}")
-        has_TransferSyntax = True
-    except:
-        print("no TransferSyntaxUID")
+def get_manufacturer_independent_pixel_image2d_array(ds, has_TransferSyntax):
 
     # transfer = ds.file_meta.TransferSyntaxUID
     # has_TransferSyntax = True
 
+    # RLE 1.2.840.10008.1.2.5:  US-PAL-8-10x-echo.dcm is automatically handled as uncompressed case
     if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91"]):
-        print(
-            "can not handle by pydicom in pyodide, lack of some pyodide extension")
+        print("compressed case !!!!!!!!!")
+
         # return None, ds.PixelData
     # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
-        print("try to get compressed dicom's pixel data")
+        print("try to get compressed dicom's pixel data manually, can not handle by pydicom in pyodide, lack of some pyodide extension")
         try:
             print(f"pixeldata:{len(ds.PixelData)}")
 
+            # TODO: only get 1st frame for multiple frame case and will improve later
             if getattr(ds, 'NumberOfFrames', 1) > 1:
                 print("multi frame")
                 j2k_precision, j2k_sign = None, None
@@ -69,7 +63,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
                 frame_count = 0
                 for frame in decode_data_sequence(ds.PixelData):
                     frame_count += 1
-                    print(f"frame i:{frame_count}, len:{len(frame)}")
+                    # print(f"frame i:{frame_count}, len:{len(frame)}")
                     # a = frame[0]
                     # b = frame[1]
                     # c = frame[len(frame)-2]
@@ -119,14 +113,18 @@ def get_manufacturer_independent_pixel_image2d_array(ds):
             print("failed to get compressed data")
             raise e
 
+    print("incompressed")
+    print("start reading dicom pixel_array, uncompressed case uses apply_modality_lut")
+
     try:
         arr = ds.pixel_array
     except Exception as e:
         if has_TransferSyntax == True:
             raise e
         else:
+            # http://dicom.nema.org/dicom/2013/output/chtml/part05/chapter_10.html
             print(
-                "read data fail may due to no TransferSyntaxUID, set it as ImplicitVRLittleEndian and try read dicom again")
+                "read data fail may due to no TransferSyntaxUID, set it as most often used and default ImplicitVRLittleEndian and try read dicom again")
             ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
             arr = ds.pixel_array
     print(f"read dicom pixel_array ok, shape:{arr.shape}")
@@ -145,8 +143,8 @@ def get_image2d_maxmin(image2d):
     _max = image2d.max()
     end = time.time()
     print(f"2. max time :{end-start}")  # 0.0 / 0.00027108192443847656
-    print(f'pixel (after modality lut) min:{_min}')
-    print(f'pixel (after modality lut) max:{_max}')  # 255
+    print(f'pixel min:{_min}')
+    print(f'pixel max:{_max}')  # 255
     return _max, _min
 
 
@@ -202,7 +200,7 @@ def flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d):
     # Planar Configuration = 1 -> R1, R2, R3, …, G1, G2, G3, …, B1, B2, B3
     # e.g. US-RGB-8-epicard.dcm (480, 640, 3)
 
-    # ISSUE:
+    # TODO/ISSUE:
     # The shape of testing DICOM file is like planar 0 and below just work
     # weird for RGB w/ planar 1 !!!
 
@@ -297,22 +295,56 @@ def main(is_pyodide_context: bool):
         from my_js_module import buffer  # pylint: disable=import-error
         ds = get_pydicom_dataset_from_js_buffer(buffer.to_py())
     else:
+        # deprecated, use plot.py to do local experiment
         # start to do some local Python stuff, e.g. testing
         ds = get_pydicom_dataset_from_local_file(
             "dicom/image-00000-ot.dcm")
-    image2d, compress_pixel_data = get_manufacturer_independent_pixel_image2d_array(
-        ds)
-    print("after get_manufacturer_independent_pixel_image2d_array")
-    photometric = ds[0x28, 0x04].value
-    if compress_pixel_data != None:
-        # return bytes data
-        # TODO: add width, height ?
-        print(f"photometric:{photometric}")
-        return compress_pixel_data, None, None, None, None,
-    _max, _min = get_image2d_maxmin(image2d[0])
-    width, height = get_image2d_dimension(image2d[0])
 
-    print(f"photometric:{photometric};shape:{image2d.shape}")
+    has_TransferSyntax = False
+    try:
+        print(f"transferSyntax:{ds.file_meta.TransferSyntaxUID}")
+        has_TransferSyntax = True
+    except:
+        print("no TransferSyntaxUID")
+    photometric = ds.PhotometricInterpretation
+    print(
+        f"photometric:{photometric}")
+    frame_number = getattr(ds, 'NumberOfFrames', 1)
+    print(f"frame_number:{frame_number}")
+
+    if photometric == "PALETTE COLOR":
+        print("it is PALETTE COLOR")
+        # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
+        # before: a grey 2d image
+        image2d = apply_color_lut(ds.pixel_array, ds)
+        # after: a RGB 2d image
+        print(f"PALETTE after apply_color_lut shape:{image2d.shape}")
+
+        # _max, _min = get_image2d_maxmin(image2d)
+        # print(f'pixel (after color lut) min:{_min}')  # min same as before
+        # print(f'pixel (after color lut) max:{_max}')  # max same as before
+        # but still need normalization (workaround way?) !!! Undocumented part !!!!
+        # Mabye it is because its max (dark) is 65536, 16bit
+        # image2d = normalize_image2d(image2d, _max, _min)
+    else:
+        image2d, compress_pixel_data = get_manufacturer_independent_pixel_image2d_array(
+            ds, has_TransferSyntax)
+        print("after get_manufacturer_independent_pixel_image2d_array")
+        if compress_pixel_data != None:
+            # return bytes data
+            # TODO: how to add width, height ?
+            print(
+                f"directly return compressed data")
+            return compress_pixel_data, None, None, None, None,
+
+    ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
+    # TODO: only get 1st frame for multiple frame case and will improve later
+    if frame_number > 1:
+        print("only get the 1st frame image2d data")
+        image2d = image2d[0]
+
+    _max, _min = get_image2d_maxmin(image2d)
+    print(f"uncompressed shape:{image2d.shape}")
 
     if photometric == "MONOCHROME1":
         print("invert color for monochrome1")
@@ -321,37 +353,34 @@ def main(is_pyodide_context: bool):
         image2d = _max - image2d + _min
         print(f"invert monochrome1 time:{time.time()-start}")
 
-    if photometric == "PALETTE COLOR":
-        # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
-        # before: a grey 2d image
-        image2d = apply_color_lut(ds.pixel_array, ds)
-        # after: a RGB 2d image
-        print(f"PALETTE after apply_color_lut shape:{image2d.shape}")
-
-        _max, _min = get_image2d_maxmin(image2d)
-        print(f'pixel (after color lut) min:{_min}')  # min same as before
-        print(f'pixel (after color lut) max:{_max}')  # max same as before
-        # but still need normalization (workaround way?) !!! Undocumented part !!!!
+    ### normalization ###
+    if photometric != "RGB":
+        # TODO: figure it later, RGB case does not need it really but PALETTE need?
+        # Even PALETTE case, still need normalization (workaround way?) !!! Undocumented part !!!!
         # Mabye it is because its max (dark) is 65536, 16bit
+
         image2d = normalize_image2d(image2d, _max, _min)
+    else:
+        print("it is RGB photometric, skip normalization?")
 
-        print("1")
-
-        # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
+    ### flatter to 1 d array ###
+    # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
     if photometric == "RGB" or photometric == "PALETTE COLOR":
-        print("2")
 
-        # planar_config = ds[0x0028, 0x0006].value
-        # print(f"planar:{planar_config}. dimension:{image2d.shape}")  # 0 or 1
+        try:
+            planar_config = ds[0x0028, 0x0006].value
+            print(f"planar:{planar_config}")
+        except:
+            print("no planar value")
 
         # if planar_config == 0:
-        image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d[0])
+        image = flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
         # else:
         #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
     else:
-        print("3")
-        image2d = normalize_image2d(image2d, _max, _min)
         image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
+
+    width, height = get_image2d_dimension(image2d)
 
     # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
     # so we need to use int(min), int(max)

@@ -140,16 +140,27 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 ## DICOM sample file
 
 - https://barre.dev/medical/samples/ contains jpeg 57, 70 (MR-MONO2-12-shoulder, CT-MONO2-16-chest)
+- https://github.com/pydicom/pydicom-data/tree/master/data_store/data, JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
 - http://www.rubomedical.com/dicom_files/, some (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
 - https://github.com/pydicom/pydicom/blob/master/pydicom/data/test_files/
   - JPEG-lossy.dcm: jpeg 51
-- https://github.com/pydicom/pydicom-data/tree/master/data_store/data, JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
 - https://medistim.com/dicom/
   - http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
   - http://medistim.com/wp-content/uploads/2016/07/bmode.dcm ultra sound, 70, multi frame
 - https://github.com/rii-mango/Daikon/tree/master/tests
 
-## DICOM medical files - not handle/test cases
+### Tested sample files
+
+- CT-MONO2-16-ort: 1.2.840.10008.1.2, MONOCHROME2
+- JPEG57-MR-MONO2-12-shoulder: 1.2.840.10008.1.2.4.57 MONOCHROME2
+- US-PAL-8-10x-echo: 1.2.840.10008.1.2.5 (RLE Lossless), PALETTE COLOR, multi-frame
+- CR-MONO1-10-chest: 1.2.840.10008.1.2.4.50 (raw, need specified), MONOCHROME1
+- [color3d_jpeg_baseline](https://github.com/pydicom/pydicom-data/tree/master/data_store/data): 1.2.840.10008.1.2.4.50, YBR_FULL_422 (not handled YBR part), multi-frame
+- JPGLosslessP14SV1_1s_1f_8b: 1.2.840.10008.1.2.4.70, MONOCHROME2
+- US-RGB-8-esopecho.dcm: 1.2.840.10008.1.2.1, RGB, planar:0
+- US-RGB-8-epicard.dcm: Planar Configuration = 1
+
+## DICOM medical files - not handle cases
 
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
@@ -163,11 +174,14 @@ Below non handled items are done in another project https://github.com/grimmer01
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1
   - [done] Photometric: PALETTE
+  - 1.2.840.10008.1.2.1 Explicit VR, Little Endian (not testd)
+  - 1.2.840.10008.1.2.2 Explicit VR, Big Endian (not testd)
 - possible window center & width mode (need work with rescale equation)
 - multiple frame
 - coronal & sagittal views & judge if current is AxialView or not
 - scale (resize to viewer size)
 - get width & height of compressed DICOM before rendering
+- PhotometricInterpretation: YBR case
 
 ## Issues
 
