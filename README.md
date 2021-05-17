@@ -160,7 +160,7 @@ They are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewe
 - [color3d_jpeg_baseline](https://github.com/pydicom/pydicom-data/tree/master/data_store/data): 1.2.840.10008.1.2.4.50, YBR_FULL_422 (not handled YBR part), multi-frame
 - JPGLosslessP14SV1_1s_1f_8b: 1.2.840.10008.1.2.4.70, MONOCHROME2
 - US-RGB-8-esopecho.dcm: 1.2.840.10008.1.2.1, RGB, planar:0
-- US-RGB-8-epicard.dcm: Planar Configuration = 1
+- US-RGB-8-epicard.dcm: 1.2.840.10008.1.2.2, RRB, planar = 1
 
 ## DICOM medical files - not handle cases
 
@@ -177,7 +177,7 @@ Below non handled items are done in another project https://github.com/grimmer01
   - [done] Photometric: RGB with planar 0, 1
   - [done] Photometric: PALETTE
   - 1.2.840.10008.1.2.1 Explicit VR, Little Endian (not testd)
-  - 1.2.840.10008.1.2.2 Explicit VR, Big Endian (not testd)
+  - ~~1.2.840.10008.1.2.2 Explicit VR, Big Endian (testd)~~
 - possible window center & width mode (need work with rescale equation)
 - multiple frame
 - coronal & sagittal views & judge if current is AxialView or not
