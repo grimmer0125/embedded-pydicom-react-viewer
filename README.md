@@ -143,7 +143,7 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 - pydicom lib
   - https://github.com/pydicom/pydicom-data/tree/master/data_store/data JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
   - https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files: jpeg 51
-- Daikon lib https://github.com/rii-mango/Daikon/tree/master/tests
+- Daikon lib https://github.com/rii-mango/Daikon/tree/master/tests/data
 - http://www.rubomedical.com/dicom_files/, some (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
 - https://medistim.com/dicom/
   - http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
