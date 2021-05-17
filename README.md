@@ -185,6 +185,9 @@ Below non handled items are done in another project https://github.com/grimmer01
 - get width & height of compressed DICOM before rendering
 - PhotometricInterpretation: YBR case
 
+Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled. ref https://www.dicomlibrary.com/dicom/transfer-syntax/ 
+
+
 ## Issues
 
 1. [Solved][performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
