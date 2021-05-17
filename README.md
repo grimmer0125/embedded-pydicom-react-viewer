@@ -3,7 +3,7 @@
 This experimental project demonstrates
 
 1. How to use Python in browser, working with ReactApp.
-2. Use Python to parse DICOM files (only supprot some kind of DICOM) and pass data to JS, then draw it on Canvas.
+2. Use Python to parse DICOM files and pass data to JS, then draw it on Canvas.
 
 Tested on macOS Big Sur (intel/M1), Chrome 89.
 
