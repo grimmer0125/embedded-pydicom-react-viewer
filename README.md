@@ -170,9 +170,11 @@ Below non handled items are done in another project https://github.com/grimmer01
   - Transfer Syntax:
     - ~~51 (supported)~~, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
     - ~~1.2.840.10008.1.2.5 RLE Lossless~~
-    - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
+    - 1.2.840.10008.1.2.4.80 JPEG LS Lossless (not tested)
+    - 1.2.840.10008.1.2.4.81 JPEG LS Lossy (not tested)
     - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)
     - 1.2.840.10008.1.2.4.91 JPEG2000 (not tested)
+    - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1
   - [done] Photometric: PALETTE
