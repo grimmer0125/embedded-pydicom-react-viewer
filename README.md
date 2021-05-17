@@ -169,7 +169,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 - DICOM FILE
   - Transfer Syntax:
     - ~~51 (supported)~~, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
-    - ~~1.2.840.10008.1.2.5 RLE Lossless ~~
+    - ~~1.2.840.10008.1.2.5 RLE Lossless~~
     - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
     - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)
     - 1.2.840.10008.1.2.4.91 JPEG2000 (not tested)
