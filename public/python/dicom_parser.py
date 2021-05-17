@@ -306,9 +306,13 @@ def main(is_pyodide_context: bool):
         has_TransferSyntax = True
     except:
         print("no TransferSyntaxUID")
-    photometric = ds.PhotometricInterpretation
-    print(
-        f"photometric:{photometric}")
+    try:
+        photometric = ds.PhotometricInterpretation
+        print(
+            f"photometric:{photometric}")
+    except:
+        print("no photometric")
+        photometric = ""
     frame_number = getattr(ds, 'NumberOfFrames', 1)
     print(f"frame_number:{frame_number}")
 
