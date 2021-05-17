@@ -1,5 +1,7 @@
 node_modules
 public/pyodide
 build
+dicom_samples
+dicom_samples.zip
 **/__pycache__
 *.pyc
