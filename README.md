@@ -9,7 +9,7 @@ Tested on macOS Big Sur (intel/M1), Chrome 89.
 
 Its usage is simple. Just drag a DICOM file into the panel to view.
 
-Download from [DICOM sample file](#dicom-sample-file)
+Download DICOM files from [DICOM sample file sites](#dicom-sample-file-sites)
 
 ## Motivation
 
