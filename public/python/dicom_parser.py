@@ -39,8 +39,10 @@ def get_pydicom_dataset_from_local_file(path):
 
 def get_manufacturer_independent_pixel_image2d_array(ds, has_TransferSyntax):
 
-    # transfer = ds.file_meta.TransferSyntaxUID
+    # '1.2.840.10008.1.2.4.90'  #
+    # ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.90'  # '1.2.840.10008.1.2.1.99'
     # has_TransferSyntax = True
+    # print(f"syntax:{ds.file_meta.TransferSyntaxUID}")
 
     # RLE 1.2.840.10008.1.2.5:  US-PAL-8-10x-echo.dcm is automatically handled as uncompressed case
     if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91"]):

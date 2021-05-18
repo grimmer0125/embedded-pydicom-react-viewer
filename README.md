@@ -142,25 +142,29 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 - https://barre.dev/medical/samples/ contains jpeg 57, 70 (MR-MONO2-12-shoulder, CT-MONO2-16-chest)
 - pydicom lib
   - https://github.com/pydicom/pydicom-data/tree/master/data_store/data JPGLosslessP14SV1_1s_1f_8b.dcm 1.2.840.10008.1.2.4.70 JPEG Lossless
-  - https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files: jpeg 51
-- Daikon lib https://github.com/rii-mango/Daikon/tree/master/tests/data
+  - https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files jpeg 51
 - http://www.rubomedical.com/dicom_files/, some (multi-frame) `DICOM jpeg 1.2.840.10008.1.2.4.50`
 - https://medistim.com/dicom/
   - http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
   - http://medistim.com/wp-content/uploads/2016/07/bmode.dcm ultra sound, 70, multi frame
+- ~~Daikon lib https://github.com/rii-mango/Daikon/tree/master/tests/data (these DICOM files miss transfersynax~~
 
 ### Tested sample files
 
 They are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/v0.2/dicom_samples.zip
 
-- CT-MONO2-16-ort: 1.2.840.10008.1.2, MONOCHROME2
+- [CT-MONO2-16-ort](https://barre.dev/medical/samples/): 1.2.840.10008.1.2, MONOCHROME2
+- US-RGB-8-esopecho: 1.2.840.10008.1.2.1, RGB, planar:0
+- US-RGB-8-epicard: 1.2.840.10008.1.2.2, RRB, planar = 1
+- CR-MONO1-10-chest: 1.2.840.10008.1.2.4.50 (raw, need specified transfersyntax), MONOCHROME1
 - JPEG57-MR-MONO2-12-shoulder: 1.2.840.10008.1.2.4.57 MONOCHROME2
 - US-PAL-8-10x-echo: 1.2.840.10008.1.2.5 (RLE Lossless), PALETTE COLOR, multi-frame
-- CR-MONO1-10-chest: 1.2.840.10008.1.2.4.50 (raw, need specified), MONOCHROME1
-- [color3d_jpeg_baseline](https://github.com/pydicom/pydicom-data/tree/master/data_store/data): 1.2.840.10008.1.2.4.50, YBR_FULL_422 (not handled YBR part), multi-frame
+- [color3d_jpeg_baseline](https://github.com/pydicom/pydicom-data/tree/master/data_store/data): 1.2.840.10008.1.2.4.50, YBR_FULL_422 (not handled YBR part, so final contrast may be wrong), multi-frame
 - JPGLosslessP14SV1_1s_1f_8b: 1.2.840.10008.1.2.4.70, MONOCHROME2
-- US-RGB-8-esopecho.dcm: 1.2.840.10008.1.2.1, RGB, planar:0
-- US-RGB-8-epicard.dcm: 1.2.840.10008.1.2.2, RRB, planar = 1
+- [JPEG-lossy](https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files): 1.2.840.10008.1.2.4.51, MONOCHROME2
+  - contrast of saved jpeg is not obvious (need to improve normalization?)
+- JPEG2000: 1.2.840.10008.1.2.4.91, photometric:MONOCHROME2
+  - contrast of saved jpeg is not obvious (need to improve normalization?)
 
 ## DICOM medical files - not handle cases
 
@@ -189,7 +193,7 @@ Below non handled items are done in another project https://github.com/grimmer01
 - get width & height of compressed DICOM before rendering
 - PhotometricInterpretation: YBR case
 
-Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled. 
+Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled.
 ref https://www.dicomlibrary.com/dicom/transfer-syntax/
 
 ## Issues
