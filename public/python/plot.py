@@ -64,7 +64,8 @@ def check_pillow(ds):
 # local_file = "dicom/JPGExtended.dcm" # 51 too, but miss some headers
 # local_file = "dicom/SC_rgb_small_odd_jpeg.dcm"  # 50
 # local_file = 'SC_jpeg_no_color_transform.dcm' 50 但我的 extension 也讀不到
-folder_name = "dicom_samples/"
+folder_path = "dicom_samples/"
+jpeg_folder_path = "extracted_jpeg_dicom/"
 
 # local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # jpeg_baseline_8bit.dcm'
 # 'dwv-bbmri-53323131 (13)-mr'  # 'CT'  # 0020 CT-MONO2-16-chest'
@@ -78,10 +79,11 @@ folder_name = "dicom_samples/"
 # local_file = 'color3d_jpeg_baseline'
 # local_file = 'CT-MONO2-16-ort'
 # local_file = 'JPEG_LS_InvalidEscapeSequence_COM_padding'  # 'JPEG2000'
-#local_file = 'DX_J2K_0Padding'
-local_file = 'D_CLUNIE_CT1_JLSL'
+# local_file = 'DX_J2K_0Padding'
+# local_file = 'D_CLUNIE_CT1_JLSL'
+local_file = 'JPEG-lossy'
 # local_file = 'D_CLUNIE_CT1_JLSN'
-local_file = folder_name + local_file
+# local_file = folder_name + local_file
 
 # TODO: duplicate
 
@@ -103,11 +105,14 @@ def get_pixel_data(ds):
     return pixel_data
 
 
-def extract_compressed_data_to_save(fpath=""):
-    print(f"{fpath}")
-    if fpath == "":
-        fpath = get_testdata_file('CT_small.dcm')
-    ds = dcmread(fpath+".dcm", force=True)
+def extract_compressed_data_to_save(file_name=""):
+    print(f"{file_name}")
+    if file_name == "":
+        path = get_testdata_file('CT_small.dcm')
+    else:
+        path = folder_path + file_name
+        save_path = jpeg_folder_path + file_name
+    ds = dcmread(path+".dcm", force=True)
 
     # check_pillow(ds)
 
@@ -138,17 +143,20 @@ def extract_compressed_data_to_save(fpath=""):
     p2 = pixel_data
     print(f"p2 data:{len(p2)}")
 
-    f = open(fpath+".jpg", "wb")
+    # path = folder_name + file_name
+
+    f = open(save_path+".jpg", "wb")
     f.write(p2)
     f.close()
 
 
-def render(fpath):
+def render(file_name):
+    path = folder_path + file_name
     # import matplotlib.pyplot as plt
     # import pydicom
     # from pydicom.data import get_testdata_files
     # filename = get_testdata_files("CT_small.dcm")[0]
-    ds = dcmread(fpath+".dcm", force=True)
+    ds = dcmread(path+".dcm", force=True)
     pixel_data = ds.pixel_array
     # US-PAL-8-10x-echo, rle: 10, 430, 600 !!! multiple frame
     # color3d_jpeg_baseline, 120x480x640x3 !!
