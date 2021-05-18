@@ -77,7 +77,10 @@ folder_name = "dicom_samples/"
 # local_file = "US-PAL-8-10x-echo"
 # local_file = 'color3d_jpeg_baseline'
 # local_file = 'CT-MONO2-16-ort'
-local_file = 'JPEG2000'
+# local_file = 'JPEG_LS_InvalidEscapeSequence_COM_padding'  # 'JPEG2000'
+#local_file = 'DX_J2K_0Padding'
+local_file = 'D_CLUNIE_CT1_JLSL'
+# local_file = 'D_CLUNIE_CT1_JLSN'
 local_file = folder_name + local_file
 
 # TODO: duplicate

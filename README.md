@@ -147,24 +147,39 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 - https://medistim.com/dicom/
   - http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
   - http://medistim.com/wp-content/uploads/2016/07/bmode.dcm ultra sound, 70, multi frame
+- [gdcm](http://gdcm.sourceforge.net/wiki/index.php/Main_Page) data `git clone git://git.code.sf.net/p/gdcm/gdcmdata`
 - ~~Daikon lib https://github.com/rii-mango/Daikon/tree/master/tests/data (these DICOM files miss transfersynax~~
 
 ### Tested sample files
 
-They are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/v0.2/dicom_samples.zip
+Most of them are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/v0.2/dicom_samples.zip. All jpeg compressed DICOM files need a extra JPEG decoder (except 50 baseline) to render on browser and currently it is parsed but not visible on browser. [Daikon][https://github.com/rii-mango/daikon] has done this, and https://github.com/cornerstonejs/dicomParser seems too.
 
-- [CT-MONO2-16-ort](https://barre.dev/medical/samples/): 1.2.840.10008.1.2, MONOCHROME2
+https://barre.dev/medical/samples/:
+
+- CT-MONO2-16-ort: 1.2.840.10008.1.2, MONOCHROME2
 - US-RGB-8-esopecho: 1.2.840.10008.1.2.1, RGB, planar:0
 - US-RGB-8-epicard: 1.2.840.10008.1.2.2, RRB, planar = 1
 - CR-MONO1-10-chest: 1.2.840.10008.1.2.4.50 (raw, need specified transfersyntax), MONOCHROME1
 - JPEG57-MR-MONO2-12-shoulder: 1.2.840.10008.1.2.4.57 MONOCHROME2
 - US-PAL-8-10x-echo: 1.2.840.10008.1.2.5 (RLE Lossless), PALETTE COLOR, multi-frame
-- [color3d_jpeg_baseline](https://github.com/pydicom/pydicom-data/tree/master/data_store/data): 1.2.840.10008.1.2.4.50, YBR_FULL_422 (not handled YBR part, so final contrast may be wrong), multi-frame
+
+https://github.com/pydicom/pydicom-data/tree/master/data_store/data
+
+- color3d_jpeg_baseline: 1.2.840.10008.1.2.4.50, YBR_FULL_422 (not handled YBR part, so final contrast may be wrong), multi-frame
 - JPGLosslessP14SV1_1s_1f_8b: 1.2.840.10008.1.2.4.70, MONOCHROME2
-- [JPEG-lossy](https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files): 1.2.840.10008.1.2.4.51, MONOCHROME2
+
+https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files
+
+- JPEG-lossy: 1.2.840.10008.1.2.4.51, MONOCHROME2
   - contrast of saved jpeg is not obvious (need to improve normalization?)
-- JPEG2000: 1.2.840.10008.1.2.4.91, photometric:MONOCHROME2
+- JPEG2000: 1.2.840.10008.1.2.4.91, MONOCHROME2
   - contrast of saved jpeg is not obvious (need to improve normalization?)
+
+GDCM data, use `git://git.code.sf.net/p/gdcm/gdcmdata` to download
+
+- D_CLUNIE_CT1_JLSL: 1.2.840.10008.1.2.4.80, MONOCHROME2 (saved jpeg-ls is not viewable on https://products.groupdocs.app/viewer/jpg, not sure it is normal or not)
+- D_CLUNIE_CT1_JLSN: 1.2.840.10008.1.2.4.81, MONOCHROME2 (saved jpeg-ls is not viewable on https://products.groupdocs.app/viewer/jpg, not sure it is normal or not)
+- DX_J2K_0Padding: 1.2.840.10008.1.2.4.90, MONOCHROME2
 
 ## DICOM medical files - not handle cases
 
@@ -174,12 +189,12 @@ Below non handled items are done in another project https://github.com/grimmer01
 
 - DICOM FILE
   - Transfer Syntax:
-    - ~~51 (supported)~~, 57, 70 JPEG DICOM. They are parsed but browser needs extra JPEG decoder to render, [Daikon][https://github.com/rii-mango/daikon] has done this.
+    - ~~51 (supported)~~, 57, 70 JPEG DICOM.
     - ~~1.2.840.10008.1.2.5 RLE Lossless~~
-    - 1.2.840.10008.1.2.4.80 JPEG LS Lossless (not tested)
-    - 1.2.840.10008.1.2.4.81 JPEG LS Lossy (not tested)
-    - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)
-    - 1.2.840.10008.1.2.4.91 JPEG2000 (not tested)
+    - 1.2.840.10008.1.2.4.80 JPEG LS Lossless
+    - 1.2.840.10008.1.2.4.81 JPEG LS Lossy
+    - ~~1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)~~
+    - ~~1.2.840.10008.1.2.4.91 JPEG2000 (not tested)~~
     - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1

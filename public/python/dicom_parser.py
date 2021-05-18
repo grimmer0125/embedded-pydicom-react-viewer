@@ -40,7 +40,7 @@ def get_pydicom_dataset_from_local_file(path):
 def get_manufacturer_independent_pixel_image2d_array(ds, has_TransferSyntax):
 
     # '1.2.840.10008.1.2.4.90'  #
-    # ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.90'  # '1.2.840.10008.1.2.1.99'
+    # ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.99'  # '1.2.840.10008.1.2.1.99'
     # has_TransferSyntax = True
     # print(f"syntax:{ds.file_meta.TransferSyntaxUID}")
 
