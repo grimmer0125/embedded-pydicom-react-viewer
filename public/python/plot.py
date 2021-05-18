@@ -11,6 +11,7 @@ from pydicom.encaps import defragment_data, decode_data_sequence
 
 from io import BytesIO
 
+from compressed import parse_comppressed
 
 try:
     import PIL
@@ -63,7 +64,7 @@ def check_pillow(ds):
 # local_file = "dicom/JPGExtended.dcm" # 51 too, but miss some headers
 # local_file = "dicom/SC_rgb_small_odd_jpeg.dcm"  # 50
 # local_file = 'SC_jpeg_no_color_transform.dcm' 50 但我的 extension 也讀不到
-folder_name = "dicom/"
+folder_name = "dicom_samples/"
 
 # local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # jpeg_baseline_8bit.dcm'
 # 'dwv-bbmri-53323131 (13)-mr'  # 'CT'  # 0020 CT-MONO2-16-chest'
@@ -72,7 +73,11 @@ folder_name = "dicom/"
 # local_file = error: 'SC_jpeg_no_color_transform'
 # local_file = error: 'SC_rgb_small_odd_jpeg'
 # local_file = 'JPGLosslessP14SV1_1s_1f_8b'  # '0002'  # 'tmp'
-
+# local_file = 'JPEG-lossy'  # 'JPEG57-MR-MONO2-12-shoulder'
+# local_file = "US-PAL-8-10x-echo"
+# local_file = 'color3d_jpeg_baseline'
+# local_file = 'CT-MONO2-16-ort'
+local_file = 'JPEG2000'
 local_file = folder_name + local_file
 
 # TODO: duplicate
@@ -95,7 +100,8 @@ def get_pixel_data(ds):
     return pixel_data
 
 
-def render(fpath=""):
+def extract_compressed_data_to_save(fpath=""):
+    print(f"{fpath}")
     if fpath == "":
         fpath = get_testdata_file('CT_small.dcm')
     ds = dcmread(fpath+".dcm", force=True)
@@ -120,11 +126,10 @@ def render(fpath=""):
     # # use .get() if not sure the item exists, and want a default value if missing
     # print(f"Slice location...: {ds.get('SliceLocation', '(missing)')}")
 
-    pixel_data = get_pixel_data(ds)
+    _, pixel_data = parse_comppressed(ds)
 
     # pixel_data = defragment_data(ds.PixelData)
     print(f"pixel_data:{len(pixel_data)}")
-
     b = pixel_data[len(pixel_data)-2]
     a = pixel_data[len(pixel_data)-1]
     p2 = pixel_data
@@ -133,19 +138,37 @@ def render(fpath=""):
     f = open(fpath+".jpg", "wb")
     f.write(p2)
     f.close()
-# return None, pixel_data
-
-# try:
-#     fio = BytesIO(pixel_data)  # pixel_data)
-#     image = Image.open(fio)
-# except Exception as e:
-#     print(f"pillow error:{e}")
-
-# print('pillow done')
-
-# # plot the image using matplotlib
-# plt.imshow(ds.pixel_array, cmap=plt.cm.gray)
-# plt.show()
 
 
-render(local_file)
+def render(fpath):
+    # import matplotlib.pyplot as plt
+    # import pydicom
+    # from pydicom.data import get_testdata_files
+    # filename = get_testdata_files("CT_small.dcm")[0]
+    ds = dcmread(fpath+".dcm", force=True)
+    pixel_data = ds.pixel_array
+    # US-PAL-8-10x-echo, rle: 10, 430, 600 !!! multiple frame
+    # color3d_jpeg_baseline, 120x480x640x3 !!
+    shape = pixel_data.shape
+    pixel_data2 = pixel_data[0]
+    plt.imshow(pixel_data2, cmap=plt.cm.bone)
+    plt.show()
+    print("o")
+    # return None, pixel_data
+
+    # try:
+    #     fio = BytesIO(pixel_data)  # pixel_data)
+    #     image = Image.open(fio)
+    # except Exception as e:
+    #     print(f"pillow error:{e}")
+
+    # print('pillow done')
+
+    # # plot the image using matplotlib
+    # plt.imshow(ds.pixel_array, cmap=plt.cm.gray)
+    # plt.show()
+
+
+extract_compressed_data_to_save(local_file)
+
+# render(local_file)
