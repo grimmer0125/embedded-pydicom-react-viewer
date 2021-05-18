@@ -181,6 +181,10 @@ GDCM data, use `git://git.code.sf.net/p/gdcm/gdcmdata` to download
 - D_CLUNIE_CT1_JLSN: 1.2.840.10008.1.2.4.81, MONOCHROME2 (saved jpeg-ls is not viewable on https://products.groupdocs.app/viewer/jpg, not sure it is normal or not)
 - DX_J2K_0Padding: 1.2.840.10008.1.2.4.90, MONOCHROME2
 
+https://www.dclunie.com/images/compressed/index.html
+
+- image_dfl: 1.2.840.10008.1.2.1.99, MONOCHROME2
+
 ## DICOM medical files - not handle cases
 
 pydicom suported transfer syntax: https://pydicom.github.io/pydicom/dev/old/image_data_handlers.html
@@ -191,11 +195,11 @@ Below non handled items are done in another project https://github.com/grimmer01
   - Transfer Syntax:
     - ~~51 (supported)~~, 57, 70 JPEG DICOM.
     - ~~1.2.840.10008.1.2.5 RLE Lossless~~
-    - 1.2.840.10008.1.2.4.80 JPEG LS Lossless
-    - 1.2.840.10008.1.2.4.81 JPEG LS Lossy
+    - \*1.2.840.10008.1.2.4.80 JPEG LS Lossless
+    - \*1.2.840.10008.1.2.4.81 JPEG LS Lossy
     - ~~1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)~~
     - ~~1.2.840.10008.1.2.4.91 JPEG2000 (not tested)~~
-    - 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian (not tested)
+    - ~~1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian~~
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1
   - [done] Photometric: PALETTE
