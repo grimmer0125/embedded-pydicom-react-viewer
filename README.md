@@ -86,7 +86,8 @@ Then
 1. `npm install --global yarn`
 2. `yarn set version berry`
 3. `yarn install`
-4. `poetry install`
+4. `poetry shell`
+5. `poetry install`
 
 ### Start coding
 
@@ -221,8 +222,8 @@ ref https://www.dicomlibrary.com/dicom/transfer-syntax/
 
 [Solved][performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
 
-   1. (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2D grey data to 1D RGBA canvas image data.~~
-   2. [Use this way, solved] Or is there any quick way in numpy for flattening a 2D grey array to 1D RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2D.min()/max() is fast. Need more study/profiling.
+1.  (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2D grey data to 1D RGBA canvas image data.~~
+2.  [Use this way, solved] Or is there any quick way in numpy for flattening a 2D grey array to 1D RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2D.min()/max() is fast. Need more study/profiling.
 
 **Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/)**:
 
@@ -235,14 +236,13 @@ p.s.
 1. I did not record JS accurate time cost but it is fast.
 2. Local Python is much faster than Pyodide Python in browser.
 
-### Some compressed JPEG DICOM are not shown in the browser 
+### Some compressed JPEG DICOM are not shown in the browser
 
-Need extra jpeg decoder added. 
+Need extra jpeg decoder added.
 
 ## todo list
 
 Besides adding back above medical file cases/features, there are some optional things we can do
-
 
 1. [Done] Host these on your server. Check https://pyodide.org/en/0.17.0a2/usage/serving-pyodide-packages.html & https://pyodide.org/en/0.17.0a2/usage/loading-packages.html#
    1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files
@@ -258,7 +258,7 @@ Besides adding back above medical file cases/features, there are some optional t
 9. Refactor
 10. Add tests
 11. Fix [DICOM medical files - Not handle/test cases](#dicom-medical-files---not-handletest-cases)
-12. Add jpeg extra decoder in the browser. 
+12. Add jpeg extra decoder in the browser.
 
 ## Misc
 

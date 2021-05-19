@@ -80,12 +80,13 @@ ENV PATH="${PATH}:/root/.poetry/bin"
 COPY . .
 RUN sh ./download_pyodide.sh
 RUN yarn install
+RUN poetry shell
 RUN poetry install
 RUN yarn build 
 
 EXPOSE 8080
 CMD [ "poetry", "run", "uvicorn", "--host", "0.0.0.0", "main:app"]
- 
+
 
 
 
