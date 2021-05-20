@@ -257,7 +257,7 @@ Besides adding back above medical file cases/features, there are some optional t
 8. Help to improve Pyodide
 9. Refactor
 10. Add tests
-11. Fix [DICOM medical files - Not handle/test cases](#dicom-medical-files---not-handletest-cases)
+11. Fix [DICOM medical files - Not handle cases](#dicom-medical-files---not-handle-cases)
 12. Add jpeg extra decoder in the browser.
 
 ## Misc
