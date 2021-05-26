@@ -80,7 +80,6 @@ ENV PATH="${PATH}:/root/.poetry/bin"
 COPY . .
 RUN sh ./download_pyodide.sh
 RUN yarn install
-RUN poetry shell
 RUN poetry install
 RUN yarn build 
 
