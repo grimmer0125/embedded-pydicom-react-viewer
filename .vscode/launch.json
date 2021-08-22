@@ -9,6 +9,12 @@
             "console": "integratedTerminal"
         },
         {
+            "type": "pwa-msedge",
+            "request": "launch",
+            "name": "Launch my cool app",
+            "url": "http://localhost:3000"
+        },
+        {
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome For localhost",
