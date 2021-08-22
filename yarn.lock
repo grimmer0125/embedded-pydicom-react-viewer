@@ -5832,7 +5832,7 @@ __metadata:
     "@types/react": ^17.0.0
     "@types/react-dom": ^17.0.0
     d4c-queue: ^1.4.0
-    file-selector: ^0.1.12
+    jpeg-lossless-decoder-js: ^2.0.4
     react: ^17.0.2
     react-dom: ^17.0.2
     react-dropzone: ^11.3.4
@@ -6747,15 +6747,6 @@ __metadata:
   peerDependencies:
     webpack: ^4.0.0 || ^5.0.0
   checksum: 0272335818c26e5c78a9f972ce779c8ed508e815329e4ace4d55045100140d89460d72eec1af78400dd04f2d16e28e29b3649433804619653cf044220afdf45d
-  languageName: node
-  linkType: hard
-
-"file-selector@npm:^0.1.12":
-  version: 0.1.19
-  resolution: "file-selector@npm:0.1.19"
-  dependencies:
-    tslib: ^2.0.1
-  checksum: 8696e53366ad28e54254bb591ab8a8718116a25db6318f92f98ebef1475bc24a21d271216f474c9bd01c857f0d2c38b25482126af58cb05b5cc6b9611223e16b
   languageName: node
   linkType: hard
 
@@ -9056,6 +9047,13 @@ fsevents@^1.2.7:
   bin:
     jest: bin/jest.js
   checksum: 5db020fa88bc87ff4c8373be02605a3a42256b59151b30b22955dfa92142516150abf0e969fe8847bdf2bf0fbb338a1c93954b808fc8d7b0933f4bb15f1e0500
+  languageName: node
+  linkType: hard
+
+"jpeg-lossless-decoder-js@npm:^2.0.4":
+  version: 2.0.4
+  resolution: "jpeg-lossless-decoder-js@npm:2.0.4"
+  checksum: 40d3d0c7f64d94d9163c3b74b6dfb302c3ec3d53182d82f35b4bbfb0504fa9bb3cc5c87e228e76f9a71faa6b3b43333e66e0589fe124beddf6743d440ddd040d
   languageName: node
   linkType: hard
 
@@ -14450,7 +14448,7 @@ resolve@^2.0.0-next.3:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.1, tslib@npm:^2.0.3":
+"tslib@npm:^2.0.3":
   version: 2.2.0
   resolution: "tslib@npm:2.2.0"
   checksum: 2d35468c470410871c5246e43f12dcb6d0fc363b617c176f26443b9530e5c5ee8448966892a42956168d8f495da7865bda33dfe82c26c91991e28999974a618f

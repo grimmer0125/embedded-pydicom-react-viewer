@@ -37,7 +37,11 @@ def get_pydicom_dataset_from_local_file(path):
     return ds
 
 
-def get_manufacturer_independent_pixel_image2d_array(ds, has_TransferSyntax):
+compressed_list = ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", 
+"1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91"]
+
+
+def get_manufacturer_independent_pixel_image2d_array(ds, transferSyntaxUID: str):
 
     # '1.2.840.10008.1.2.4.90'  #
     # ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.99'  # '1.2.840.10008.1.2.1.99'
@@ -45,7 +49,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds, has_TransferSyntax):
     # print(f"syntax:{ds.file_meta.TransferSyntaxUID}")
 
     # RLE 1.2.840.10008.1.2.5:  US-PAL-8-10x-echo.dcm is automatically handled as uncompressed case
-    if (has_TransferSyntax and ds.file_meta.TransferSyntaxUID in ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70", "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91"]):
+    if (transferSyntaxUID and transferSyntaxUID in compressed_list):
         print("compressed case !!!!!!!!!")
 
         # return None, ds.PixelData
@@ -121,7 +125,7 @@ def get_manufacturer_independent_pixel_image2d_array(ds, has_TransferSyntax):
     try:
         arr = ds.pixel_array
     except Exception as e:
-        if has_TransferSyntax == True:
+        if transferSyntaxUID:
             raise e
         else:
             # http://dicom.nema.org/dicom/2013/output/chtml/part05/chapter_10.html
@@ -302,10 +306,19 @@ def main(is_pyodide_context: bool):
         ds = get_pydicom_dataset_from_local_file(
             "dicom/image-00000-ot.dcm")
 
-    has_TransferSyntax = False
+    width= ds[0x0028, 0x0011].value
+    height = ds[0x0028, 0x0010].value
+    print(f'dimension: {width}; {height}')
+    allocated_bits = ds[0x0028,0x0100].value
+    stored_bites = ds[0x0028,0x0101].value
+    # 8,8 or 16,12
+    print(f"allocated_bits:{allocated_bits}")
+    print(f"stored_bites:{stored_bites}")
+
+    transferSyntaxUID = ""
     try:
-        print(f"transferSyntax:{ds.file_meta.TransferSyntaxUID}")
-        has_TransferSyntax = True
+        transferSyntaxUID = ds.file_meta.TransferSyntaxUID
+        print(f"transferSyntax:{transferSyntaxUID}")
     except:
         print("no TransferSyntaxUID")
     try:
@@ -334,14 +347,17 @@ def main(is_pyodide_context: bool):
         # image2d = normalize_image2d(image2d, _max, _min)
     else:
         image2d, compress_pixel_data = get_manufacturer_independent_pixel_image2d_array(
-            ds, has_TransferSyntax)
+            ds, transferSyntaxUID)
         print("after get_manufacturer_independent_pixel_image2d_array")
         if compress_pixel_data != None:
             # return bytes data
             # TODO: how to add width, height ?
             print(
                 f"directly return compressed data")
-            return compress_pixel_data, None, None, None, None,
+            # Columns (0028,0011), Rows (0028,0010)
+
+
+            return compress_pixel_data, width, height, None, None, photometric, transferSyntaxUID, allocated_bits
 
     ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
     # TODO: only get 1st frame for multiple frame case and will improve later
@@ -386,13 +402,13 @@ def main(is_pyodide_context: bool):
     else:
         image = flatten_grey_image2d_to_rgba_1d_image_array(image2d)
 
-    width, height = get_image2d_dimension(image2d)
+    # width, height = get_image2d_dimension(image2d)
 
     # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
     # so we need to use int(min), int(max)
     print(f'min type is:{type(_min)}')  # numpy.uint16
     print(f'width type is:{type(width)}')
-    return image, width, height, int(_min), int(_max)
+    return image, width, height, int(_min), int(_max), transferSyntaxUID, allocated_bits
 
 
 result = None

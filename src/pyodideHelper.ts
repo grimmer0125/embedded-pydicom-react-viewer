@@ -23,6 +23,11 @@ export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
     const data = res.toJs(1);
     console.log("data:", data);
     console.log(`type:${typeof data}`)
+    const width = data[1];
+    const height = data[2];
+    const photometric = data[5]
+    const transferSyntaxUID = data[6]
+    const allocated_bits = data[7]
     if (data[3] === undefined) {
         // python bytes -> uinit8 array 
         const data2 = data[0].getBuffer()
@@ -31,14 +36,13 @@ export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
         // 718940
         console.log("it is compressed data:", data2.data)
         // return { data: 1, width: 2, height: 3 }
-        return { compressedData: data2.data, width: 1024, height: 1024 }
+        return { compressedData: data2.data, width, height, photometric, transferSyntaxUID, allocated_bits }
     }
 
     const pyBufferData = data[0].getBuffer("u8clamped");
-    const width = data[1];
-    const height = data[2];
+
     res.destroy();
     /** TODO: need releasing buffer data? pyBufferData.release()
      * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
-    return { data: pyBufferData.data, width, height };
+    return { data: pyBufferData.data, width, height, photometric, transferSyntaxUID };
 });
