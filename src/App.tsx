@@ -20,6 +20,17 @@ const dropZoneStyle = {
 const MAX_WIDTH_SERIES_MODE = 400;
 const MAX_HEIGHT_SERIES_MODE = 400;
 
+function checkIfValidDicomFileName(name:string) {
+  if (
+    name.toLowerCase().endsWith(".dcm") === false &&
+    name.toLowerCase().endsWith(".dicom") === false
+  ) {
+    console.log("not dicom file:", name);
+    return false;
+  }
+  return true;
+}
+
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
   const myImg = useRef<HTMLImageElement>(null);
@@ -29,9 +40,15 @@ function App() {
   useEffect(() => {
     async function init() {
       console.log("initialize Pyodide, python browser runtime");
-      await initPyodide(); // do some initialization
-      setPyodideLoading(false);
-      console.log("finish initializing Pyodide");
+      // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide     
+      try { 
+        await initPyodide(); // do some initialization
+        setPyodideLoading(false);
+        console.log("finish initializing Pyodide");
+      }
+      catch {
+        console.log("init pyodide error, probably duplicate loading it")
+      }
     }
     init();
   }, []); // [] means only 1 time, if no [], means every update this will be called
@@ -75,7 +92,7 @@ function App() {
     // const WIDTH = 1024;
     // const HEIGHT = 768;
     let uint8View; 
-    if (allocated_bits == 16) {
+    if (allocated_bits === 16) {
       uint8View = new Uint16Array(output);  // 會把 byte array 硬塞進去
     } else {
       uint8View = new Uint8Array(output);  // 會把 byte array 硬塞進去
@@ -119,7 +136,7 @@ function App() {
     renderNonCompressedData(pixels, rawDataWidth, rawDataHeight);
   }
 
-  const renderCompressedData = async (
+  const renderCompressedData =  (
     imageUnit8Array: Uint8Array,
     rawDataWidth: number,
     rawDataHeight: number,
@@ -154,12 +171,11 @@ function App() {
       return 
     }
 
-    const canvasRef = myCanvasRef;
-    if (!canvasRef.current) {
+    if (!myCanvasRef.current) {
       console.log("canvasRef is not ready, return");
       return;
     }
-    const c = canvasRef.current;
+    const c = myCanvasRef.current;
     c.width = rawDataWidth;
     c.height = rawDataHeight;
     const ctx = c.getContext("2d");
@@ -216,18 +232,17 @@ function App() {
     }
   };
 
-  const renderNonCompressedData = async (
+  const renderNonCompressedData = (
     imageUnit8Array: Uint8ClampedArray,
     rawDataWidth: number,
     rawDataHeight: number
   ) => {
-    const canvasRef = myCanvasRef;
-    if (!canvasRef.current) {
+    if (!myCanvasRef.current) {
       console.log("canvasRef is not ready, return");
       return;
     }
 
-    const c = canvasRef.current;
+    const c = myCanvasRef.current;
     c.width = rawDataWidth;
     c.height = rawDataHeight;
 
@@ -235,25 +250,41 @@ function App() {
     if (!ctx) {
       return;
     }
-    const a = imageUnit8Array.byteLength; // width*height*4
+    // const a = imageUnit8Array.byteLength; // width*height*4
     // no allocate new memory
+    console.log(rawDataWidth, rawDataHeight, imageUnit8Array.byteLength)
     const imgData = new ImageData(imageUnit8Array, rawDataWidth, rawDataHeight);
     ctx.putImageData(imgData, 0, 0);
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const resetUI = ()=> {
+    const canvas = myCanvasRef.current
+    if (!canvas) {
+      return 
+    }
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  const onDropFiles = useCallback((acceptedFiles: File[]) => {
     console.log("acceptedFiles");
 
     if (acceptedFiles.length > 0) {
       acceptedFiles.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       });
-      loadFile(acceptedFiles[0]);
+      const file = acceptedFiles[0]
+      resetUI()
+      if (checkIfValidDicomFileName(file.name)) {
+        loadFile(file);
+      }
     }
 
     // Do something with the files
   }, []);
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop: onDropFiles });
 
   return (
     <div className="flex-container">

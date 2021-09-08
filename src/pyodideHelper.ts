@@ -1,9 +1,43 @@
 
 import { D4C } from "d4c-queue";
+
+const jpeg = require("jpeg-lossless-decoder-js");
+// const decoder = new jpeg.lossless.Decoder();
+
 declare var loadPyodide: any;
 declare var pyodide: any;
 
-const my_js_module: any = {};
+const test: number[] = []
+
+function add(x: number) {
+    test.push(x);
+}
+
+class Polygon {
+    height: number;
+    width: number;
+    constructor() {
+        this.height = 100;
+        this.width = 100;
+    }
+
+    addWidth() {
+        this.width += 100;
+    }
+}
+const polygon = new Polygon()
+
+const my_js_module: any = {
+    // decoder: decoder,
+    add,
+    polygon,
+    jpeg,
+    newDecoder: function () {
+        return new jpeg.lossless.Decoder();
+    }
+};
+
+
 const d4c = new D4C();
 export const initPyodide = d4c.wrap(async () => {
     await loadPyodide({ indexURL: "pyodide/" });
@@ -17,9 +51,28 @@ export const initPyodide = d4c.wrap(async () => {
  * if it is called before initPyodide is finished */
 export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
     my_js_module["buffer"] = buffer;
+    // this decoder shoulbe be re-newed everytime, 
+    // otherwise 2nd decoding will use some internal temporary variables from 1st time and issues happen
+    // my_js_module["decoder"] = new jpeg.lossless.Decoder();
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     const res = await pyodide.runPythonAsync(pythonCode);
-    console.log("after run python")
+
+    // works !!    
+    const x1 = pyodide.globals.get('x')
+    console.log(`x1:${x1}`)
+    const Test = pyodide.globals.get('Test')
+    // works !!! can invoke Python constructor 
+    const k2 = Test()
+    console.log(`k2:${k2.a}`)
+
+
+    // works !!! to access python global object instance
+    const bb = pyodide.globals.get('bb')
+    console.log(`bb:${bb.a}`)
+    bb.test_a() // works !!!
+
+    console.log("after run python:", test) // yes !!!!
+    console.log("after run python:", polygon) // yes !!!!
     const data = res.toJs(1);
     console.log("data:", data);
     console.log(`type:${typeof data}`)
