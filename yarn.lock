@@ -5833,6 +5833,7 @@ __metadata:
     "@types/react-dom": ^17.0.0
     d4c-queue: ^1.4.0
     jpeg-lossless-decoder-js: ^2.0.4
+    prettier: ^2.4.0
     react: ^17.0.2
     react-dom: ^17.0.2
     react-dropzone: ^11.3.4
@@ -11889,6 +11890,15 @@ fsevents@^1.2.7:
   version: 1.0.4
   resolution: "prepend-http@npm:1.0.4"
   checksum: f723f34a23394b568a9ff0cd502bdda244b343c03b12a259343566eab1184cf41a6c7e9975d9e6010ccb2901b7c428d296e56a67a72d0a6ecb0f13531a3fa44e
+  languageName: node
+  linkType: hard
+
+"prettier@npm:^2.4.0":
+  version: 2.4.0
+  resolution: "prettier@npm:2.4.0"
+  bin:
+    prettier: bin-prettier.js
+  checksum: b8409c92cf2e4e423b74e408f76b4786c2d8d5bc63c97aad256e9ca65c919a138e64717fdff4abeb9cb3b2048bb8320fc2e8fbca6f220b01dc08ad83c349cdc5
   languageName: node
   linkType: hard
 
