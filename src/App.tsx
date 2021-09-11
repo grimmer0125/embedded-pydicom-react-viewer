@@ -1,12 +1,13 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 
 import { useDropzone } from "react-dropzone";
-import { loadDicomAsync } from "./utility";
-import { initPyodide, parseByPython } from "./pyodideHelper";
-// const { fromEvent } = require("file-selector");
-// 57, 70
-const jpeg = require("jpeg-lossless-decoder-js");
-const decoder = new jpeg.lossless.Decoder();
+import { loadDicomFileAsync } from "./utility";
+import { initPyodide, loadPyodideDicomModule, d4c } from "./pyodideHelper";
+
+import {
+  renderCompressedData,
+  renderUncompressedData
+} from "./canvasRenderer"
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -20,7 +21,7 @@ const dropZoneStyle = {
 const MAX_WIDTH_SERIES_MODE = 400;
 const MAX_HEIGHT_SERIES_MODE = 400;
 
-function checkIfValidDicomFileName(name:string) {
+function checkIfValidDicomFileName(name: string) {
   if (
     name.toLowerCase().endsWith(".dcm") === false &&
     name.toLowerCase().endsWith(".dicom") === false
@@ -31,252 +32,100 @@ function checkIfValidDicomFileName(name:string) {
   return true;
 }
 
+// interface PyodideDicomObject {
+//   SayHi: () => void
+// }
+
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
-  const myImg = useRef<HTMLImageElement>(null);
+  // todo: define a clear interface/type instead of any 
+  const dicomObj = useRef<any>(null);
+  const PyodideDicom = useRef<Function>()
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
 
   useEffect(() => {
     async function init() {
       console.log("initialize Pyodide, python browser runtime");
-      // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide     
-      try { 
+      // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide
+      try {
         await initPyodide(); // do some initialization
         setPyodideLoading(false);
+        PyodideDicom.current = await loadPyodideDicomModule();
         console.log("finish initializing Pyodide");
-      }
-      catch {
-        console.log("init pyodide error, probably duplicate loading it")
+      } catch {
+        console.log("init pyodide error, probably duplicate loading it");
       }
     }
     init();
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
   const loadFile = async (file: File) => {
-    const buffer = await loadDicomAsync(file);
-    // NOTE: besides get return value (python code last line expression),
+    const buffer = await loadDicomFileAsync(file);
+    // NOTE: besides getting return value (python code last line expression),
     // python data can be retrieved by accessing python global object:
     // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version;
     console.log("start to use python to parse parse dicom data");
-    const { compressedData, data, width, height, transferSyntaxUID, photometric, allocated_bits } = await parseByPython(buffer);
-    console.log("parsing dicom done");
-    if (compressedData) {
-      console.log("render compressedData");
-      renderCompressedData(compressedData, width, height, transferSyntaxUID, photometric, allocated_bits);
-    } else {
-      console.log("render incompressedData");
-      renderNonCompressedData(data, width, height);
-    }
-  };
 
-    // todo: know width, height, color_bit first ?????
-    // 1. JPGLosslessP14SV1_1s_1f_8b:70 works 1024x768x1 Uint8Array
-    // 2. JPEG57-MR-MONO2-12-shoulder: 57, 1024x1024, 2byteColor: Uint16Array
-  const renderNonBaselineJPEG = (input: ArrayBuffer, rawDataWidth: number, rawDataHeight:number, transferSyntaxUID:string, photometric:string, allocated_bits:number) => {
-    if (transferSyntaxUID !== "1.2.840.10008.1.2.4.57" && transferSyntaxUID !== "1.2.840.10008.1.2.4.70") {
-      console.log(`not supported transferSyntaxUID:${transferSyntaxUID}`)
-      return;
-      // renderNonBaselineJPEG(buffer2, rawDataWidth, rawDataHeight)
-    }  // photometric:MONOCHROME2
+    if (PyodideDicom.current) {
+      console.log("has imported PyodideDicom class")
+      dicomObj.current = PyodideDicom.current(buffer)
+      const image =  dicomObj.current; 
+      console.log(`image:${image}`)
+      console.log(`image max:${image.max}`)
+      /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! 
+       * now changes to use a Python object instance in JS !!
+       */
 
-    if (photometric !== "MONOCHROME2") {
-      return; 
+      // todo: figure it out 
+      // 1. need destroy old (e.g. image.destroy()) when assign new image ?
+      // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
+      // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
+      // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
+      if (image.compressedData) {
+        console.log("render compressedData");
+        const pyBufferData = image.compressed_pixel_bytes.getBuffer()
+        const compressedData = pyBufferData.data
+        renderCompressedData(
+              compressedData,
+              image.width,
+              image.height,
+              image.transferSyntaxUID,
+              image.photometric,
+              image.allocated_bits,
+              myCanvasRef
+          );
+      } else {
+        console.log("render uncompressedData");
+        const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
+        const uncompressedData = pyBufferData.data
+        renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
+      }    
+    } else{
+      console.log("has not imported PyodideDicom class, ignore")
     }
-
-    console.log(`allocated_bits:${allocated_bits}`)
-    
-    // {ArrayBuffer} output (size = cols * rows * bytesPerComponent * numComponents)
-    const output: ArrayBuffer = decoder.decompress(input);
-    console.log(`before decoded buffer: ${output.byteLength}`); // 1024x1024x2 每一pixel 2byte, grey color?. 1024*768*1
-    // const WIDTH = 1024;
-    // const HEIGHT = 768;
-    let uint8View; 
-    if (allocated_bits === 16) {
-      uint8View = new Uint16Array(output);  // 會把 byte array 硬塞進去
-    } else {
-      uint8View = new Uint8Array(output);  // 會把 byte array 硬塞進去
-    }
-    // = 1024*1024. 1024*768*1. 如果是用 unit16 for 1024x768 那張, 這裡會變成 1024*768*0.5
-    console.log(`unitView got:${uint8View.length}`) 
-    // const uint8View2 = new Uint8ClampedArray(output);
-
-    const pixel_size = rawDataWidth * rawDataHeight * 4 // 1024*1024*4 = 4194304
-    console.log(`w*h*4:${pixel_size}`) //1024*768*1
-    // const kkk = uint8View.length; // = output.byteLength
-    const arrayBuffer = new ArrayBuffer(pixel_size);
-    const pixels = new Uint8ClampedArray(arrayBuffer);
-    let max = 0
-    let min = 0 
-    for (let i = 0; i < uint8View.length; i++) {    //  一個value 同時是兩個 pixel. 
-      const value =  uint8View[i] 
-      if (value > max) {
-        max = value
-      } 
-      if (value < min) {
-        min = value 
-      }
-      const j = i * 4;
-      pixels[j] = value / 2; // divided 2 & Uint16Array is needed for JPEG57-MR-MONO2-12-shoulder
-      pixels[j + 1] = value / 2;
-      pixels[j + 2] = value / 2;
-      pixels[j + 3] = 255;
-    }
-    console.log(`max:${max}`) // 595 !!!!!
-    console.log(`min:${min}`) // 0 
-    // for (let y = 0; y < HEIGHT; y++) {
-    //   for (let x = 0; x < WIDTH; x++) {
-    //     const i = (y * WIDTH + x) * 4; // 0, 1, 2,3
-    //     pixels[i] = uint8View[i]; // red
-    //     pixels[i + 1] = uint8View[i]; // green
-    //     pixels[i + 2] = uint8View[i]; // blue
-    //     pixels[i + 3] = 255; // alpha
-    //   }
-    // }
-    renderNonCompressedData(pixels, rawDataWidth, rawDataHeight);
   }
 
-  const renderCompressedData =  (
-    imageUnit8Array: Uint8Array,
-    rawDataWidth: number,
-    rawDataHeight: number,
-    transferSyntaxUID: string,
-    photometric: string,
-    allocated_bits: number
-  ) => {
-    console.log("renderFrameByPythonCompressedData");
-
-    const myImg = new Image();
-    const buffer = imageUnit8Array.buffer;
-
-    // works for myImg.current.src
-    // https://stackoverflow.com/questions/37228285/uint8array-to-arraybuffer
-    function typedArrayToBuffer(array: Uint8Array): ArrayBuffer {
-      return array.buffer.slice(
-        array.byteOffset,
-        array.byteLength + array.byteOffset
-      );
-    }
-    const buffer2 = typedArrayToBuffer(imageUnit8Array);
-    console.log(
-      "len:",
-      imageUnit8Array.length,
-      buffer.byteLength,
-      buffer2.byteLength
-    ); //   718924, 75366400 (buffer.byteLength is more than actual size), 718924
-
-    console.log(`transferSyntaxUID:${transferSyntaxUID}`)
-    if (transferSyntaxUID !== "1.2.840.10008.1.2.4.50") {
-      renderNonBaselineJPEG(buffer2, rawDataWidth, rawDataHeight, transferSyntaxUID, photometric, allocated_bits)
-      return 
-    }
-
-    if (!myCanvasRef.current) {
-      console.log("canvasRef is not ready, return");
-      return;
-    }
-    const c = myCanvasRef.current;
-    c.width = rawDataWidth;
-    c.height = rawDataHeight;
-    const ctx = c.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    // works for myImg.current.src
-    /** uint8 -> base64: https://stackoverflow.com/questions/21434167/how-to-draw-an-image-on-canvas-from-a-byte-array-in-jpeg-or-png-format */
-    // var i = imageUnit8Array.length;
-    // var binaryString = new Array(i);// [i];
-    // while (i--) {
-    //     binaryString[i] = String.fromCharCode(imageUnit8Array[i]);
-    // }
-    // var data = binaryString.join('');
-    // var base64 = window.btoa(data);
-    // const url2 =  "data:image/jpeg;base64," + base64;
-
-    // works => become not work
-    //****** testing svg rendering */
-    // const my_svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>`;
-    // const my_svg_blob = new Blob([my_svg], {
-    //   type: "image/svg+xml;charset=utf-8",
-    // });
-    // const url4 = URL.createObjectURL(my_svg_blob);
-    //****** testing svg rendering */
-
-    ////****** testing manually make a mock data */
-    // works for myImg.current.src
-    // const content = new Uint8Array([
-    //   137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 5,
-    //   0, 0, 0, 5, 8, 6, 0, 0, 0, 141, 111, 38, 229, 0, 0, 0, 28, 73, 68, 65, 84,
-    //   8, 215, 99, 248, 255, 255, 63, 195, 127, 6, 32, 5, 195, 32, 18, 132, 208,
-    //   49, 241, 130, 88, 205, 4, 0, 14, 245, 53, 203, 209, 142, 14, 31, 0, 0, 0,
-    //   0, 73, 69, 78, 68, 174, 66, 96, 130,
-    // ]);
-    // const url3 = URL.createObjectURL(
-    //   new Blob([content.buffer], { type: "image/png" } /* (1) */)
-    // );
-    ////****** testing manually make a mock data */
-
-    const blob = new Blob([buffer2], { type: "image/jpeg" });
-    const url = URL.createObjectURL(blob);
-
-    if (myImg) {
-      myImg.onload = function () {
-        /// draw image to canvas
-        console.log("on load:", myImg.width, myImg.height);
-        c.width = myImg.width;
-        c.height = myImg.height;
-        ctx.drawImage(myImg as any, 0, 0, myImg.width, myImg.height);
-      };
-      myImg.src = url; //"https://raw.githubusercontent.com/grimmer0125/grimmer0125.github.io/master/images/bio.png";
-    }
-  };
-
-  const renderNonCompressedData = (
-    imageUnit8Array: Uint8ClampedArray,
-    rawDataWidth: number,
-    rawDataHeight: number
-  ) => {
-    if (!myCanvasRef.current) {
-      console.log("canvasRef is not ready, return");
-      return;
-    }
-
-    const c = myCanvasRef.current;
-    c.width = rawDataWidth;
-    c.height = rawDataHeight;
-
-    const ctx = c.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    // const a = imageUnit8Array.byteLength; // width*height*4
-    // no allocate new memory
-    console.log(rawDataWidth, rawDataHeight, imageUnit8Array.byteLength)
-    const imgData = new ImageData(imageUnit8Array, rawDataWidth, rawDataHeight);
-    ctx.putImageData(imgData, 0, 0);
-  };
-
-  const resetUI = ()=> {
-    const canvas = myCanvasRef.current
+  const resetUI = () => {
+    const canvas = myCanvasRef.current;
     if (!canvas) {
-      return 
+      return;
     }
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-  }
+  };
 
-  const onDropFiles = useCallback((acceptedFiles: File[]) => {
+  const onDropFiles = useCallback( async (acceptedFiles: File[]) => {
     console.log("acceptedFiles");
 
     if (acceptedFiles.length > 0) {
       acceptedFiles.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       });
-      const file = acceptedFiles[0]
-      resetUI()
+      const file = acceptedFiles[0];
+      resetUI();
       if (checkIfValidDicomFileName(file.name)) {
         loadFile(file);
       }
@@ -284,7 +133,9 @@ function App() {
 
     // Do something with the files
   }, []);
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop: onDropFiles });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: onDropFiles,
+  });
 
   return (
     <div className="flex-container">
@@ -335,7 +186,7 @@ function App() {
                 ref={myCanvasRef}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}
-                // style={{ backgroundColor: "black" }}
+              // style={{ backgroundColor: "black" }}
               />
             </div>
           </div>

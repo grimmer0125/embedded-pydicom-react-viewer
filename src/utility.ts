@@ -1,4 +1,4 @@
-export async function loadDicomAsync(file: File): Promise<ArrayBuffer> {
+export async function loadDicomFileAsync(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {

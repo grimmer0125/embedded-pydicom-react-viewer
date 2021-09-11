@@ -38,7 +38,7 @@ const my_js_module: any = {
 };
 
 
-const d4c = new D4C();
+export const d4c = new D4C();
 export const initPyodide = d4c.wrap(async () => {
     await loadPyodide({ indexURL: "pyodide/" });
     await pyodide.loadPackage(['numpy', 'micropip']);
@@ -47,13 +47,21 @@ export const initPyodide = d4c.wrap(async () => {
     pyodide.registerJsModule("my_js_module", my_js_module);
 });
 
+export const loadPyodideDicomModule = d4c.wrap(async () => {
+    const pythonCode = await (await fetch('python/dicom_parser.py')).text();
+    await pyodide.runPythonAsync(pythonCode);
+    const PyodideDicom = pyodide.globals.get('PyodideDicom')
+    return PyodideDicom
+});
+
+// ****** deprecated ******/
 /** without d4c-queue, parseByPython will throw exception 
  * if it is called before initPyodide is finished */
 export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
     my_js_module["buffer"] = buffer;
     // this decoder shoulbe be re-newed everytime, 
     // otherwise 2nd decoding will use some internal temporary variables from 1st time and issues happen
-    // my_js_module["decoder"] = new jpeg.lossless.Decoder();
+    //my_js_module["decoder"] = new jpeg.lossless.Decoder();
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     const res = await pyodide.runPythonAsync(pythonCode);
 
