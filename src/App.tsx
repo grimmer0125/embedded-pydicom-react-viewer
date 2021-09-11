@@ -1,8 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 
 import { useDropzone } from "react-dropzone";
-import { loadDicomFileAsync } from "./utility";
-import { initPyodide, loadPyodideDicomModule, d4c } from "./pyodideHelper";
+import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
 
 import {
   renderCompressedData,
@@ -49,9 +48,9 @@ function App() {
       console.log("initialize Pyodide, python browser runtime");
       // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide
       try {
-        await initPyodide(); // do some initialization
-        setPyodideLoading(false);
+        initPyodideAndLoadPydicom(); // do some initialization
         PyodideDicom.current = await loadPyodideDicomModule();
+        setPyodideLoading(false);
         console.log("finish initializing Pyodide");
       } catch {
         console.log("init pyodide error, probably duplicate loading it");
@@ -127,7 +126,7 @@ function App() {
       const file = acceptedFiles[0];
       resetUI();
       if (checkIfValidDicomFileName(file.name)) {
-        loadFile(file);
+        await loadFile(file);
       }
     }
 

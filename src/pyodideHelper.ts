@@ -38,8 +38,9 @@ const my_js_module: any = {
 };
 
 
-export const d4c = new D4C();
-export const initPyodide = d4c.wrap(async () => {
+const d4c = new D4C();
+const initPyodideAndLoadPydicom = d4c.wrap(async () => {
+    console.log("initPyodide")
     await loadPyodide({ indexURL: "pyodide/" });
     await pyodide.loadPackage(['numpy', 'micropip']);
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();
@@ -47,12 +48,34 @@ export const initPyodide = d4c.wrap(async () => {
     pyodide.registerJsModule("my_js_module", my_js_module);
 });
 
-export const loadPyodideDicomModule = d4c.wrap(async () => {
+const loadPyodideDicomModule = d4c.wrap(async () => {
+    console.log("loadPyodideDicomModule")
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     await pyodide.runPythonAsync(pythonCode);
     const PyodideDicom = pyodide.globals.get('PyodideDicom')
     return PyodideDicom
 });
+
+const loadDicomFileAsync = d4c.wrap(async (file: File): Promise<ArrayBuffer> =>{
+  console.log("loadDicomFileAsync")
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const fileContent = reader.result;
+      resolve(fileContent as ArrayBuffer);
+    };
+    reader.onabort = () => console.log("file reading was aborted");
+    reader.onerror = () => console.log("file reading has failed");
+    reader.readAsArrayBuffer(file);
+  });
+});
+
+export {
+    initPyodideAndLoadPydicom, 
+    loadPyodideDicomModule,
+    loadDicomFileAsync
+}
+
 
 // ****** deprecated ******/
 /** without d4c-queue, parseByPython will throw exception 
