@@ -86,7 +86,13 @@ function App() {
       // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
       // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
       // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
-      if (image.compressedData) {
+      if (image.uncompressed_ndarray) {
+        console.log("render uncompressedData");
+        console.log(`PhotometricInterpretation: ${image.ds.PhotometricInterpretation}`) // works
+        const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
+        const uncompressedData = pyBufferData.data
+        renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
+      } else if (image.image.image.compressed_pixel_bytes) {
         console.log("render compressedData");
         const pyBufferData = image.compressed_pixel_bytes.getBuffer()
         const compressedData = pyBufferData.data
@@ -100,11 +106,7 @@ function App() {
           myCanvasRef
         );
       } else {
-        console.log("render uncompressedData");
-        console.log(`PhotometricInterpretation: ${image.ds.PhotometricInterpretation}`) // works
-        const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
-        const uncompressedData = pyBufferData.data
-        renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
+        console.log("no uncompressedData & no compressedData")
       }
     } else {
       console.log("has not imported PyodideDicom class, ignore")

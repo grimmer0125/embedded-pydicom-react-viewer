@@ -410,6 +410,7 @@ class PyodideDicom:
         frame_number = getattr(ds, 'NumberOfFrames', 1)
         print(f"frame_number:{frame_number}")
 
+        compress_pixel_data = None
         if photometric == "PALETTE COLOR":
             print("it is PALETTE COLOR")
             # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
@@ -431,8 +432,9 @@ class PyodideDicom:
                 ds, transferSyntaxUID, jpeg_lossless_decoder)
             print(
                 f"after get_manufacturer_independent_pixel_image2d_array")
-            # todo: using image2d == None will throw a error which says some element is ambiguous
-            if image2d is None and compress_pixel_data is not None:
+            # NOTE: using image2d == None will throw a error which says some element is ambiguous
+            self.compressed_pixel_bytes = compress_pixel_data
+            if image2d is None:
                 # return bytes data
                 # TODO: how to add width, height ?
                 print(
@@ -440,7 +442,6 @@ class PyodideDicom:
                 # Columns (0028,0011), Rows (0028,0010)
 
                 # self.image = image
-                self.compressed_pixel_bytes = compress_pixel_data
                 self.width = width
                 self.height = height
                 # self.min = int(_min)
@@ -497,7 +498,7 @@ class PyodideDicom:
             #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
         else:
             print("it is grey color")
-            if compress_pixel_data != None:
+            if compress_pixel_data is not None:
                 print("flatten_grey_image1d_to_rgba_1d_image_array")
                 # todo: handle RGB compressed JPEG to RGBA case
                 print("below: expand grey 1d array to rgba")
