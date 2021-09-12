@@ -227,7 +227,7 @@ class PyodideDicom:
         return image2d
 
     def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(self, image2d: np.ndarray):
-
+        print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
         # US-PAL-8-10x-echo.dcm
         # ValueError: all the input arrays must have same number of dimensions,
         # but the array at index 0 has 4 dimension(s) and the array at index 1 has 3 dimension(s)
@@ -485,11 +485,21 @@ class PyodideDicom:
             except:
                 print("no planar value")
 
-            # if planar_config == 0:
-            image = self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
-                image2d)
-            # else:
-            #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
+            if compress_pixel_data is not None:
+                print("flatten_RGB_image1d_to_rgba_1d_image_array")
+                #  http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
+                alpha = np.full_like(compress_pixel_data, 255)
+                print(f"alpha:{alpha.shape}")  # ()
+                indexes = np.arange(3, len(image2d)+3, step=3)
+                print(f"indexes:{indexes.shape}")  # 1024*768
+                image = np.insert(image2d, indexes, alpha)
+                print(f"final:{image.shape}")
+            else:
+                # if planar_config == 0:
+                image = self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
+                    image2d)
+                # else:
+                #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
         else:
             print("it is grey color")
             if compress_pixel_data is not None:
