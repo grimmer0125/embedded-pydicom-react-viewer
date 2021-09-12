@@ -1,14 +1,13 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 
 import { useDropzone } from "react-dropzone";
-import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
+import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, newPyodideDicom } from "./pyodideHelper";
 
 import {
   renderCompressedData,
   renderUncompressedData
 } from "./canvasRenderer"
 
-const jpeg = require("jpeg-lossless-decoder-js");
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -41,7 +40,7 @@ function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
   // todo: define a clear interface/type instead of any 
   const dicomObj = useRef<any>(null);
-  const PyodideDicom = useRef<Function>()
+  // const PyodideDicom = useRef<Function>()
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
 
@@ -51,8 +50,9 @@ function App() {
       // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide
       if (isPyodideLoading) {
         try {
+          // 下面這個
           initPyodideAndLoadPydicom(); // do some initialization
-          PyodideDicom.current = await loadPyodideDicomModule();
+          await loadPyodideDicomModule();
           setPyodideLoading(false);
           console.log("finish initializing Pyodide");
         } catch {
@@ -70,48 +70,102 @@ function App() {
     // pyodide.globals.get("image")
     console.log("start to use python to parse parse dicom data");
 
-    if (PyodideDicom.current) {
-      const decoder = new jpeg.lossless.Decoder()
-      console.log("has imported PyodideDicom class")
-      dicomObj.current = PyodideDicom.current(buffer, decoder)
-      const image = dicomObj.current;
-      // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
-      console.log(`image max:${image.max}`)
-      /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
-       * now changes to use a Python object instance in JS !!
-       */
+    // if (PyodideDicom.current) {
+    console.log("has imported PyodideDicom class")
+    const image: any = await newPyodideDicom(buffer); //PyodideDicom.current(buffer, decoder)
 
-      // todo: figure it out 
-      // 1. need destroy old (e.g. image.destroy()) when assign new image ?
-      // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
-      // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
-      // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
-      if (image.uncompressed_ndarray) {
-        console.log("render uncompressedData");
-        console.log(`PhotometricInterpretation: ${image.ds.PhotometricInterpretation}`) // works
-        const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
-        const uncompressedData = pyBufferData.data
-        renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
-      } else if (image.image.image.compressed_pixel_bytes) {
-        console.log("render compressedData");
-        const pyBufferData = image.compressed_pixel_bytes.getBuffer()
-        const compressedData = pyBufferData.data
-        renderCompressedData(
-          compressedData,
-          image.width,
-          image.height,
-          image.transferSyntaxUID,
-          image.photometric,
-          image.allocated_bits,
-          myCanvasRef
-        );
-      } else {
-        console.log("no uncompressedData & no compressedData")
-      }
+    console.log("await image", await image) // proxy
+
+    console.log(image) // proxy 
+    console.log(await image.max) // 255
+    console.log((await image).max) // proxy
+    console.log(await (await image).max) //255 
+
+    // const max = await image.max;
+    // const min = await image.min;
+    const width = await image.width;
+    const height = await image.height;
+    console.log("image height:", height);
+
+    const has_uncompressed = await image.has_uncompressed;
+    const has_compressed = await image.has_compressed;
+
+    // if ("compressed_pixel_bytes" in image) {
+    //   console.log("exist compressed_pixel_bytes")
+    // } else {
+    //   console.log("no exist compressed_pixel_bytes")
+
+    // }
+
+    // if ("uncompressed_ndarray" in image) {
+    //   console.log("exist uncompressed_ndarray")
+    // } else {
+    //   console.log("no exist uncompressed_ndarray")
+
+    // }
+
+    // Uncaught (in promise) DOMException: Failed to execute 'postMessage' on 'MessagePort': [object Object] could not be cloned.
+    // console.log("image.uncompressed_ndarray:", await image.uncompressed_ndarray)
+    // compressed_pixel_bytes is undefind 
+    // if (image.compressed_pixel_bytes) {
+    //   console.log("image.compressed_pixel_bytes:")
+
+    //   const b = await (image.compressed_pixel_bytes.toJs())
+    // } else {
+    //   console.log("image.compressed_pixel_bytes is undefined ")
+    // }
+
+    // double Proxy (pyodide & comlink !!!!)
+    // const uncompressed_ndarray0 = image.uncompressed_ndarray;
+    // console.log(await uncompressed_ndarray0) //exception
+    // console.log((await uncompressed_ndarray0).toJs()) //exception
+    // console.log(uncompressed_ndarray0.toJs()) //promise pending 
+
+    // https://github.com/grimmer0125/embedded-pydicom-react-viewer/blob/410d6519a7/src/pyodideHelper.ts
+    /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
+     * now changes to use a Python object instance in JS !!
+     */
+
+    // const bb = await (uncompressed_ndarray0.getBuffer("u8clamped"));
+    // Uncaught (in promise) DOMException: Failed to execute 'postMessage' on 'MessagePort': ArrayBuffer is not detachable and could not be cloned.
+    // uncompressed_ndarray0.getBuffer() <- has getBuffer method but not compatible with comlink !!!!!!!!!!!!!!!!!!!
+
+
+    // todo: figure it out 
+    // 1. need destroy old (e.g. image.destroy()) when assign new image ?
+    // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
+    // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
+    // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
+    if (has_uncompressed) {
+      console.log("render uncompressedData");
+      const uncompressed_ndarray = await (image.uncompressed_ndarray.toJs());
+      console.log("image uncompressed_ndarray:", uncompressed_ndarray) // Uint8Array(3145728) !!!!
+
+      // console.log(`PhotometricInterpretation: ${PhotometricInterpretation}`); // works
+      // const pyBufferData = uncompressed_ndarray.getBuffer("u8clamped");
+      // console.log("buffer:", pyBufferData)
+      const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
+      // console.log("uncompressedData:", uncompressedData)
+      renderUncompressedData(uncompressedData, width, height, myCanvasRef);
+    } else if (has_compressed) {
+      console.log("render compressedData");
+      const pyBufferData = await image.compressed_pixel_bytes.toJs()
+      console.log("pyBufferData:", pyBufferData) //, pyBufferData.data)
+      // const compressedData = pyBufferData.data
+      renderCompressedData(
+        pyBufferData,
+        width,
+        height,
+        await image.transferSyntaxUID,
+        await image.photometric,
+        await image.allocated_bits,
+        myCanvasRef
+      );
     } else {
-      console.log("has not imported PyodideDicom class, ignore")
+      console.log("no uncompressedData & no compressedData")
     }
   }
+
 
   const resetUI = () => {
     const canvas = myCanvasRef.current;

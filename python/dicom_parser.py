@@ -22,7 +22,6 @@ handling_list = ["1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70"]
 
 @dataclass
 class PyodideDicom:
-    uncompressed_ndarray: np.ndarray = None
     width: int = None
     height: int = None
     max: int = None
@@ -31,8 +30,11 @@ class PyodideDicom:
     photometric: str = None
     transferSyntaxUID: str = None
     allocated_bits: int = None
+    uncompressed_ndarray: np.ndarray = None
     ds: Union[FileDataset, DicomDir] = None
     compressed_pixel_bytes: bytes = None
+    has_compressed: bool = False
+    has_uncompressed: bool = False
 
     def get_pydicom_dataset_from_js_buffer(self, buffer_memory: memoryview):
         print(
@@ -192,7 +194,7 @@ class PyodideDicom:
         image2d = apply_modality_lut(arr, ds)
         return image2d, None
 
-    def get_image2d_maxmin(self, image2d: np.ndarray):
+    def get_image_maxmin(self, image2d: np.ndarray):
         print(f"start to get max/min")
         start = time.time()
         _min = image2d.min()
@@ -368,10 +370,10 @@ class PyodideDicom:
             #     # x.append(10)
 
             ##### only for testing if python can access JS' user defined objects' methods ##
-            from my_js_module import add, polygon
-            k2 = add(5)
-            polygon.addWidth()  # works
-            print(f"k2:{k2}")  # works
+            # from my_js_module import add, polygon
+            # k2 = add(5)
+            # polygon.addWidth()  # works
+            # print(f"k2:{k2}")  # works
             # else:
             #     print("buffer is not None")
             # from my_js_module import jpeg
@@ -420,9 +422,9 @@ class PyodideDicom:
             print("it is PALETTE COLOR")
             # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
             # before: a grey 2d image
-            image2d = apply_color_lut(ds.pixel_array, ds)
+            image = apply_color_lut(ds.pixel_array, ds)
             # after: a RGB 2d image
-            print(f"PALETTE after apply_color_lut shape:{image2d.shape}")
+            print(f"PALETTE after apply_color_lut shape:{image.shape}")
 
             # _max, _min = get_image2d_maxmin(image2d)
             # print(f'pixel (after color lut) min:{_min}')  # min same as before
@@ -433,20 +435,22 @@ class PyodideDicom:
         else:
             # https://github.com/pyodide/pyodide/discussions/1273
             # previous: jpeg.lossless.Decoder.new()
-            image2d, compress_pixel_data = self.get_manufacturer_independent_pixel_image2d_array(
+            image, compress_pixel_data = self.get_manufacturer_independent_pixel_image2d_array(
                 ds, transferSyntaxUID, jpeg_lossless_decoder)
             print(
                 f"after get_manufacturer_independent_pixel_image2d_array")
             # NOTE: using image2d == None will throw a error which says some element is ambiguous
             self.compressed_pixel_bytes = compress_pixel_data
-            if image2d is None:
+            if self.compressed_pixel_bytes:
+                self.has_compressed = True
+            if image is None:
                 # return bytes data
                 # TODO: how to add width, height ?
                 print(
                     f"directly return compressed data")
                 # Columns (0028,0011), Rows (0028,0010)
 
-                # self.image = image
+                # self.uncompressed_ndarray = image
 
                 # self.min = int(_min)
                 # self.max = int(_max)
@@ -457,20 +461,30 @@ class PyodideDicom:
                 # compress_pixel_data is bytes
                 # 0                           1     2        3      4      5            6                 7
                 # return compress_pixel_data, width, height, None, None, photometric, transferSyntaxUID, allocated_bits
+
+        self.has_uncompressed = True
+
         ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
         # TODO: only get 1st frame for multiple frame case and will improve later
         if frame_number > 1:
             print("only get the 1st frame image2d data")
-            image2d = image2d[0]
+            image = image[0]
 
-        _max, _min = self.get_image2d_maxmin(image2d)
-        print(f"uncompressed shape:{image2d.shape}")
+        _max, _min = self.get_image_maxmin(image)
+
+        # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
+        # so we need to use int(min), int(max)
+        print(f'min type is:{type(_min)}')  # numpy.uint8
+        # print(f'width type is:{type(width)}') # int
+        # self.uncompressed_ndarray = image
+        self.min = int(_min)
+        self.max = int(_max)
 
         if photometric == "MONOCHROME1":
             print("invert color for monochrome1")
             # -100 ~ 300
             start = time.time()
-            image2d = _max - image2d + _min
+            image = _max - image + _min
             print(f"invert monochrome1 time:{time.time()-start}")
 
         ### normalization ###
@@ -479,11 +493,11 @@ class PyodideDicom:
             # Even PALETTE case, still need normalization (workaround way?) !!! Undocumented part !!!!
             # Mabye it is because its max (dark) is 65536, 16bit
 
-            image2d = self.normalize_image2d(image2d, _max, _min)
+            image = self.normalize_image2d(image, _max, _min)
         else:
             print("it is RGB photometric, skip normalization?")
 
-        print(f"uncompressed shape2:{image2d.shape}")  # 1024*768
+        print(f"uncompressed shape2:{image.shape}")  # 1024*768
 
         ### flatten to 1 d array ###
         # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
@@ -495,50 +509,44 @@ class PyodideDicom:
             except:
                 print("no planar value")
 
-            if compress_pixel_data is not None:
-                print("flatten_RGB_image1d_to_rgba_1d_image_array")
+            if image.ndim == 1:
+                print("flatten_1d_RGB_image1d_to_rgba_1d_image_array")
                 #  http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
                 alpha = np.full_like(compress_pixel_data, 255)
                 print(f"alpha:{alpha.shape}")  # ()
                 # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
                 # TypeError: object of type 'numpy.uint8' has no len()
-                indexes = np.arange(3, len(image2d)+3, step=3)
+                indexes = np.arange(3, len(image)+3, step=3)
                 print(f"indexes:{indexes.shape}")  # 1024*768
-                image = np.insert(image2d, indexes, alpha)
-                print(f"final:{image.shape}")
+                self.uncompressed_ndarray: np.ndarray = np.insert(
+                    image, indexes, alpha)
+                print(f"final:{self.uncompressed_ndarray.shape}")
             else:
                 # if planar_config == 0:
-                image = self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
-                    image2d)
+                self.uncompressed_ndarray: np.ndarray = self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
+                    image)
                 # else:
                 #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
         else:
             print("it is grey color")
-            if compress_pixel_data is not None:
-                print("flatten_grey_image1d_to_rgba_1d_image_array")
+            if image.ndim == 1:
+                print("flatten_1d_grey_image1d_to_rgba_1d_image_array")
                 # todo: handle RGB compressed JPEG to RGBA case
                 print("below: expand grey 1d array to rgba")
-                rgb_array = np.repeat(image2d, 3)
+                rgb_array = np.repeat(image, 3)
                 print(f"rgb:{rgb_array.shape}")  # 1024*768*3
                 alpha = np.full_like(compress_pixel_data, 255)
                 print(f"alpha:{alpha.shape}")  # ()
                 indexes = np.arange(3, len(rgb_array)+3, step=3)
                 print(f"indexes:{indexes.shape}")  # 1024*768
-                image = np.insert(rgb_array, indexes, alpha)
-                print(f"final:{image.shape}")  # 3145728
+                self.uncompressed_ndarray: np.ndarray = np.insert(
+                    rgb_array, indexes, alpha)
+                print(f"final:{self.uncompressed_ndarray.shape}")  # 3145728
             else:
-                image = self.flatten_grey_image2d_to_rgba_1d_image_array(
-                    image2d)
+                self.uncompressed_ndarray: np.ndarray = self.flatten_grey_image2d_to_rgba_1d_image_array(
+                    image)
 
         # width, height = get_image2d_dimension(image2d)
-
-        # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
-        # so we need to use int(min), int(max)
-        print(f'min type is:{type(_min)}')  # numpy.uint8
-        # print(f'width type is:{type(width)}') # int
-        self.uncompressed_ndarray = image
-        self.min = int(_min)
-        self.max = int(_max)
 
 
 if __name__ == '__main__':
