@@ -92,7 +92,7 @@ function App() {
         const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
         const uncompressedData = pyBufferData.data
         renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
-      } else if (image.image.image.compressed_pixel_bytes) {
+      } else if (image.compressed_pixel_bytes) {
         console.log("render compressedData");
         const pyBufferData = image.compressed_pixel_bytes.getBuffer()
         const compressedData = pyBufferData.data
