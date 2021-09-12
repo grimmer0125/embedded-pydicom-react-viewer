@@ -48,6 +48,8 @@ const initPyodideAndLoadPydicom = d4c.wrap(async () => {
     pyodide.registerJsModule("my_js_module", my_js_module);
 });
 
+// 這裡設定一個 function, 或每次都 new 出來再丟進去
+
 const loadPyodideDicomModule = d4c.wrap(async () => {
     console.log("loadPyodideDicomModule")
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();

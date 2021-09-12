@@ -8,6 +8,8 @@ import {
   renderUncompressedData
 } from "./canvasRenderer"
 
+const jpeg = require("jpeg-lossless-decoder-js");
+
 const dropZoneStyle = {
   borderWidth: 2,
   borderColor: "#666",
@@ -47,13 +49,15 @@ function App() {
     async function init() {
       console.log("initialize Pyodide, python browser runtime");
       // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide
-      try {
-        initPyodideAndLoadPydicom(); // do some initialization
-        PyodideDicom.current = await loadPyodideDicomModule();
-        setPyodideLoading(false);
-        console.log("finish initializing Pyodide");
-      } catch {
-        console.log("init pyodide error, probably duplicate loading it");
+      if (isPyodideLoading) {
+        try {
+          initPyodideAndLoadPydicom(); // do some initialization
+          PyodideDicom.current = await loadPyodideDicomModule();
+          setPyodideLoading(false);
+          console.log("finish initializing Pyodide");
+        } catch {
+          console.log("init pyodide error, probably duplicate loading it");
+        }
       }
     }
     init();
@@ -67,10 +71,11 @@ function App() {
     console.log("start to use python to parse parse dicom data");
 
     if (PyodideDicom.current) {
+      const decoder = new jpeg.lossless.Decoder()
       console.log("has imported PyodideDicom class")
-      dicomObj.current = PyodideDicom.current(buffer)
-      const image =  dicomObj.current; 
-      console.log(`image:${image}`)
+      dicomObj.current = PyodideDicom.current(buffer, decoder)
+      const image = dicomObj.current;
+      // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       console.log(`image max:${image.max}`)
       /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! 
        * now changes to use a Python object instance in JS !!
@@ -86,21 +91,22 @@ function App() {
         const pyBufferData = image.compressed_pixel_bytes.getBuffer()
         const compressedData = pyBufferData.data
         renderCompressedData(
-              compressedData,
-              image.width,
-              image.height,
-              image.transferSyntaxUID,
-              image.photometric,
-              image.allocated_bits,
-              myCanvasRef
-          );
+          compressedData,
+          image.width,
+          image.height,
+          image.transferSyntaxUID,
+          image.photometric,
+          image.allocated_bits,
+          myCanvasRef
+        );
       } else {
         console.log("render uncompressedData");
+        console.log(`PhotometricInterpretation: ${image.ds.PhotometricInterpretation}`) // works
         const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
         const uncompressedData = pyBufferData.data
         renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
-      }    
-    } else{
+      }
+    } else {
       console.log("has not imported PyodideDicom class, ignore")
     }
   }
@@ -116,7 +122,7 @@ function App() {
     }
   };
 
-  const onDropFiles = useCallback( async (acceptedFiles: File[]) => {
+  const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
     console.log("acceptedFiles");
 
     if (acceptedFiles.length > 0) {

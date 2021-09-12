@@ -22,20 +22,20 @@ handling_list = ["1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70"]
 #### Testing interaction between JS and Pyodide ####
 
 
-@dataclass
-class Test:
-    a: int = 5
+# @dataclass
+# class Test:
+#     a: int = 5
 
-    def test_a(self):
-        self.a += 100
+#     def test_a(self):
+#         self.a += 100
 
 
-try:
-    bb
-except NameError:
-    print("well, it WASN'T defined after all!")
-    bb = Test()
-    x = []
+# try:
+#     bb
+# except NameError:
+#     print("well, it WASN'T defined after all!")
+#     bb = Test()
+#     x = []
 
 ####
 
@@ -67,7 +67,7 @@ class PyodideDicom:
         print("read dicom ok")
         return ds
 
-    def get_manufacturer_independent_pixel_image2d_array(self, ds, transferSyntaxUID: str, decoder: Any):
+    def get_manufacturer_independent_pixel_image2d_array(self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None):
 
         # 8,8 or 16,12
         allocated_bits = ds[0x0028, 0x0100].value
@@ -139,7 +139,7 @@ class PyodideDicom:
                 print(f"pixel_data:{len(p2)}, {type(p2)}")  # bytes
                 # return None, pixel_data
                 numpy_array = None
-                if transferSyntaxUID in handling_list:
+                if jpeg_lossless_decoder is not None and transferSyntaxUID in handling_list:
 
                     # try:
                     #     fio = BytesIO(ds.PixelData)  # pixel_data)
@@ -152,7 +152,7 @@ class PyodideDicom:
                     # python bytes -> unit8array -> arrayBuffer
                     # p2 is arrayBuffer?
                     # cols * rows * bytesPerComponent * numComponents
-                    b = decoder.decompress(p2)  # ArrayBuffer
+                    b = jpeg_lossless_decoder.decompress(p2)  # ArrayBuffer
                     # print(type(b))  # <class 'pyodide.JsProxy'> #
                     # print(f"b:{b}")  # b:[object ArrayBuffer]
                     b2 = b.to_py()
@@ -358,28 +358,27 @@ class PyodideDicom:
             return True
         return False
 
-    def __init__(self, buffer: Any = None):
+    def __init__(self, buffer: Any = None, jpeg_lossless_decoder: Any = None):
         print("__init__!!!!!!!!!!!!!")
         if self.is_pyodide_env():
-            if buffer is None:
-                print("buffer is None")
-                from my_js_module import buffer  # pylint: disable=import-error
-                # from my_js_module import decoder  # pylint: disable=import-error
-                # from my_js_module import newDecoder
+            # if buffer is None:
+            #     print("buffer is None")
+            #     from my_js_module import buffer  # pylint: disable=import-error
+            #     # from my_js_module import jpeg_lossless_decoder  # pylint: disable=import-error
+            #     # from my_js_module import newDecoder
+            #     ## test life cycle in pyodide ##
+            #     # print(f"class22: {bb.a}")
+            #     # global x
+            #     # x.append(10)
 
-                ## test life cycle in pyodide ##
-                # print(f"class22: {bb.a}")
-                # global x
-                # x.append(10)
-
-                # ## testing if python can access JS' user defined objects' methods ##
-                # from my_js_module import add, polygon
-                # k2 = add(5)
-                # polygon.addWidth()  # works
-                # print(f"k2:{k2}")
-            else:
-                print("buffer is not None")
-                from my_js_module import jpeg
+            #     # ## testing if python can access JS' user defined objects' methods ##
+            from my_js_module import add, polygon
+            k2 = add(5)
+            polygon.addWidth()  # works
+            print(f"k2:{k2}")  # works
+            # else:
+            #     print("buffer is not None")
+            # from my_js_module import jpeg
 
             ds = self.get_pydicom_dataset_from_js_buffer(buffer.to_py())
         else:
@@ -407,6 +406,7 @@ class PyodideDicom:
             print("no photometric")
             photometric = ""
         self.photometric = photometric
+        self.ds = ds
         frame_number = getattr(ds, 'NumberOfFrames', 1)
         print(f"frame_number:{frame_number}")
 
@@ -426,8 +426,9 @@ class PyodideDicom:
             # image2d = normalize_image2d(image2d, _max, _min)
         else:
             # https://github.com/pyodide/pyodide/discussions/1273
+            # previous: jpeg.lossless.Decoder.new()
             image2d, compress_pixel_data = self.get_manufacturer_independent_pixel_image2d_array(
-                ds, transferSyntaxUID, jpeg.lossless.Decoder.new())
+                ds, transferSyntaxUID, jpeg_lossless_decoder)
             print(
                 f"after get_manufacturer_independent_pixel_image2d_array")
             # todo: using image2d == None will throw a error which says some element is ambiguous
