@@ -1,9 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 
-import Dropzone, { useDropzone } from "react-dropzone";
-import { loadDicomAsync } from "./utility";
-import { initPyodide, parseByPython } from "./pyodideHelper";
-const { fromEvent } = require("file-selector");
+import { useDropzone } from "react-dropzone";
+import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
+
+import {
+  renderCompressedData,
+  renderUncompressedData
+} from "./canvasRenderer"
+
+const jpeg = require("jpeg-lossless-decoder-js");
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -17,165 +22,127 @@ const dropZoneStyle = {
 const MAX_WIDTH_SERIES_MODE = 400;
 const MAX_HEIGHT_SERIES_MODE = 400;
 
+function checkIfValidDicomFileName(name: string) {
+  if (
+    name.toLowerCase().endsWith(".dcm") === false &&
+    name.toLowerCase().endsWith(".dicom") === false
+  ) {
+    console.log("not dicom file:", name);
+    return false;
+  }
+  return true;
+}
+
+// interface PyodideDicomObject {
+//   SayHi: () => void
+// }
+
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
-  const myImg = useRef<HTMLImageElement>(null);
+  // todo: define a clear interface/type instead of any 
+  const dicomObj = useRef<any>(null);
+  const PyodideDicom = useRef<Function>()
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
 
   useEffect(() => {
     async function init() {
       console.log("initialize Pyodide, python browser runtime");
-      await initPyodide(); // do some initialization
-      setPyodideLoading(false);
-      console.log("finish initializing Pyodide");
+      // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide
+      if (isPyodideLoading) {
+        try {
+          initPyodideAndLoadPydicom(); // do some initialization
+          PyodideDicom.current = await loadPyodideDicomModule();
+          setPyodideLoading(false);
+          console.log("finish initializing Pyodide");
+        } catch {
+          console.log("init pyodide error, probably duplicate loading it");
+        }
+      }
     }
     init();
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
   const loadFile = async (file: File) => {
-    const buffer = await loadDicomAsync(file);
-    // NOTE: besides get return value (python code last line expression),
+    const buffer = await loadDicomFileAsync(file);
+    // NOTE: besides getting return value (python code last line expression),
     // python data can be retrieved by accessing python global object:
     // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version;
     console.log("start to use python to parse parse dicom data");
-    const { compressedData, data, width, height } = await parseByPython(buffer);
-    console.log("parsing dicom done");
-    if (compressedData) {
-      console.log("render compressedData");
-      renderFrameByPythonCompressedData(compressedData, width, height);
+
+    if (PyodideDicom.current) {
+      const decoder = new jpeg.lossless.Decoder()
+      console.log("has imported PyodideDicom class")
+      dicomObj.current = PyodideDicom.current(buffer, decoder)
+      const image = dicomObj.current;
+      // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
+      console.log(`image max:${image.max}`)
+      /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! 
+       * now changes to use a Python object instance in JS !!
+       */
+
+      // todo: figure it out 
+      // 1. need destroy old (e.g. image.destroy()) when assign new image ?
+      // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
+      // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
+      // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
+      if (image.uncompressed_ndarray) {
+        console.log("render uncompressedData");
+        console.log(`PhotometricInterpretation: ${image.ds.PhotometricInterpretation}`) // works
+        const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
+        const uncompressedData = pyBufferData.data
+        renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
+      } else if (image.image.image.compressed_pixel_bytes) {
+        console.log("render compressedData");
+        const pyBufferData = image.compressed_pixel_bytes.getBuffer()
+        const compressedData = pyBufferData.data
+        renderCompressedData(
+          compressedData,
+          image.width,
+          image.height,
+          image.transferSyntaxUID,
+          image.photometric,
+          image.allocated_bits,
+          myCanvasRef
+        );
+      } else {
+        console.log("no uncompressedData & no compressedData")
+      }
     } else {
-      console.log("render incompressedData");
-      renderFrameByPythonData(data, width, height);
+      console.log("has not imported PyodideDicom class, ignore")
+    }
+  }
+
+  const resetUI = () => {
+    const canvas = myCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   };
 
-  const renderFrameByPythonCompressedData = async (
-    imageUnit8Array: Uint8Array,
-    rawDataWidth: number,
-    rawDataHeight: number
-  ) => {
-    console.log("renderFrameByPythonCompressedData");
-    const canvasRef = myCanvasRef;
-    if (!canvasRef.current) {
-      console.log("canvasRef is not ready, return");
-      return;
-    }
-    const c = canvasRef.current;
-    c.width = rawDataWidth;
-    c.height = rawDataHeight;
-    const ctx = c.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    const myImg = new Image();
-
-    // needs arrayBuffe, but feed unit8array
-    const buffer = imageUnit8Array.buffer;
-    // 1000000
-    //  718940
-    // 75366400
-    // JPEG Lossless
-
-    // works for myImg.current.src
-    // https://stackoverflow.com/questions/37228285/uint8array-to-arraybuffer
-    function typedArrayToBuffer(array: Uint8Array): ArrayBuffer {
-      return array.buffer.slice(
-        array.byteOffset,
-        array.byteLength + array.byteOffset
-      );
-    }
-    const buffer2 = typedArrayToBuffer(imageUnit8Array);
-    console.log(
-      "len:",
-      imageUnit8Array.length,
-      buffer.byteLength,
-      buffer2.byteLength
-    ); //   718924, 75366400 (buffer.byteLength is more than actual size), 718924
-    const blob = new Blob([buffer2], { type: "image/jpeg" });
-    const url = URL.createObjectURL(blob);
-
-    // works for myImg.current.src
-    /** uint8 -> base64: https://stackoverflow.com/questions/21434167/how-to-draw-an-image-on-canvas-from-a-byte-array-in-jpeg-or-png-format */
-    // var i = imageUnit8Array.length;
-    // var binaryString = new Array(i);// [i];
-    // while (i--) {
-    //     binaryString[i] = String.fromCharCode(imageUnit8Array[i]);
-    // }
-    // var data = binaryString.join('');
-    // var base64 = window.btoa(data);
-    // const url2 =  "data:image/jpeg;base64," + base64;
-
-    // works => become not work
-    const my_svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>`;
-    const my_svg_blob = new Blob([my_svg], {
-      type: "image/svg+xml;charset=utf-8",
-    });
-    const url4 = URL.createObjectURL(my_svg_blob);
-
-    // works for myImg.current.src
-    const content = new Uint8Array([
-      137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 5,
-      0, 0, 0, 5, 8, 6, 0, 0, 0, 141, 111, 38, 229, 0, 0, 0, 28, 73, 68, 65, 84,
-      8, 215, 99, 248, 255, 255, 63, 195, 127, 6, 32, 5, 195, 32, 18, 132, 208,
-      49, 241, 130, 88, 205, 4, 0, 14, 245, 53, 203, 209, 142, 14, 31, 0, 0, 0,
-      0, 73, 69, 78, 68, 174, 66, 96, 130,
-    ]);
-    const url3 = URL.createObjectURL(
-      new Blob([content.buffer], { type: "image/png" } /* (1) */)
-    );
-
-    if (myImg) {
-      myImg.onload = function () {
-        /// draw image to canvas
-        console.log("on load:", myImg.width, myImg.height);
-        c.width = myImg.width;
-        c.height = myImg.height;
-        ctx.drawImage(myImg as any, 0, 0, myImg.width, myImg.height);
-      };
-      myImg.src = url; //"https://raw.githubusercontent.com/grimmer0125/grimmer0125.github.io/master/images/bio.png";
-    }
-  };
-
-  const renderFrameByPythonData = async (
-    imageUnit8Array: Uint8ClampedArray,
-    rawDataWidth: number,
-    rawDataHeight: number
-  ) => {
-    const canvasRef = myCanvasRef;
-    if (!canvasRef.current) {
-      console.log("canvasRef is not ready, return");
-      return;
-    }
-
-    const c = canvasRef.current;
-    c.width = rawDataWidth;
-    c.height = rawDataHeight;
-
-    const ctx = c.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    // no allocate new memory
-    const imgData = new ImageData(imageUnit8Array, rawDataWidth, rawDataHeight);
-    ctx.putImageData(imgData, 0, 0);
-  };
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
     console.log("acceptedFiles");
 
     if (acceptedFiles.length > 0) {
       acceptedFiles.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       });
-      loadFile(acceptedFiles[0]);
+      const file = acceptedFiles[0];
+      resetUI();
+      if (checkIfValidDicomFileName(file.name)) {
+        await loadFile(file);
+      }
     }
 
     // Do something with the files
   }, []);
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: onDropFiles,
+  });
 
   return (
     <div className="flex-container">
@@ -226,7 +193,7 @@ function App() {
                 ref={myCanvasRef}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}
-                // style={{ backgroundColor: "black" }}
+              // style={{ backgroundColor: "black" }}
               />
             </div>
           </div>
