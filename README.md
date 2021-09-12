@@ -44,7 +44,7 @@ Please use VS Code and bulit-in TypeScript/Python formatter setting. Please inst
 
 ### Setup Pyodide
 
-The current code uses local built Pyodide 0.17.0 version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-python-dicom-visualization-reactapp/releases/download/v0.2/pyodide.zip and you can just execute
+The current code uses local built Pyodide 0.18.0 version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/untagged-4c8410552dae8d87d56b/pyodide.zip and you can just execute
 
 `$ sh download_pyodide.sh`
 
@@ -71,7 +71,7 @@ await micropip.install('pydicom')
 
 ```
 
-#### Why use 0.17.0 Pyodide version
+#### Why use 0.17.0+ Pyodide version
 
 Since we need to use `getBuffer` method which is added in `v0.17.0` to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2D grey array to 1D RGBA array, we need to allocate 1D RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code.
 
@@ -248,7 +248,7 @@ Besides adding back above medical file cases/features, there are some optional t
    1. pyodide.wasm (WebAssembly, 10MB), pyodide.asm.js (3.8MB), and pyodide.asm.data(5MB) files
    2. pyodide packages. e.g. numpy.js (159KB) and numpy.data (7.3MB <-used by WebAssembly). (By contrast, a numpy wheel package is about 16MB)
    3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB)
-2. Move python code to a browser webworker, https://pyodide.org/en/0.17.0a2/usage/webworker.html#.
+2. Move python code to a browser webworker, https://pyodide.org/en/stable/usage/webworker.html.
 3. [Done] Dockerization
 4. Bundle some testing DICOM files
 5. Introduction to medical files and pyodide

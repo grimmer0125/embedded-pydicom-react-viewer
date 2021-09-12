@@ -67,7 +67,7 @@ function App() {
     const buffer = await loadDicomFileAsync(file);
     // NOTE: besides getting return value (python code last line expression),
     // python data can be retrieved by accessing python global object:
-    // pyodide.globals.get("image")<-dev version (but stable v0.17.0a2 can use), pyodide.pyimport('sys')<-stable version;
+    // pyodide.globals.get("image")
     console.log("start to use python to parse parse dicom data");
 
     if (PyodideDicom.current) {
@@ -77,7 +77,7 @@ function App() {
       const image = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       console.log(`image max:${image.max}`)
-      /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! 
+      /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
        * now changes to use a Python object instance in JS !!
        */
 

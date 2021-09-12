@@ -1,11 +1,12 @@
 
 import { D4C } from "d4c-queue";
 
-const jpeg = require("jpeg-lossless-decoder-js");
+// const jpeg = require("jpeg-lossless-decoder-js");
 // const decoder = new jpeg.lossless.Decoder();
 
 declare var loadPyodide: any;
 declare var pyodide: any;
+declare var globalThis:any;
 
 const test: number[] = []
 
@@ -27,28 +28,32 @@ class Polygon {
 }
 const polygon = new Polygon()
 
+// used for testing only
 const my_js_module: any = {
     // decoder: decoder,
     add,
-    polygon,
-    jpeg,
-    newDecoder: function () {
-        return new jpeg.lossless.Decoder();
-    }
+    polygon
+    // jpeg,
+    // newDecoder: function () {
+    //     return new jpeg.lossless.Decoder();
+    // }
 };
 
 
 const d4c = new D4C();
 const initPyodideAndLoadPydicom = d4c.wrap(async () => {
-    console.log("initPyodide")
-    await loadPyodide({ indexURL: "pyodide/" });
+    console.log("initPyodide:")
+    
+    // globalThis.pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" });
+    // globalThis.pyodide = await loadPyodide({ indexURL: "pyodide/" }); <- not work in 0.18, works in 0.17
+    globalThis.pyodide = await loadPyodide({ indexURL: window.location.href+ "pyodide/" });
+
     await pyodide.loadPackage(['numpy', 'micropip']);
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();
     await pyodide.runPythonAsync(pythonCode);
     pyodide.registerJsModule("my_js_module", my_js_module);
 });
 
-// 這裡設定一個 function, 或每次都 new 出來再丟進去
 
 const loadPyodideDicomModule = d4c.wrap(async () => {
     console.log("loadPyodideDicomModule")
@@ -106,7 +111,7 @@ export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
 
     console.log("after run python:", test) // yes !!!!
     console.log("after run python:", polygon) // yes !!!!
-    const data = res.toJs(1);
+    const data = res.toJs(1); //  v0.18 use toJs({depth : n})
     console.log("data:", data);
     console.log(`type:${typeof data}`)
     const width = data[1];
