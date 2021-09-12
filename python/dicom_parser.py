@@ -27,6 +27,7 @@ class PyodideDicom:
     height: int = None
     max: int = None
     min: int = None
+    modality: str = None
     photometric: str = None
     transferSyntaxUID: str = None
     allocated_bits: int = None
@@ -148,13 +149,19 @@ class PyodideDicom:
                     # print(f"order:{dt.byteorder}") # native. guess probably is big endian
                     # todo: handle PR=1(signed number)
                     if allocated_bits == 16:
-                        print("unit16")
-                        numpy_array: np.ndarray = np.frombuffer(
-                            b2, dtype=np.uint16)
+                        if pr == 0:
+                            numpy_array: np.ndarray = np.frombuffer(
+                                b2, dtype=np.uint16)
+                        else:
+                            numpy_array: np.ndarray = np.frombuffer(
+                                b2, dtype=np.int16)
                     else:
-                        print("uint8")
-                        numpy_array: np.ndarray = np.frombuffer(
-                            b2, dtype=np.uint8)
+                        if pr == 0:
+                            numpy_array: np.ndarray = np.frombuffer(
+                                b2, dtype=np.uint8)
+                        else:
+                            numpy_array: np.ndarray = np.frombuffer(
+                                b2, dtype=np.int8)
                     # print(f"numpy:{numpy_array}")
                     # 1024*1024*2 or 1024*768
                     print(f"shape:{numpy_array.shape}")
@@ -382,6 +389,9 @@ class PyodideDicom:
         print(f'dimension: {width}; {height}')
         self.width = width
         self.height = height
+        modality: str = ds[0x0008, 0x0060].value
+        print(f"Modality:{modality}")
+        self.modality = modality
 
         allocated_bits: int = ds[0x0028, 0x0100].value
 
@@ -490,6 +500,8 @@ class PyodideDicom:
                 #  http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
                 alpha = np.full_like(compress_pixel_data, 255)
                 print(f"alpha:{alpha.shape}")  # ()
+                # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
+                # TypeError: object of type 'numpy.uint8' has no len()
                 indexes = np.arange(3, len(image2d)+3, step=3)
                 print(f"indexes:{indexes.shape}")  # 1024*768
                 image = np.insert(image2d, indexes, alpha)
