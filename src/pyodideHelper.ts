@@ -1,8 +1,16 @@
 
 import { D4C } from "d4c-queue";
+import MyWorker from './MyWorker.worker';
 
-// const jpeg = require("jpeg-lossless-decoder-js");
-// const decoder = new jpeg.lossless.Decoder();
+async function init() {
+
+    const myWorkerInstance: Worker = new MyWorker();
+
+    myWorkerInstance.onmessage = function (oEvent) {
+        console.log("Worker said : " + oEvent.data);
+    };
+}
+init();
 
 declare var loadPyodide: any;
 declare var pyodide: any;

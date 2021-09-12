@@ -9,6 +9,7 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
+    "comlink": "^4.3.1",
     "d4c-queue": "^1.4.0",
     "jpeg-lossless-decoder-js": "^2.0.4",
     "react": "^17.0.2",
@@ -20,9 +21,9 @@
     "web-vitals": "^1.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -44,6 +45,9 @@
     ]
   },
   "devDependencies": {
-    "prettier": "^2.4.0"
-  }
+    "prettier": "^2.4.0",
+    "react-app-rewired": "^2.1.8",
+    "worker-loader": "^3.0.8"
+  },
+  "config-overrides-path": "react-app-rewired.config.js"
 }
