@@ -4,3 +4,4 @@ build
 dicom_samples.zip
 dicom_samples
 tmp
+public/pyodide
