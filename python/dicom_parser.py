@@ -19,26 +19,6 @@ compressed_list = ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.
 
 handling_list = ["1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70"]
 
-#### Testing interaction between JS and Pyodide ####
-
-
-# @dataclass
-# class Test:
-#     a: int = 5
-
-#     def test_a(self):
-#         self.a += 100
-
-
-# try:
-#     bb
-# except NameError:
-#     print("well, it WASN'T defined after all!")
-#     bb = Test()
-#     x = []
-
-####
-
 
 @dataclass
 class PyodideDicom:
@@ -53,8 +33,9 @@ class PyodideDicom:
     ds: Union[FileDataset, DicomDir] = None
     compressed_pixel_bytes: bytes = None
 
-    def get_pydicom_dataset_from_js_buffer(self, buffer_memory):
-        print("get buffer from javascript, copied memory to wasm heap, start to read dicom")
+    def get_pydicom_dataset_from_js_buffer(self, buffer_memory: memoryview):
+        print(
+            f"get buffer from javascript, copied memory to wasm heap, start to read dicom:{type(buffer_memory)}")
         # file_name = "image-00000-ot.dcm"
         ds = pydicom.dcmread(BytesIO(buffer_memory), force=True)
         print("read dicom ok")
@@ -62,13 +43,14 @@ class PyodideDicom:
         # print("patient family name:"+patient_name.family_name)
         return ds
 
-    def get_pydicom_dataset_from_local_file(self, path):
+    def get_pydicom_dataset_from_local_file(self, path: str):
         ds = pydicom.dcmread(path, force=True)
         print("read dicom ok")
         return ds
 
     def get_manufacturer_independent_pixel_image2d_array(self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None):
-
+        print(
+            f"get_manufacturer_independent_pixel_image2d_array")
         # 8,8 or 16,12
         allocated_bits = ds[0x0028, 0x0100].value
         stored_bites = ds[0x0028, 0x0101].value
@@ -167,14 +149,18 @@ class PyodideDicom:
                     # todo: handle PR=1(signed number)
                     if allocated_bits == 16:
                         print("unit16")
-                        numpy_array = np.frombuffer(b2, dtype=np.uint16)
+                        numpy_array: np.ndarray = np.frombuffer(
+                            b2, dtype=np.uint16)
                     else:
                         print("uint8")
-                        numpy_array = np.frombuffer(b2, dtype=np.uint8)
+                        numpy_array: np.ndarray = np.frombuffer(
+                            b2, dtype=np.uint8)
                     # print(f"numpy:{numpy_array}")
                     # 1024*1024*2 or 1024*768
                     print(f"shape:{numpy_array.shape}")
 
+                    print(
+                        f"get_manufacturer_independent_pixel_image2d_array:type:{type(numpy_array)}, {type(p2)} ")
                     return numpy_array, p2
                 return None, p2
             except Exception as e:
@@ -199,8 +185,8 @@ class PyodideDicom:
         image2d = apply_modality_lut(arr, ds)
         return image2d, None
 
-    def get_image2d_maxmin(self, image2d):
-        print("start to get max/min")
+    def get_image2d_maxmin(self, image2d: np.ndarray):
+        print(f"start to get max/min")
         start = time.time()
         _min = image2d.min()
         end = time.time()
@@ -210,17 +196,17 @@ class PyodideDicom:
         _max = image2d.max()
         end = time.time()
         print(f"2. max time :{end-start}")  # 0.0 / 0.00027108192443847656
-        print(f'pixel min:{_min}')
+        print(f'pixel min:{_min}, type:{type(_min)}')  # e.g. np.uint8
         print(f'pixel max:{_max}')  # 255
         return _max, _min
 
-    def get_image2d_dimension(self, image2d):
-        width = len(image2d[0])
-        height = len(image2d)
-        print(f'width:{width};height:{height}')
-        return width, height
+    # def get_image2d_dimension(self, image2d):
+    #     width = len(image2d[0])
+    #     height = len(image2d)
+    #     print(f'width:{width};height:{height}')
+    #     return width, height
 
-    def normalize_image2d(self, image2d, _max, _min):
+    def normalize_image2d(self, image2d: np.ndarray, _max, _min):
         # width = len(image2d[0])
         # height = len(image2d)
 
@@ -240,7 +226,7 @@ class PyodideDicom:
         # print(f"after normalize, center pixel:{image2d[height//2][width//2]}")
         return image2d
 
-    def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(self, image2d):
+    def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(self, image2d: np.ndarray):
 
         # US-PAL-8-10x-echo.dcm
         # ValueError: all the input arrays must have same number of dimensions,
@@ -258,7 +244,7 @@ class PyodideDicom:
         image = image.astype("uint8")
         return image
 
-    def flatten_rgb_image2d_plan1_to_rgba_1d_image_array(self, image2d):
+    def flatten_rgb_image2d_plan1_to_rgba_1d_image_array(self, image2d: np.ndarray):
         # color by plane
         # Planar Configuration = 1 -> R1, R2, R3, …, G1, G2, G3, …, B1, B2, B3
         # e.g. US-RGB-8-epicard.dcm (480, 640, 3)
@@ -276,7 +262,7 @@ class PyodideDicom:
 
         return self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
 
-    def flatten_grey_image2d_to_rgba_1d_image_array(self, image2d):
+    def flatten_grey_image2d_to_rgba_1d_image_array(self, image2d: np.ndarray):
         print("flatten_grey_image2d_to_rgba_1d_image_array")
         # 3 planes. R plane (z=0), G plane (z=1), B plane (z=2)
         width = len(image2d[0])
@@ -294,8 +280,8 @@ class PyodideDicom:
         print(f"flatten time:{time.time()-start}")  # 0.002s
         return image
 
-    def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d):
-        ''' This is depreciated
+    def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d: np.ndarray):
+        ''' This is depreciated due to slow speed
         '''
         width = len(image2d[0])
         height = len(image2d)
@@ -359,7 +345,10 @@ class PyodideDicom:
         return False
 
     def __init__(self, buffer: Any = None, jpeg_lossless_decoder: Any = None):
-        print("__init__!!!!!!!!!!!!!")
+        # buffer: pyodide.JsProxy
+        # decoder: pyodide.JsProxy
+        print(
+            f"__init__!!!!!!!!!!!!! buffer:{type(buffer)} decoder:{type(jpeg_lossless_decoder)}")
         if self.is_pyodide_env():
             # if buffer is None:
             #     print("buffer is None")
@@ -371,7 +360,7 @@ class PyodideDicom:
             #     # global x
             #     # x.append(10)
 
-            #     # ## testing if python can access JS' user defined objects' methods ##
+            ##### only for testing if python can access JS' user defined objects' methods ##
             from my_js_module import add, polygon
             k2 = add(5)
             polygon.addWidth()  # works
@@ -379,6 +368,7 @@ class PyodideDicom:
             # else:
             #     print("buffer is not None")
             # from my_js_module import jpeg
+            #####
 
             ds = self.get_pydicom_dataset_from_js_buffer(buffer.to_py())
         else:
@@ -387,25 +377,30 @@ class PyodideDicom:
             ds = self.get_pydicom_dataset_from_local_file(
                 "dicom/image-00000-ot.dcm")
 
-        width = ds[0x0028, 0x0011].value
-        height = ds[0x0028, 0x0010].value
+        width: int = ds[0x0028, 0x0011].value
+        height: int = ds[0x0028, 0x0010].value
         print(f'dimension: {width}; {height}')
-        allocated_bits = ds[0x0028, 0x0100].value
+        self.width = width
+        self.height = height
+
+        allocated_bits: int = ds[0x0028, 0x0100].value
 
         transferSyntaxUID = ""
         try:
-            transferSyntaxUID = ds.file_meta.TransferSyntaxUID
+            transferSyntaxUID: str = ds.file_meta.TransferSyntaxUID
             print(f"transferSyntax:{transferSyntaxUID}")
         except:
             print("no TransferSyntaxUID")
         try:
-            photometric = ds.PhotometricInterpretation
+            photometric: str = ds.PhotometricInterpretation
             print(
                 f"photometric:{photometric}")
         except:
             print("no photometric")
             photometric = ""
         self.photometric = photometric
+        self.transferSyntaxUID = transferSyntaxUID
+        self.allocated_bits = allocated_bits
         self.ds = ds
         frame_number = getattr(ds, 'NumberOfFrames', 1)
         print(f"frame_number:{frame_number}")
@@ -442,13 +437,12 @@ class PyodideDicom:
                 # Columns (0028,0011), Rows (0028,0010)
 
                 # self.image = image
-                self.width = width
-                self.height = height
+
                 # self.min = int(_min)
                 # self.max = int(_max)
                 # self.photometric = photometric
-                self.transferSyntaxUID = transferSyntaxUID
-                self.allocated_bits = allocated_bits
+                # self.transferSyntaxUID = transferSyntaxUID
+                # self.allocated_bits = allocated_bits
                 return
                 # compress_pixel_data is bytes
                 # 0                           1     2        3      4      5            6                 7
@@ -518,28 +512,11 @@ class PyodideDicom:
 
         # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
         # so we need to use int(min), int(max)
-        print(f'min type is:{type(_min)}')  # numpy.uint16
-        print(f'width type is:{type(width)}')
+        print(f'min type is:{type(_min)}')  # numpy.uint8
+        # print(f'width type is:{type(width)}') # int
         self.uncompressed_ndarray = image
-
-        self.width = width
-        self.height = height
         self.min = int(_min)
         self.max = int(_max)
-        self.transferSyntaxUID = transferSyntaxUID
-        self.allocated_bits = allocated_bits
-        #       0           1      2       3           4          5                   6
-        # return image, width, height, int(_min), int(_max), transferSyntaxUID, allocated_bits
-
-
-# result = None
-# try:
-#     import js
-#     print("you are in pyodide")
-#     result = main(True)
-# except ModuleNotFoundError:
-
-    # result
 
 
 if __name__ == '__main__':
