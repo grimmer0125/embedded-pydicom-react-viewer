@@ -24,7 +24,7 @@ OT-MONO2-8-hip.dcm from https://barre.dev/medical/samples/
 
 ![alt tag](https://raw.githubusercontent.com/grimmer0125/embedded-pydicom-react-viewer/master/public/screenshot.png)
 
-## Python 3.8.2 Browser runtime - Pyodide
+## Python 3.9.5 Browser runtime - Pyodide 0.18.0
 
 ref:
 
