@@ -2,6 +2,7 @@
 import { D4C } from "d4c-queue";
 
 import * as Comlink from 'comlink'
+import { PyProxy } from '../public/pyodide/pyodide.d'
 const jpeg = require("jpeg-lossless-decoder-js");
 declare const self: DedicatedWorkerGlobalScope & {pyodide: any};
 export default {} as typeof Worker & { new (): Worker };
@@ -63,20 +64,22 @@ const loadPyodideDicomModule = d4c.wrap(async () => {
   console.log("loadPyodideDicomModule done")
 });
 
-const init = async ()=> {
-  initPyodideAndLoadPydicom();
-  loadPyodideDicomModule();
-}
+// const init = async ()=> {
+//   initPyodideAndLoadPydicom();
+//   loadPyodideDicomModule();
+// }
 
 const newPyodideDicom = d4c.wrap((buffer:ArrayBuffer)=> {
   const decoder = new jpeg.lossless.Decoder()
-  const dicomObj = PyodideDicomClass(buffer, decoder);
+  const dicomObj: PyProxy = PyodideDicomClass(buffer, decoder);
   // return dicomObj
   // console.log(`dicom:${dicomObj}`)
   // dicom:PyodideDicom(uncompressed_ndarray=array([  0,   0,   0, ...,   0,   0, 255], dtype=uint8), width=1024, height=1024, max=595, min=0, modality='MR', photometric='MONOCHROME2', transferSyntaxUID='1.2.840.10008.1.2.4.57', allocated_bits=16, ds=Dataset.file_meta -------------------------------
   // (0002, 0000) File Meta Information Group Length  UL: 150
 
-  console.log(`dicom max:${dicomObj.max}`)
+  // console.log(`dicom max:${dicomObj.max}`)
+  // postMessage({name:"testla"});
+
   return Comlink.proxy(dicomObj)
 });
 
