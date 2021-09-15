@@ -44,7 +44,9 @@ Please use VS Code and bulit-in TypeScript/Python formatter setting. Please inst
 
 ### Setup Pyodide
 
-The current code uses local built Pyodide 0.18.0 version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/untagged-4c8410552dae8d87d56b/pyodide.zip and you can just execute
+The current code uses local built Pyodide 0.18.0 version to speed up loading instead of CDN, just download it once. The zip file is https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/untagged-77e55ea5908aaad294e1/pyodide.zip and you can just execute
+
+
 
 `$ sh download_pyodide.sh`
 
