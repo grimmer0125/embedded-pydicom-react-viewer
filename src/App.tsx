@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 
 import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
+import { PyProxy, PyProxyBuffer } from '../public/pyodide/pyodide.d'
 
 import {
   renderCompressedData,
@@ -74,12 +75,16 @@ function App() {
       const decoder = new jpeg.lossless.Decoder()
       console.log("has imported PyodideDicom class")
       dicomObj.current = PyodideDicom.current(buffer, decoder)
-      const image = dicomObj.current;
+      const image: PyProxy = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       console.log(`image max:${image.max}`)
       /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
        * now changes to use a Python object instance in JS !!
        */
+
+      if (image.ds) {
+        console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
+      }
 
       // todo: figure it out 
       // 1. need destroy old (e.g. image.destroy()) when assign new image ?
@@ -88,21 +93,20 @@ function App() {
       // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
       if (image.uncompressed_ndarray) {
         console.log("render uncompressedData");
-        console.log(`PhotometricInterpretation: ${image.ds.PhotometricInterpretation}`) // works
-        const pyBufferData = image.uncompressed_ndarray.getBuffer("u8clamped");
-        const uncompressedData = pyBufferData.data
-        renderUncompressedData(uncompressedData, image.width, image.height, myCanvasRef);
+        const pyBufferData = (image.uncompressed_ndarray as unknown as PyProxyBuffer).getBuffer("u8clamped");
+        const uncompressedData = pyBufferData.data as Uint8ClampedArray
+        renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
       } else if (image.compressed_pixel_bytes) {
         console.log("render compressedData");
-        const pyBufferData = image.compressed_pixel_bytes.getBuffer()
-        const compressedData = pyBufferData.data
+        const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+        const compressedData = pyBufferData.data as Uint8Array;
         renderCompressedData(
           compressedData,
-          image.width,
-          image.height,
-          image.transferSyntaxUID,
-          image.photometric,
-          image.allocated_bits,
+          image.width as number,
+          image.height as number,
+          image.transferSyntaxUID as string,
+          image.photometric as string,
+          image.allocated_bits as number,
           myCanvasRef
         );
       } else {
