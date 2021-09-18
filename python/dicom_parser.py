@@ -277,16 +277,17 @@ class PyodideDicom:
         normalize_min: int,
     ):
         # print("start to normalization")
+        start0 = time.time()
 
         ## step1: saturation
         if normalize_min != self.min or normalize_max != self.max:
             # print("clip the outside value")
             start = time.time()
             image = np.clip(image, normalize_min, normalize_max)
-            # print(f"clip time:{time.time()-start}") # 0.003
+            # print(f"clip time:{time.time()-start}")  # 0.003
 
         # step2: normalize
-        start = time.time()
+
         # print(f"center pixel:{image2d[height//2][width//2]}")
         # step1: normalize
         # ref: https://towardsdatascience.com/normalization-techniques-in-python-using-numpy-b998aa81d754
@@ -296,7 +297,7 @@ class PyodideDicom:
         # 0.003, if no astype, just 0.002. using // become 0.02
         # or using colormap is another fast way,
         image = (((image - normalize_min) / value_range) * 255).astype("uint8")
-        # print(f"normalize time:{time.time()-start}")  # 0.009
+        # print(f"normalize time:{time.time()-start0}")  # 0.009 or 0.02
         # print(f"after normalize, center pixel:{image2d[height//2][width//2]}")
         return image
 
@@ -310,6 +311,7 @@ class PyodideDicom:
         # color-by-pixel
         # Planar Configuration = 0 -> R1, G1, B1, R2, G2, B2, …
         # e.g. US-RGB-8-esopecho.dcm (120, 256, 3)
+        # print(f"shape0:{image2d.shape}")
         width = len(image2d[0])
         height = len(image2d)
         alpha = np.full((height, width), 255)
@@ -337,21 +339,22 @@ class PyodideDicom:
 
         return self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
 
-    def flatten_grey_image2d_to_rgba_1d_image_array(self, image2d: np.ndarray):
+    def flatten_grey_image_to_rgba_1d_image_array(self, image2d: np.ndarray):
         # 3 planes. R plane (z=0), G plane (z=1), B plane (z=2)
-        width = len(image2d[0])
-        height = len(image2d)
+        # width = len(image2d[0])
+        # height = len(image2d)
 
         # https://stackoverflow.com/questions/63783198/how-to-convert-2d-array-into-rgb-image-in-python
         # step2: 2D grey -> 2D RGBA -> Flatten to 1D RGBA
-        start = time.time()
-        alpha = np.full((height, width), 255)  # ~
+        start_time = time.time()
+        alpha = np.full(image2d.shape, 255)  # ~
         stacked = np.dstack((image2d, image2d, image2d, alpha))
-        print(f"stacked shape:{stacked.shape}")  # 512x 512x 4
+        # print(f"stacked shape:{stacked.shape}")  # 512x 512x 4
         image = stacked.flatten()
-        print(f"final shape:{image.shape}, type:{image.dtype}")  # int32
+        # print(f"final shape:{image.shape}, type:{image.dtype}")  # int32
         image = image.astype("uint8")
-        print(f"flatten time:{time.time()-start}")  # 0.002s
+        end_time = time.time()
+        # print(f"flatten time:{time.time()-start}")  # 0.002s
         return image
 
     def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(
@@ -424,6 +427,8 @@ class PyodideDicom:
         normalize_window_width: int = None,
         normalize_mode: NormalizeMode = None,
     ):
+        start = time.time()  ## 0.13s !!!!
+
         # print("render_frame_to_rgba_1d !!!")
         if normalize_mode is not None:
             self.normalize_mode = normalize_mode
@@ -488,14 +493,18 @@ class PyodideDicom:
                 # print(f"alpha1:{alpha.shape}")  # ()
                 # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
                 # TypeError: object of type 'numpy.uint8' has no len()
+
+                #### NOTE: this way is much slower than stack method !!!!!
                 indexes = np.arange(3, len(normalize_image) + 3, step=3)
-                print(f"indexes:{indexes.shape}")  # 1024*768
-                self.render_rgba_1d_ndarray = np.insert(normalize_image, indexes, 255)
-                print(f"final:{normalize_image.shape}")
+                # print(f"indexes:{indexes.shape}")  # 1024*768
+                self.render_rgba_1d_ndarray = np.insert(
+                    normalize_image, indexes, 255
+                )  # 0.06s
+                # print(f"final:{normalize_image.shape}")
             else:
                 # uncompress case
                 # if planar_config == 0:
-                # US-RGB-8-esopecho
+                # US-RGB-8-esopecho # 0.025s
                 print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
                 self.render_rgba_1d_ndarray = (
                     self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
@@ -507,35 +516,28 @@ class PyodideDicom:
                 #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
         else:
             # print("it is grey color")
-            if normalize_image.ndim == 1:
-                # e.g. : JPGLosslessP14SV1_1s_1f_8b (US), CT-MONO2-16-chest
-                # print("flatten_jpeg_grey_image1d_to_rgba_1d_image_array")
-
-                # do truncate? + normalize before expand/append alpha https://radiopaedia.org/articles/windowing-ct
-                # do we need to do truncate (window_center mode) on
-                # - rgb <- no
-                # - jpeg <- yes (CT-MONO2-16-chest has stored its window center/width) . if so, how about jpeg 50
-                # - non ct?????? yes,
-                #   (US) JPGLosslessP14SV1_1s_1f_8b has stored its window center/width
-                #   CR-MONO1-10-chest has (1.2.840.10008.1.2, not jpeg )
-                #   JPEG57-MR-MONO2-12-shoulder
-                #
-
-                # print("expand grey 1d array to rgba")
-                rgb_array = np.repeat(normalize_image, 3)
-                # print(f"rgb:{rgb_array.shape}")  # 1024*768*3
-
-                # append alpha
-                indexes = np.arange(3, len(rgb_array) + 3, step=3)
-                # print(f"indexes:{indexes.shape}")  # 1024*768
-                self.render_rgba_1d_ndarray = np.insert(rgb_array, indexes, 255)
-                # print(f"final:{normalize_image.shape}")  # 3145728
+            if normalize_image.ndim == 1:  # 0.15s !!!
+                # rgb_array = np.repeat(normalize_image, 3) # 0.06s
+                # indexes = np.arange(3, len(rgb_array) + 3, step=3)
+                # self.render_rgba_1d_ndarray = np.insert(rgb_array, indexes, 255) # 0.06s
+                pass
             else:
-                # uncompress case: CT-MONO2-16-ort
-                print("flatten_grey_image2d_to_rgba_1d_image_array")
-                self.render_rgba_1d_ndarray = (
-                    self.flatten_grey_image2d_to_rgba_1d_image_array(normalize_image)
-                )
+                pass
+            # e.g. : JPGLosslessP14SV1_1s_1f_8b (US), CT-MONO2-16-chest
+            # print("flatten_jpeg_grey_image1d_to_rgba_1d_image_array")
+
+            # do truncate? + normalize before expand/append alpha https://radiopaedia.org/articles/windowing-ct
+            # do we need to do truncate (window_center mode) on
+            # - rgb <- no
+            # - jpeg <- yes (CT-MONO2-16-chest has stored its window center/width) . if so, how about jpeg 50
+            # - non ct?????? yes,
+            #   (US) JPGLosslessP14SV1_1s_1f_8b has stored its window center/width
+            #   CR-MONO1-10-chest has (1.2.840.10008.1.2, not jpeg )
+            #   JPEG57-MR-MONO2-12-shoulder
+
+            self.render_rgba_1d_ndarray = (
+                self.flatten_grey_image_to_rgba_1d_image_array(normalize_image)
+            )
 
         # width, height = get_image2d_dimension(image2d)
 
@@ -552,6 +554,7 @@ class PyodideDicom:
         #     useWindowCenter: newWindowCenter,
         #     useWindowWidth: newWindowWidth,
         #   });
+        print(f"render time:{time.time()-start}")  # 0.009
 
     def __init__(
         self,

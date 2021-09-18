@@ -186,7 +186,6 @@ function App() {
     }
     clientX.current = event.clientX;
     clientY.current = event.clientY;
-
   }
 
   const onMouseCanvasDown = useCallback((event: any) => {
