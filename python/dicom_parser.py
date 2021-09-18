@@ -438,9 +438,15 @@ class PyodideDicom:
             print("not handle jpeg 50 in-py uncompress case")
             return
 
-        if self.ds is None or self.max is None or self.min is None:
+        if (
+            self.ds is None
+            or self.max is None
+            or self.min is None
+            or self.width is None
+            or self.height is None
+        ):
             # should not happe, just make pylance warning disappeared
-            print("self.ds/max/min is None, should not happen")
+            print("self.ds/max/min/width/height is None, should not happen")
             return
 
         ### normalization ###
@@ -488,19 +494,28 @@ class PyodideDicom:
 
             if normalize_image.ndim == 1:
                 print("flatten_jpeg_RGB_image1d_to_rgba_1d_image_array")
-                #  http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
+                # http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
                 # alpha = np.full_like(compress_pixel_data, 255)
                 # print(f"alpha1:{alpha.shape}")  # ()
                 # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
                 # TypeError: object of type 'numpy.uint8' has no len()
+                start = time.time()
+                normalize_image2 = normalize_image.reshape(
+                    (self.width, self.height, 3)
+                )  # ~ 0s
+                self.render_rgba_1d_ndarray = (
+                    self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
+                        normalize_image2
+                    )
+                )
+                # print(f"time:{time.time()-start}")  # 0.03 ~ 0.035
 
                 #### NOTE: this way is much slower than stack method !!!!!
-                indexes = np.arange(3, len(normalize_image) + 3, step=3)
-                # print(f"indexes:{indexes.shape}")  # 1024*768
-                self.render_rgba_1d_ndarray = np.insert(
-                    normalize_image, indexes, 255
-                )  # 0.06s
-                # print(f"final:{normalize_image.shape}")
+                # indexes = np.arange(3, len(normalize_image) + 3, step=3)
+                # # print(f"indexes:{indexes.shape}")  # 1024*768
+                # self.render_rgba_1d_ndarray = np.insert(
+                #     normalize_image, indexes, 255
+                # )  # 0.06s
             else:
                 # uncompress case
                 # if planar_config == 0:
