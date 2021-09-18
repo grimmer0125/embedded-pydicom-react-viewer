@@ -4,10 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
 import { PyProxy, PyProxyBuffer } from '../public/pyodide/pyodide.d'
 
-import {
-  renderCompressedData,
-  renderUncompressedData
-} from "./canvasRenderer"
+import canvasRender from "./canvasRenderer"
 
 const jpeg = require("jpeg-lossless-decoder-js");
 
@@ -78,6 +75,8 @@ function App() {
       const image: PyProxy = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       console.log(`image max:${image.max}`)
+      console.log(`image center:${image.window_center}`) // works !!!
+
       /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
        * now changes to use a Python object instance in JS !!
        */
@@ -87,20 +86,23 @@ function App() {
       }
 
       // todo: figure it out 
-      // 1. need destroy old (e.g. image.destroy()) when assign new image ?
+      // 1. need destroy old (e.g. image.destroy()) when assign new image ? yes
       // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
       // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
       // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
-      if (image.uncompressed_ndarray) {
+      if (image.render_rgba_1d_ndarray) {
         console.log("render uncompressedData");
-        const pyBufferData = (image.uncompressed_ndarray as unknown as PyProxyBuffer).getBuffer("u8clamped");
+        const pyBufferData = (image.render_rgba_1d_ndarray as unknown as PyProxyBuffer).getBuffer("u8clamped");
+        // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
         const uncompressedData = pyBufferData.data as Uint8ClampedArray
-        renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+        canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+        pyBufferData.release()
       } else if (image.compressed_pixel_bytes) {
         console.log("render compressedData");
         const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+        // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
         const compressedData = pyBufferData.data as Uint8Array;
-        renderCompressedData(
+        canvasRender.renderCompressedData(
           compressedData,
           image.width as number,
           image.height as number,
@@ -109,9 +111,11 @@ function App() {
           image.allocated_bits as number,
           myCanvasRef
         );
+        pyBufferData.release()
       } else {
         console.log("no uncompressedData & no compressedData")
       }
+      image.destroy();
     } else {
       console.log("has not imported PyodideDicom class, ignore")
     }
@@ -119,13 +123,7 @@ function App() {
 
   const resetUI = () => {
     const canvas = myCanvasRef.current;
-    if (!canvas) {
-      return;
-    }
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+    canvasRender.resetCanvas(canvas)
   };
 
   const onDropFiles = useCallback(async (acceptedFiles: File[]) => {

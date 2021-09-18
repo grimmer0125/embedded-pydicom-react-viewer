@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 import sys
 import os
 import pydicom
@@ -9,34 +10,86 @@ import numpy as np
 import time
 from io import BytesIO
 from typing import Any, Union
-
+import math
 from pydicom.encaps import defragment_data, decode_data_sequence
 
 
-compressed_list = ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51", "1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70",
-                   "1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81", "1.2.840.10008.1.2.4.90", "1.2.840.10008.1.2.4.91"]
+compressed_list = [
+    "1.2.840.10008.1.2.4.50",
+    "1.2.840.10008.1.2.4.51",
+    "1.2.840.10008.1.2.4.57",
+    "1.2.840.10008.1.2.4.70",
+    "1.2.840.10008.1.2.4.80",
+    "1.2.840.10008.1.2.4.81",
+    "1.2.840.10008.1.2.4.90",
+    "1.2.840.10008.1.2.4.91",
+]
 
 
-handling_list = ["1.2.840.10008.1.2.4.57", "1.2.840.10008.1.2.4.70"]
+handling_list = [
+    # "1.2.840.10008.1.2.4.50", <- this decoder can not handle
+    "1.2.840.10008.1.2.4.57",
+    "1.2.840.10008.1.2.4.70",
+]
+
+from enum import IntEnum, auto
+
+
+class NormalizeMode(IntEnum):
+    window_center_mode = auto()
+    max_min_mode = auto()
 
 
 @dataclass
 class PyodideDicom:
-    uncompressed_ndarray: np.ndarray = None
-    width: int = None
-    height: int = None
-    max: int = None
-    min: int = None
-    modality: str = None
-    photometric: str = None
-    transferSyntaxUID: str = None
-    allocated_bits: int = None
-    ds: Union[FileDataset, DicomDir] = None
-    compressed_pixel_bytes: bytes = None
+
+    ## todo:
+    # 1. pillow for 50 https://pydicom.github.io/pydicom/dev/old/image_data_handlers.html
+    # 2. multi files
+    # 3. multi frame in 1 file
+
+    render_rgba_1d_ndarray: Optional[np.ndarray] = None
+    image: Optional[np.ndarray] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    max: Optional[int] = None
+    min: Optional[int] = None
+    modality: Optional[str] = None
+    photometric: Optional[str] = None
+    transferSyntaxUID: Optional[str] = None
+    allocated_bits: Optional[int] = None
+    ds: Optional[Union[FileDataset, DicomDir]] = None
+    compressed_pixel_bytes: Optional[bytes] = None
+    normalize_mode: NormalizeMode = NormalizeMode.window_center_mode
+
+    @property
+    def window_center(self):
+        # 0028,1050, width: 0028,1051
+        # ref: https://radiopaedia.org/articles/windowing-ct
+        if self.ds:
+            # if isinstance(self.ds, DicomDir):
+            el = self.ds.get((0x0028, 0x1050))
+            if el:
+                return el.value  # elf.ds[0x0028, 0x1050].value
+            # print(f"b2:{b2}")
+            # c = self.ds.get([0x9999, 0x9999]) # None
+            # print(f"c:{c}")
+            # b = self.ds.get([0x0028, 0x1050]).value
+            # a = self.ds[0x9999, 0x9999]
+        return None
+
+    @property
+    def window_width(self):
+        if self.ds:
+            el = self.ds.get((0x0028, 0x1051))
+            if el:
+                return el.value
+        return None
 
     def get_pydicom_dataset_from_js_buffer(self, buffer_memory: memoryview):
         print(
-            f"get buffer from javascript, copied memory to wasm heap, start to read dicom:{type(buffer_memory)}")
+            f"get buffer from javascript, copied memory to wasm heap, start to read dicom:{type(buffer_memory)}"
+        )
         # file_name = "image-00000-ot.dcm"
         ds = pydicom.dcmread(BytesIO(buffer_memory), force=True)
         print("read dicom ok")
@@ -49,9 +102,10 @@ class PyodideDicom:
         print("read dicom ok")
         return ds
 
-    def get_manufacturer_independent_pixel_image2d_array(self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None):
-        print(
-            f"get_manufacturer_independent_pixel_image2d_array")
+    def get_manufacturer_independent_pixel_image2d_array(
+        self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None
+    ):
+        print(f"get_manufacturer_independent_pixel_image2d_array")
         # 8,8 or 16,12
         allocated_bits = ds[0x0028, 0x0100].value
         stored_bites = ds[0x0028, 0x0101].value
@@ -65,19 +119,21 @@ class PyodideDicom:
         # has_TransferSyntax = True
         # print(f"syntax:{ds.file_meta.TransferSyntaxUID}")
         # RLE 1.2.840.10008.1.2.5:  US-PAL-8-10x-echo.dcm is automatically handled as uncompressed case
-        if (transferSyntaxUID and transferSyntaxUID in compressed_list):
+        if transferSyntaxUID and transferSyntaxUID in compressed_list:
             print("compressed case !!!!!!!!!")
 
             # return None, ds.PixelData
-        # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
-            print("try to get compressed dicom's pixel data manually, can not handle by pydicom in pyodide, lack of some pyodide extension")
+            # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
+            print(
+                "try to get compressed dicom's pixel data manually, can not handle by pydicom in pyodide, lack of some pyodide extension"
+            )
             try:
                 print(f"pixeldata:{len(ds.PixelData)}")  # 2126020
 
                 # TODO: only get 1st frame for multiple frame case and will improve later
-                if getattr(ds, 'NumberOfFrames', 1) > 1:
+                if getattr(ds, "NumberOfFrames", 1) > 1:
                     print("multi frame")
-                    j2k_precision, j2k_sign = None, None
+                    # j2k_precision, j2k_sign = None, None
                     # multiple compressed frames
                     # working case (50):
                     # 1. 0002.dcm, some are [-5], [-4], [-6]. 512x512
@@ -107,7 +163,7 @@ class PyodideDicom:
                         #     j2k_precision = params.setdefault("precision", ds.BitsStored)
                         #     j2k_sign = params.setdefault("is_signed", None)
                     # TODO: what is the rule of -5/-1? But even not using pixel_data[:-1], pixel_data[:-5], still work
-                    p2 = pixel_data
+                    # p2 = pixel_data
                 else:
                     print("single frame")
                     # working case but browser can not render :
@@ -118,11 +174,14 @@ class PyodideDicom:
                     #   https://products.groupdocs.app/viewer/jpg can be used to view, local mac seems not able to view (all black)
 
                     pixel_data = defragment_data(ds.PixelData)
-                    p2 = pixel_data
-                print(f"pixel_data:{len(p2)}, {type(p2)}")  # bytes
+                    # p2 = pixel_data
+                print(f"pixel_data:{len(pixel_data)}, {type(pixel_data)}")  # bytes
                 # return None, pixel_data
-                numpy_array = None
-                if jpeg_lossless_decoder is not None and transferSyntaxUID in handling_list:
+                # numpy_array = None
+                if (
+                    jpeg_lossless_decoder is not None
+                    and transferSyntaxUID in handling_list
+                ):
 
                     # try:
                     #     fio = BytesIO(ds.PixelData)  # pixel_data)
@@ -135,12 +194,14 @@ class PyodideDicom:
                     # python bytes -> unit8array -> arrayBuffer
                     # p2 is arrayBuffer?
                     # cols * rows * bytesPerComponent * numComponents
-                    b = jpeg_lossless_decoder.decompress(p2)  # ArrayBuffer
+                    b = jpeg_lossless_decoder.decompress(
+                        pixel_data
+                    )  # ArrayBuffer's JsProxy
                     # print(type(b))  # <class 'pyodide.JsProxy'> #
                     # print(f"b:{b}")  # b:[object ArrayBuffer]
-                    b2 = b.to_py()
-                    print(f"b size:{len(b2)}")
                     # print(f"b2:{b2}")  # <memory at 0x20adfe8> memoryview
+                    b2 = b.to_py()
+                    print(f"b2 size:{len(b2)}")
 
                     # numpy_array = np.asarray(b2, dtype=np.uint8)
                     # dt = np.dtype(np.uint16)
@@ -150,49 +211,50 @@ class PyodideDicom:
                     # todo: handle PR=1(signed number)
                     if allocated_bits == 16:
                         if pr == 0:
-                            numpy_array: np.ndarray = np.frombuffer(
-                                b2, dtype=np.uint16)
+                            numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint16)
                         else:
-                            numpy_array: np.ndarray = np.frombuffer(
-                                b2, dtype=np.int16)
+                            numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int16)
                     else:
                         if pr == 0:
-                            numpy_array: np.ndarray = np.frombuffer(
-                                b2, dtype=np.uint8)
+                            numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint8)
                         else:
-                            numpy_array: np.ndarray = np.frombuffer(
-                                b2, dtype=np.int8)
+                            numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int8)
                     # print(f"numpy:{numpy_array}")
                     # 1024*1024*2 or 1024*768
-                    print(f"shape:{numpy_array.shape}")
+                    print(f"numpy shape after using jpeg decoder:{numpy_array.shape}")
 
                     print(
-                        f"get_manufacturer_independent_pixel_image2d_array:type:{type(numpy_array)}, {type(p2)} ")
-                    return numpy_array, p2
-                return None, p2
+                        f"get_manufacturer_independent_pixel_image2d_array:type:{type(numpy_array)}, {type(pixel_data)} "
+                    )
+                    return numpy_array, pixel_data
+                return None, pixel_data
             except Exception as e:
                 print("failed to get compressed data")
                 raise e
 
-        print("incompressed")
-        print("start reading dicom pixel_array, uncompressed case uses apply_modality_lut")
+        print("uncompressed case")
+        print(
+            "start reading dicom pixel_array, uncompressed case uses apply_modality_lut"
+        )
 
         try:
             arr = ds.pixel_array
         except Exception as e:
             if transferSyntaxUID:
+                # pass
                 raise e
             else:
                 # http://dicom.nema.org/dicom/2013/output/chtml/part05/chapter_10.html
-                print(
-                    "read data fail may due to no TransferSyntaxUID, set it as most often used and default ImplicitVRLittleEndian and try read dicom again")
+                print("read data fail may due to no TransferSyntaxUID")
                 ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
                 arr = ds.pixel_array
+                # raise e
+
         print(f"read dicom pixel_array ok, shape:{arr.shape}")
         image2d = apply_modality_lut(arr, ds)
         return image2d, None
 
-    def get_image2d_maxmin(self, image2d: np.ndarray):
+    def get_image_maxmin(self, image2d: np.ndarray):
         print(f"start to get max/min")
         start = time.time()
         _min = image2d.min()
@@ -203,8 +265,8 @@ class PyodideDicom:
         _max = image2d.max()
         end = time.time()
         print(f"2. max time :{end-start}")  # 0.0 / 0.00027108192443847656
-        print(f'pixel min:{_min}, type:{type(_min)}')  # e.g. np.uint8
-        print(f'pixel max:{_max}')  # 255
+        print(f"pixel min:{_min}, type:{type(_min)}")  # e.g. np.uint8
+        print(f"pixel max:{_max}")  # 255
         return _max, _min
 
     # def get_image2d_dimension(self, image2d):
@@ -213,28 +275,39 @@ class PyodideDicom:
     #     print(f'width:{width};height:{height}')
     #     return width, height
 
-    def normalize_image2d(self, image2d: np.ndarray, _max, _min):
-        # width = len(image2d[0])
-        # height = len(image2d)
-
+    def normalize_image(
+        self,
+        image: np.ndarray,
+        normalize_max: int,
+        normalize_min: int,
+    ):
         print("start to normalization")
-        # step1: normalize
+
+        ## step1: saturation
+        if normalize_min != self.min or normalize_max != self.max:
+            print("clip the outside value")
+            start = time.time()
+            image = np.clip(image, normalize_min, normalize_max)
+            print(f"clip time:{time.time()-start}")
+
+        # step2: normalize
         start = time.time()
         # print(f"center pixel:{image2d[height//2][width//2]}")
         # step1: normalize
         # ref: https://towardsdatascience.com/normalization-techniques-in-python-using-numpy-b998aa81d754
         # or use sklearn.preprocessing.minmax_scale, https://stackoverflow.com/a/55526862
         # scale = np.frompyfunc(lambda x, min, max: (x - min) / (max - min), 3, 1)
-        value_range = _max - _min
+        value_range = normalize_max - normalize_min
         # 0.003, if no astype, just 0.002. using // become 0.02
         # or using colormap is another fast way,
-        image2d = (((image2d-_min)/value_range)*255).astype("uint8")
+        image = (((image - normalize_min) / value_range) * 255).astype("uint8")
         print(f"normalize time:{time.time()-start}")
         # print(f"after normalize, center pixel:{image2d[height//2][width//2]}")
-        return image2d
+        return image
+
+        # 原本 JPGLosslessP14SV1_1s_1f_8b: 0.007s
 
     def flatten_rgb_image2d_plan0_to_rgba_1d_image_array(self, image2d: np.ndarray):
-        print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
         # US-PAL-8-10x-echo.dcm
         # ValueError: all the input arrays must have same number of dimensions,
         # but the array at index 0 has 4 dimension(s) and the array at index 1 has 3 dimension(s)
@@ -270,7 +343,6 @@ class PyodideDicom:
         return self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(image2d)
 
     def flatten_grey_image2d_to_rgba_1d_image_array(self, image2d: np.ndarray):
-        print("flatten_grey_image2d_to_rgba_1d_image_array")
         # 3 planes. R plane (z=0), G plane (z=1), B plane (z=2)
         width = len(image2d[0])
         height = len(image2d)
@@ -287,15 +359,16 @@ class PyodideDicom:
         print(f"flatten time:{time.time()-start}")  # 0.002s
         return image
 
-    def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(image2d: np.ndarray):
-        ''' This is depreciated due to slow speed
-        '''
+    def flatten_grey_image2d_to_rgba_1d_image_array_non_numpy_way(
+        self, image2d: np.ndarray
+    ):
+        """This is depreciated due to slow speed"""
         width = len(image2d[0])
         height = len(image2d)
 
         # 2d -> 1d -> 1d *4 (each array value -copy-> R+G+B+A)
         # NOTE: 1st memory copy/allocation
-        image = np.zeros(4*width*height, dtype="uint8")
+        image = np.zeros(4 * width * height, dtype="uint8")
         print("allocated a 1d array, start to flatten 2d grey array to RGBA 1d array")
         # ISSUE: Below may takes 3~4s for a 512x512 image, Using JS is much faster: <0.5s !!
         # Also, the wired thing is image2d.min()/max() is fast. Need more study/measurement.
@@ -325,7 +398,7 @@ class PyodideDicom:
                 delta2 += time.time() - start
                 start = time.time()
                 # 0.41300106048583984 / 0.04794716835021973
-                k = 4 * (i_row*width + j_col)
+                k = 4 * (i_row * width + j_col)
                 delta3 += time.time() - start
                 start = time.time()
                 image[k] = value  # 0.4740023612976074 / 0.05642890930175781
@@ -342,8 +415,7 @@ class PyodideDicom:
                 image[k + 3] = 255  # 0.3860006332397461 / 0.04797720909118652
                 delta7 += time.time() - start
         total = delta1 + delta2 + delta3 + delta4 + delta5 + delta6 + delta7
-        print(
-            f"2d grey array flattens to 1d RGBA array ok:{total}")
+        print(f"2d grey array flattens to 1d RGBA array ok:{total}")
         print(f"{delta1}, {delta2}, {delta3}, {delta4}, {delta5}, {delta6}, {delta7}")
 
     def is_pyodide_env(self):
@@ -351,11 +423,156 @@ class PyodideDicom:
             return True
         return False
 
-    def __init__(self, buffer: Any = None, jpeg_lossless_decoder: Any = None):
+    def render_frame_to_rgba_1d(
+        self,
+        normalize_mode: NormalizeMode = None,
+        normalize_window_center: int = None,
+        normalize_window_width: int = None,
+    ):
+        if normalize_mode is not None:
+            self.normalize_mode = normalize_mode
+
+        if self.image is None:
+            # TODO: jpeg 50 case, add it later
+            print("not handle jpeg 50 in-py uncompress case")
+            return
+
+        if self.ds is None or self.max is None or self.min is None:
+            # should not happe, just make pylance warning disappeared
+            print("self.ds/max/min is None, should not happen")
+            return
+
+        ### normalization ###
+        # if True:  # photometric != "RGB":
+        # TODO: figure it later, RGB case does not need it really (in previous cases) but PALETTE need?
+        # Even PALETTE case, still need normalization (workaround way?) !!! Undocumented part !!!!
+        # Mabye it is because its max (dark) is 65536, 16bit
+        # I think previous RGB cases just use 8 bit RGB, so apply normalize on RGB (no harm)
+
+        # center 127, width 254, max:255, min = 0
+        if normalize_mode == NormalizeMode.max_min_mode:
+            normalize_image = self.normalize_image(self.image, self.max, self.min)
+        else:
+            if normalize_window_center and normalize_window_width:
+                min = normalize_window_center - math.floor(normalize_window_width / 2)
+                max = normalize_window_center + math.floor(normalize_window_width / 2)
+                normalize_image = self.normalize_image(self.image, max, min)
+            elif self.window_center and self.window_width:
+                min = self.window_center - math.floor(self.window_width / 2)
+                max = self.window_center + math.floor(self.window_width / 2)
+                normalize_image = self.normalize_image(self.image, max, min)
+            else:
+                normalize_image = self.normalize_image(self.image, self.max, self.min)
+
+        # else:
+        #     print("it is RGB photometric, skip normalization?")
+
+        print(f"uncompressed shape2:{normalize_image.shape}")  # 1024*768
+
+        ## dicom-viewer: https://github.com/grimmer0125/dicom-web-viewer
+        # 0. every time need render image, decompress everytime
+        # 1. original is 1d array
+        # 2. obj.max gotten earily
+        # 3. using 255 to normaizle + truncate when expand grey to rgba
+        # 4. 3 modes. a. 1d b. rgb 1d (rgbrgb) c. rgb 1d (rrr...ggg...bbb...) <- Planar = 1
+        # 5. assume RGB is 8 bit or daikon already downsize to 8 bit?
+        # 6. not sure if handle floating data or not
+        # 7. no mosue to adjust window center/width when no stored window center/width by default
+        # 8. no windoe center mode on RGB
+
+        ### flatten to 1 d array ###
+        # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
+        if self.photometric == "RGB" or self.photometric == "PALETTE COLOR":
+            print("it is RGB or PALETTE COLOR")
+            try:
+                planar_config = self.ds[0x0028, 0x0006].value
+                print(f"planar:{planar_config}")
+            except:
+                print("no planar value")
+
+            if normalize_image.ndim == 1:
+                print("flatten_jpeg_RGB_image1d_to_rgba_1d_image_array")
+                #  http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
+                # alpha = np.full_like(compress_pixel_data, 255)
+                # print(f"alpha1:{alpha.shape}")  # ()
+                # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
+                # TypeError: object of type 'numpy.uint8' has no len()
+                indexes = np.arange(3, len(normalize_image) + 3, step=3)
+                print(f"indexes:{indexes.shape}")  # 1024*768
+                self.render_rgba_1d_ndarray = np.insert(normalize_image, indexes, 255)
+                print(f"final:{normalize_image.shape}")
+            else:
+                # uncompress case
+                # if planar_config == 0:
+                # US-RGB-8-esopecho
+                print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
+                self.render_rgba_1d_ndarray = (
+                    self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
+                        normalize_image
+                    )
+                )
+                # else:
+                #  US-RGB-8-epicard
+                #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
+        else:
+            print("it is grey color")
+            if normalize_image.ndim == 1:
+                # e.g. : JPGLosslessP14SV1_1s_1f_8b (US), CT-MONO2-16-chest
+                print("flatten_jpeg_grey_image1d_to_rgba_1d_image_array")
+
+                # do truncate? + normalize before expand/append alpha https://radiopaedia.org/articles/windowing-ct
+                # do we need to do truncate (window_center mode) on
+                # - rgb <- no
+                # - jpeg <- yes (CT-MONO2-16-chest has stored its window center/width) . if so, how about jpeg 50
+                # - non ct?????? yes,
+                #   (US) JPGLosslessP14SV1_1s_1f_8b has stored its window center/width
+                #   CR-MONO1-10-chest has (1.2.840.10008.1.2, not jpeg )
+                #   JPEG57-MR-MONO2-12-shoulder
+                #
+
+                print("expand grey 1d array to rgba")
+                rgb_array = np.repeat(normalize_image, 3)
+                print(f"rgb:{rgb_array.shape}")  # 1024*768*3
+
+                # append alpha
+                indexes = np.arange(3, len(rgb_array) + 3, step=3)
+                print(f"indexes:{indexes.shape}")  # 1024*768
+                self.render_rgba_1d_ndarray = np.insert(rgb_array, indexes, 255)
+                print(f"final:{normalize_image.shape}")  # 3145728
+            else:
+                # uncompress case: CT-MONO2-16-ort
+                print("flatten_grey_image2d_to_rgba_1d_image_array")
+                self.render_rgba_1d_ndarray = (
+                    self.flatten_grey_image2d_to_rgba_1d_image_array(normalize_image)
+                )
+
+        # width, height = get_image2d_dimension(image2d)
+
+        # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
+        # so we need to use int(min), int(max)
+        # print(f"min type is:{type(_min)}")  # numpy.uint8
+        # print(f'width type is:{type(width)}') # int
+        # self.uncompressed_ndarray = image
+        # ref: https://grimmer.io/dicom-web-viewer/
+        #   this.renderFrame({
+        #     image: this.currentImage,
+        #     frameIndex: currFrameIndex,
+        #     currNormalizeMode: newMode,
+        #     useWindowCenter: newWindowCenter,
+        #     useWindowWidth: newWindowWidth,
+        #   });
+
+    def __init__(
+        self,
+        buffer: Any = None,
+        jpeg_lossless_decoder: Any = None,
+        normalize_mode=NormalizeMode.window_center_mode,
+    ):
         # buffer: pyodide.JsProxy
         # decoder: pyodide.JsProxy
         print(
-            f"__init__!!!!!!!!!!!!! buffer:{type(buffer)} decoder:{type(jpeg_lossless_decoder)}")
+            f"__init__!!!!!!!!!!!!! buffer:{type(buffer)} decoder:{type(jpeg_lossless_decoder)}"
+        )
         if self.is_pyodide_env():
             # if buffer is None:
             #     print("buffer is None")
@@ -368,10 +585,10 @@ class PyodideDicom:
             #     # x.append(10)
 
             ##### only for testing if python can access JS' user defined objects' methods ##
-            from my_js_module import add, polygon
-            k2 = add(5)
-            polygon.addWidth()  # works
-            print(f"k2:{k2}")  # works
+            # from my_js_module import add, polygon
+            # k2 = add(5)
+            # polygon.addWidth()  # works
+            # print(f"k2:{k2}")  # works
             # else:
             #     print("buffer is not None")
             # from my_js_module import jpeg
@@ -379,14 +596,17 @@ class PyodideDicom:
 
             ds = self.get_pydicom_dataset_from_js_buffer(buffer.to_py())
         else:
+            # NOTE: its is possible to use jpeg decoders in https://pydicom.github.io/pydicom/dev/old/image_data_handlers.html
+            # for local mode
+
             # deprecated, use plot.py to do local experiment
             # start to do some local Python stuff, e.g. testing
-            ds = self.get_pydicom_dataset_from_local_file(
-                "dicom/image-00000-ot.dcm")
+            ds = self.get_pydicom_dataset_from_local_file("dicom/image-00000-ot.dcm")
 
+        self.ds = ds
         width: int = ds[0x0028, 0x0011].value
         height: int = ds[0x0028, 0x0010].value
-        print(f'dimension: {width}; {height}')
+        print(f"dimension: {width}; {height}")
         self.width = width
         self.height = height
         modality: str = ds[0x0008, 0x0060].value
@@ -403,16 +623,14 @@ class PyodideDicom:
             print("no TransferSyntaxUID")
         try:
             photometric: str = ds.PhotometricInterpretation
-            print(
-                f"photometric:{photometric}")
+            print(f"photometric:{photometric}")
         except:
             print("no photometric")
             photometric = ""
         self.photometric = photometric
         self.transferSyntaxUID = transferSyntaxUID
         self.allocated_bits = allocated_bits
-        self.ds = ds
-        frame_number = getattr(ds, 'NumberOfFrames', 1)
+        frame_number = getattr(ds, "NumberOfFrames", 1)
         print(f"frame_number:{frame_number}")
 
         compress_pixel_data = None
@@ -420,9 +638,9 @@ class PyodideDicom:
             print("it is PALETTE COLOR")
             # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
             # before: a grey 2d image
-            image2d = apply_color_lut(ds.pixel_array, ds)
+            image = apply_color_lut(ds.pixel_array, ds)
             # after: a RGB 2d image
-            print(f"PALETTE after apply_color_lut shape:{image2d.shape}")
+            print(f"PALETTE after apply_color_lut shape:{image.shape}")
 
             # _max, _min = get_image2d_maxmin(image2d)
             # print(f'pixel (after color lut) min:{_min}')  # min same as before
@@ -433,17 +651,19 @@ class PyodideDicom:
         else:
             # https://github.com/pyodide/pyodide/discussions/1273
             # previous: jpeg.lossless.Decoder.new()
-            image2d, compress_pixel_data = self.get_manufacturer_independent_pixel_image2d_array(
-                ds, transferSyntaxUID, jpeg_lossless_decoder)
-            print(
-                f"after get_manufacturer_independent_pixel_image2d_array")
+            (
+                image,
+                compress_pixel_data,
+            ) = self.get_manufacturer_independent_pixel_image2d_array(
+                ds, transferSyntaxUID, jpeg_lossless_decoder
+            )
+            print(f"after get_manufacturer_independent_pixel_image2d_array")
             # NOTE: using image2d == None will throw a error which says some element is ambiguous
             self.compressed_pixel_bytes = compress_pixel_data
-            if image2d is None:
+            if image is None:
                 # return bytes data
                 # TODO: how to add width, height ?
-                print(
-                    f"directly return compressed data")
+                print(f"directly return compressed data")
                 # Columns (0028,0011), Rows (0028,0010)
 
                 # self.image = image
@@ -461,95 +681,35 @@ class PyodideDicom:
         # TODO: only get 1st frame for multiple frame case and will improve later
         if frame_number > 1:
             print("only get the 1st frame image2d data")
-            image2d = image2d[0]
+            image = image[0]
 
-        _max, _min = self.get_image2d_maxmin(image2d)
-        print(f"uncompressed shape:{image2d.shape}")
+        _max, _min = self.get_image_maxmin(image)
+        print(f"uncompressed shape:{image.shape}")
+        self.min = int(_min)
+        self.max = int(_max)
 
         if photometric == "MONOCHROME1":
             print("invert color for monochrome1")
             # -100 ~ 300
             start = time.time()
-            image2d = _max - image2d + _min
+            image = _max - image + _min
             print(f"invert monochrome1 time:{time.time()-start}")
 
-        ### normalization ###
-        if photometric != "RGB":
-            # TODO: figure it later, RGB case does not need it really but PALETTE need?
-            # Even PALETTE case, still need normalization (workaround way?) !!! Undocumented part !!!!
-            # Mabye it is because its max (dark) is 65536, 16bit
-
-            image2d = self.normalize_image2d(image2d, _max, _min)
-        else:
-            print("it is RGB photometric, skip normalization?")
-
-        print(f"uncompressed shape2:{image2d.shape}")  # 1024*768
-
-        ### flatten to 1 d array ###
-        # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
-        if photometric == "RGB" or photometric == "PALETTE COLOR":
-            print("it is RGB or PALETTE COLOR")
-            try:
-                planar_config = ds[0x0028, 0x0006].value
-                print(f"planar:{planar_config}")
-            except:
-                print("no planar value")
-
-            if compress_pixel_data is not None:
-                print("flatten_RGB_image1d_to_rgba_1d_image_array")
-                #  http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
-                alpha = np.full_like(compress_pixel_data, 255)
-                print(f"alpha:{alpha.shape}")  # ()
-                # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
-                # TypeError: object of type 'numpy.uint8' has no len()
-                indexes = np.arange(3, len(image2d)+3, step=3)
-                print(f"indexes:{indexes.shape}")  # 1024*768
-                image = np.insert(image2d, indexes, alpha)
-                print(f"final:{image.shape}")
-            else:
-                # if planar_config == 0:
-                image = self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
-                    image2d)
-                # else:
-                #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
-        else:
-            print("it is grey color")
-            if compress_pixel_data is not None:
-                print("flatten_grey_image1d_to_rgba_1d_image_array")
-                # todo: handle RGB compressed JPEG to RGBA case
-                print("below: expand grey 1d array to rgba")
-                rgb_array = np.repeat(image2d, 3)
-                print(f"rgb:{rgb_array.shape}")  # 1024*768*3
-                alpha = np.full_like(compress_pixel_data, 255)
-                print(f"alpha:{alpha.shape}")  # ()
-                indexes = np.arange(3, len(rgb_array)+3, step=3)
-                print(f"indexes:{indexes.shape}")  # 1024*768
-                image = np.insert(rgb_array, indexes, alpha)
-                print(f"final:{image.shape}")  # 3145728
-            else:
-                image = self.flatten_grey_image2d_to_rgba_1d_image_array(
-                    image2d)
-
-        # width, height = get_image2d_dimension(image2d)
-
-        # Issue: instead of v0.17.0a2, if using latest dev code, this numpy.uint16 value becomes empty in JS !!!
-        # so we need to use int(min), int(max)
-        print(f'min type is:{type(_min)}')  # numpy.uint8
-        # print(f'width type is:{type(width)}') # int
-        self.uncompressed_ndarray = image
-        self.min = int(_min)
-        self.max = int(_max)
+        self.image = image
+        self.normalize_mode = normalize_mode
+        self.render_frame_to_rgba_1d()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("it is in __main__")
     # will not be executed in pyodide context, after testing
     print("you are not in pyodide, just do local python stuff")
-    import line_profiler
-    profile = line_profiler.LineProfiler()
-    # using @profile is another way
-    # TODO: wrap @profile with is_pyodide_context so we can use it both in local python or pyodide
+
+    # import line_profiler
+    # profile = line_profiler.LineProfiler()
+    # # using @profile is another way
+    # # TODO: wrap @profile with is_pyodide_context so we can use it both in local python or pyodide
     dicom = PyodideDicom()
-    main_wrap = profile(dicom.main)
-    result = main_wrap(False)
-    profile.print_stats()
+    # main_wrap = profile(dicom.main)
+    # result = main_wrap(False)
+    # profile.print_stats()

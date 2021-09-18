@@ -160,9 +160,9 @@ Most of them are archived on https://github.com/grimmer0125/embedded-pydicom-rea
 https://barre.dev/medical/samples/:
 
 - CT-MONO2-16-ort: 1.2.840.10008.1.2, MONOCHROME2
+- CR-MONO1-10-chest: 1.2.840.10008.1.2 (raw, need specified transfersyntax), MONOCHROME1
 - US-RGB-8-esopecho: 1.2.840.10008.1.2.1, RGB, planar:0
 - US-RGB-8-epicard: 1.2.840.10008.1.2.2, RRB, planar = 1
-- CR-MONO1-10-chest: 1.2.840.10008.1.2.4.50 (raw, need specified transfersyntax), MONOCHROME1
 - JPEG57-MR-MONO2-12-shoulder: 1.2.840.10008.1.2.4.57 MONOCHROME2
 - US-PAL-8-10x-echo: 1.2.840.10008.1.2.5 (RLE Lossless), PALETTE COLOR, multi-frame
 
