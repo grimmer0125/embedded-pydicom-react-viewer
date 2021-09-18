@@ -143,9 +143,51 @@ function App() {
   // todo: define a clear interface/type instead of any 
   const [currNormalizeMode, setCurrNormalizeMode] = useState<NormalizationMode>(NormalizationMode.WindowCenter)
 
-  const onMouseMove = useCallback((event: any) => {
-    console.log("onMousemove:", event);
-  }, []);
+  const onMouseMove = (event: any) => {
+    if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
+
+      let deltaX = event.clientX - clientX.current;
+      let deltaY = clientY.current - event.clientY;
+
+      let newWindowWidth, newWindowCenter;
+
+      let previousWindowWidth = useWindowWidth ?? windowWidth;
+      if (previousWindowWidth) {
+        newWindowWidth = previousWindowWidth + deltaX;
+        if (newWindowWidth <= 1) {
+          newWindowWidth = 2;
+          deltaX = newWindowWidth - newWindowWidth;
+        }
+      } else {
+        newWindowWidth = Math.floor((pixelMax - pixelMin) / 2);
+      }
+
+      if (deltaX === 0 && deltaY === 0) {
+        console.log(" delta x = y = 0")
+        return;
+      }
+
+      let previousWindowCenter = useWindowCenter ?? windowCenter;
+      if (previousWindowCenter) {
+        newWindowCenter = previousWindowCenter + deltaY;
+      } else {
+        newWindowCenter = Math.floor((pixelMin + pixelMax) / 2);
+      }
+
+      setUseWindowCenter(newWindowCenter)
+      setUseWindowWidth(newWindowWidth)
+
+      const image: PyProxyObj = dicomObj.current
+      // console.log("trigger new frame")
+      image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+      renderFrame()
+    } else {
+      // console.log("not valid move")
+    }
+    clientX.current = event.clientX;
+    clientY.current = event.clientY;
+
+  }
 
   const onMouseCanvasDown = useCallback((event: any) => {
     console.log("onMouseDown:", event, typeof event);
@@ -153,29 +195,13 @@ function App() {
     clientX.current = event.clientX;
     clientY.current = event.clientY;
     isValidMouseDown.current = true;
-
-    // this.setState({
-    //   isValidMouseDown: true,
-    // });
-
-    // this.clientX = event.clientX;
-    // this.clientY = event.clientY;
-
-    // // register mouse move event
-    window.addEventListener("mousemove", onMouseMove);
+    // window.addEventListener("mousemove", onMouseMove);
   }, []);
 
   const onMouseUp = useCallback((event: any) => {
     console.log("onMouseUp:", event);
-
     isValidMouseDown.current = false;
-
-    // this.setState({
-    //   isValidMouseDown: false,
-    // });
-
-    // // unregister mouse move event
-    window.removeEventListener("mousemove", onMouseMove);
+    // window.removeEventListener("mousemove", onMouseMove);
   }, []);
 
   useEffect(() => {
@@ -198,6 +224,41 @@ function App() {
     window.addEventListener("mouseup", onMouseUp);
 
   }, []); // [] means only 1 time, if no [], means every update this will be called
+
+  const renderFrame = () => {
+    const image = dicomObj.current;
+    // todo: figure it out 
+    // 1. need destroy old (e.g. image.destroy()) when assign new image ? yes
+    // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
+    // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
+    // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
+    if (image.render_rgba_1d_ndarray) {
+      // console.log("render uncompressedData");
+      const pyBufferData = (image.render_rgba_1d_ndarray as unknown as PyProxyBuffer).getBuffer("u8clamped");
+      // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
+      const uncompressedData = pyBufferData.data as Uint8ClampedArray
+      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+      // pyBufferData.release()
+    } else if (image.compressed_pixel_bytes) {
+      console.log("render compressedData");
+      const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+      // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
+      const compressedData = pyBufferData.data as Uint8Array;
+      canvasRender.renderCompressedData(
+        compressedData,
+        image.width as number,
+        image.height as number,
+        image.transferSyntaxUID as string,
+        image.photometric as string,
+        image.bit_allocated as number,
+        myCanvasRef
+      );
+      pyBufferData.release()
+    } else {
+      console.log("no uncompressedData & no compressedData")
+    }
+    // image.destroy();
+  }
 
   const loadFile = async (file: File) => {
     setCurrFilePath(file.name)
@@ -238,37 +299,9 @@ function App() {
         console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
       }
 
-      // todo: figure it out 
-      // 1. need destroy old (e.g. image.destroy()) when assign new image ? yes
-      // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
-      // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
-      // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
-      if (image.render_rgba_1d_ndarray) {
-        console.log("render uncompressedData");
-        const pyBufferData = (image.render_rgba_1d_ndarray as unknown as PyProxyBuffer).getBuffer("u8clamped");
-        // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
-        const uncompressedData = pyBufferData.data as Uint8ClampedArray
-        canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-        pyBufferData.release()
-      } else if (image.compressed_pixel_bytes) {
-        console.log("render compressedData");
-        const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
-        // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
-        const compressedData = pyBufferData.data as Uint8Array;
-        canvasRender.renderCompressedData(
-          compressedData,
-          image.width as number,
-          image.height as number,
-          image.transferSyntaxUID as string,
-          image.photometric as string,
-          image.bit_allocated as number,
-          myCanvasRef
-        );
-        pyBufferData.release()
-      } else {
-        console.log("no uncompressedData & no compressedData")
-      }
-      image.destroy();
+      renderFrame()
+
+
     } else {
       console.log("has not imported PyodideDicom class, ignore")
     }
@@ -358,7 +391,7 @@ function App() {
           <div>
             {info}
             <br />
-            {` window center:${windowCenter} ; window width ${windowWidth} ;`}
+            {` current window center:${useWindowCenter} ; window width ${useWindowWidth} ;`}
             {` pixel/HU max:${pixelMax}, min:${pixelMin} ;`}
             {` file: ${currFilePath} ;`}
           </div>
@@ -366,8 +399,8 @@ function App() {
             <NormalizationComponent
               mode={NormalizationMode.WindowCenter}
               windowItem={
-                (useWindowCenter !== undefined && useWindowWidth !== undefined)
-                  ? { L: useWindowCenter, W: useWindowWidth }
+                (windowCenter !== undefined && windowWidth !== undefined)
+                  ? { L: windowCenter, W: windowWidth }
                   : undefined
               }
               currNormalizeMode={currNormalizeMode}
@@ -388,6 +421,7 @@ function App() {
               <canvas
                 ref={myCanvasRef}
                 onMouseDown={onMouseCanvasDown}
+                onMouseMove={onMouseMove}
                 // onMouseUp={onMouseUp}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}

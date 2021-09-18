@@ -276,14 +276,14 @@ class PyodideDicom:
         normalize_max: int,
         normalize_min: int,
     ):
-        print("start to normalization")
+        # print("start to normalization")
 
         ## step1: saturation
         if normalize_min != self.min or normalize_max != self.max:
-            print("clip the outside value")
+            # print("clip the outside value")
             start = time.time()
             image = np.clip(image, normalize_min, normalize_max)
-            print(f"clip time:{time.time()-start}")
+            # print(f"clip time:{time.time()-start}") # 0.003
 
         # step2: normalize
         start = time.time()
@@ -296,7 +296,7 @@ class PyodideDicom:
         # 0.003, if no astype, just 0.002. using // become 0.02
         # or using colormap is another fast way,
         image = (((image - normalize_min) / value_range) * 255).astype("uint8")
-        print(f"normalize time:{time.time()-start}")
+        # print(f"normalize time:{time.time()-start}")  # 0.009
         # print(f"after normalize, center pixel:{image2d[height//2][width//2]}")
         return image
 
@@ -420,10 +420,11 @@ class PyodideDicom:
 
     def render_frame_to_rgba_1d(
         self,
-        normalize_mode: NormalizeMode = None,
         normalize_window_center: int = None,
         normalize_window_width: int = None,
+        normalize_mode: NormalizeMode = None,
     ):
+        # print("render_frame_to_rgba_1d !!!")
         if normalize_mode is not None:
             self.normalize_mode = normalize_mode
 
@@ -462,7 +463,7 @@ class PyodideDicom:
         # else:
         #     print("it is RGB photometric, skip normalization?")
 
-        print(f"uncompressed shape2:{normalize_image.shape}")  # 1024*768
+        # print(f"uncompressed shape2:{normalize_image.shape}")  # 1024*768
 
         ## dicom-viewer: https://github.com/grimmer0125/dicom-web-viewer
         # 0. every time need render image, decompress everytime
@@ -505,10 +506,10 @@ class PyodideDicom:
                 #  US-RGB-8-epicard
                 #     image = flatten_rgb_image2d_plan1_to_rgba_1d_image_array(image2d)
         else:
-            print("it is grey color")
+            # print("it is grey color")
             if normalize_image.ndim == 1:
                 # e.g. : JPGLosslessP14SV1_1s_1f_8b (US), CT-MONO2-16-chest
-                print("flatten_jpeg_grey_image1d_to_rgba_1d_image_array")
+                # print("flatten_jpeg_grey_image1d_to_rgba_1d_image_array")
 
                 # do truncate? + normalize before expand/append alpha https://radiopaedia.org/articles/windowing-ct
                 # do we need to do truncate (window_center mode) on
@@ -520,15 +521,15 @@ class PyodideDicom:
                 #   JPEG57-MR-MONO2-12-shoulder
                 #
 
-                print("expand grey 1d array to rgba")
+                # print("expand grey 1d array to rgba")
                 rgb_array = np.repeat(normalize_image, 3)
-                print(f"rgb:{rgb_array.shape}")  # 1024*768*3
+                # print(f"rgb:{rgb_array.shape}")  # 1024*768*3
 
                 # append alpha
                 indexes = np.arange(3, len(rgb_array) + 3, step=3)
-                print(f"indexes:{indexes.shape}")  # 1024*768
+                # print(f"indexes:{indexes.shape}")  # 1024*768
                 self.render_rgba_1d_ndarray = np.insert(rgb_array, indexes, 255)
-                print(f"final:{normalize_image.shape}")  # 3145728
+                # print(f"final:{normalize_image.shape}")  # 3145728
             else:
                 # uncompress case: CT-MONO2-16-ort
                 print("flatten_grey_image2d_to_rgba_1d_image_array")
@@ -695,6 +696,7 @@ class PyodideDicom:
         print(f"uncompressed shape:{image.shape}")
         self.min = int(_min)
         self.max = int(_max)
+        print(f"max:{self.max};{self.min}")
 
         if photometric == "MONOCHROME1":
             print("invert color for monochrome1")

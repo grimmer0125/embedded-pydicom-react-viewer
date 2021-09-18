@@ -31,7 +31,7 @@ function renderUncompressedData(
   }
   // const a = imageUnit8Array.byteLength; // width*height*4
   // no allocate new memory
-  console.log(rawDataWidth, rawDataHeight, imageUnit8Array.byteLength);
+  // console.log(rawDataWidth, rawDataHeight, imageUnit8Array.byteLength);
   const imgData = new ImageData(imageUnit8Array, rawDataWidth, rawDataHeight);
   ctx.putImageData(imgData, 0, 0);
 };
