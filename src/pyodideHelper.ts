@@ -6,33 +6,35 @@ import { D4C } from "d4c-queue";
 
 declare var loadPyodide: any;
 declare var pyodide: any;
-declare var globalThis:any;
+declare var globalThis: any;
+declare var self: any;
 
-const test: number[] = []
+const baseURL = window.location.href ?? self.location.origin + "/"
 
-function add(x: number) {
-    test.push(x);
-}
+// const test: number[] = []
+// function add(x: number) {
+//     test.push(x);
+// }
 
-class Polygon {
-    height: number;
-    width: number;
-    constructor() {
-        this.height = 100;
-        this.width = 100;
-    }
+// class Polygon {
+//     height: number;
+//     width: number;
+//     constructor() {
+//         this.height = 100;
+//         this.width = 100;
+//     }
 
-    addWidth() {
-        this.width += 100;
-    }
-}
-const polygon = new Polygon()
+//     addWidth() {
+//         this.width += 100;
+//     }
+// }
+// const polygon = new Polygon()
 
-// used for testing only
+// // used for testing only
 const my_js_module: any = {
     // decoder: decoder,
-    add,
-    polygon
+    // add,
+    // polygon
     // jpeg,
     // newDecoder: function () {
     //     return new jpeg.lossless.Decoder();
@@ -43,42 +45,44 @@ const my_js_module: any = {
 const d4c = new D4C();
 const initPyodideAndLoadPydicom = d4c.wrap(async () => {
     console.log("initPyodide:")
-    
+
     // globalThis.pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" });
     // globalThis.pyodide = await loadPyodide({ indexURL: "pyodide/" }); <- not work in 0.18, works in 0.17
-    globalThis.pyodide = await loadPyodide({ indexURL: window.location.href+ "pyodide/" });
+    globalThis.pyodide = await loadPyodide({ indexURL: baseURL + "pyodide/" });
 
-    await pyodide.loadPackage(['numpy', 'micropip']);
+    // await pyodide.loadPackage(['numpy', 'micropip']);
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();
+    await pyodide.loadPackagesFromImports(pythonCode);
     await pyodide.runPythonAsync(pythonCode);
-    pyodide.registerJsModule("my_js_module", my_js_module);
+    // pyodide.registerJsModule("my_js_module", my_js_module);
 });
 
 
 const loadPyodideDicomModule = d4c.wrap(async () => {
     console.log("loadPyodideDicomModule")
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
+    await pyodide.loadPackagesFromImports(pythonCode);
     await pyodide.runPythonAsync(pythonCode);
     const PyodideDicom = pyodide.globals.get('PyodideDicom')
     return PyodideDicom
 });
 
-const loadDicomFileAsync = d4c.wrap(async (file: File): Promise<ArrayBuffer> =>{
-  console.log("loadDicomFileAsync")
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const fileContent = reader.result;
-      resolve(fileContent as ArrayBuffer);
-    };
-    reader.onabort = () => console.log("file reading was aborted");
-    reader.onerror = () => console.log("file reading has failed");
-    reader.readAsArrayBuffer(file);
-  });
+const loadDicomFileAsync = d4c.wrap(async (file: File): Promise<ArrayBuffer> => {
+    console.log("loadDicomFileAsync")
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const fileContent = reader.result;
+            resolve(fileContent as ArrayBuffer);
+        };
+        reader.onabort = () => console.log("file reading was aborted");
+        reader.onerror = () => console.log("file reading has failed");
+        reader.readAsArrayBuffer(file);
+    });
 });
 
 export {
-    initPyodideAndLoadPydicom, 
+    initPyodideAndLoadPydicom,
     loadPyodideDicomModule,
     loadDicomFileAsync
 }
@@ -109,8 +113,8 @@ export const parseByPython = d4c.wrap(async (buffer: ArrayBuffer) => {
     console.log(`bb:${bb.a}`)
     bb.test_a() // works !!!
 
-    console.log("after run python:", test) // yes !!!!
-    console.log("after run python:", polygon) // yes !!!!
+    // console.log("after run python:", test) // yes !!!!
+    // console.log("after run python:", polygon) // yes !!!!
     const data = res.toJs(1); //  v0.18 use toJs({depth : n})
     console.log("data:", data);
     console.log(`type:${typeof data}`)
