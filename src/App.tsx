@@ -1,5 +1,13 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 
+import {
+  Dropdown,
+  Checkbox,
+  CheckboxProps,
+  DropdownProps,
+  Radio,
+} from "semantic-ui-react";
+
 import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
 import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
@@ -11,8 +19,77 @@ const jpeg = require("jpeg-lossless-decoder-js");
 
 enum NormalizationMode {
   PixelHUMaxMin,
-  // below are for CT,
   WindowCenter,
+  // below are for CT,   // https://radiopaedia.org/articles/windowing-ct
+  AbdomenSoftTissues, //W:400 L:50
+  SpineSoftTissues, // W:250 L:50
+  SpineBone, // W:1800 L:400
+  Brain, // W:80 L:40
+  Lungs, // W:1500 L:-600. chest
+}
+
+interface WindowItem {
+  W: number;
+  L: number;
+}
+
+interface NormalizationProps {
+  disable?: boolean;
+  mode: NormalizationMode;
+  windowItem?: WindowItem;
+  currNormalizeMode: NormalizationMode;
+  onChange?: (
+    e: React.FormEvent<HTMLInputElement>,
+    data: CheckboxProps
+  ) => void;
+}
+
+interface IWindowDictionary {
+  [id: number]: WindowItem;
+}
+
+const WindowCenterWidthConst: IWindowDictionary = {
+  [NormalizationMode.AbdomenSoftTissues]: {
+    W: 400,
+    L: 50,
+  },
+  [NormalizationMode.SpineSoftTissues]: {
+    W: 250,
+    L: 50,
+  },
+  [NormalizationMode.SpineBone]: {
+    W: 1800,
+    L: 400,
+  },
+  [NormalizationMode.Brain]: {
+    W: 80,
+    L: 40,
+  },
+  [NormalizationMode.Lungs]: {
+    W: 1500,
+    L: -600,
+  },
+};
+
+function NormalizationComponent(props: NormalizationProps) {
+  const { mode, windowItem, currNormalizeMode, onChange, disable } = props;
+  const data = windowItem ?? WindowCenterWidthConst[mode] ?? null;
+  return (
+    <>
+      <Checkbox
+        radio
+        disabled={disable}
+        label={NormalizationMode[mode]}
+        name="checkboxRadioGroup"
+        value={mode}
+        checked={currNormalizeMode === mode}
+        onChange={onChange}
+      // checked={ifWindowCenterMode}
+      // onChange={this.handleNormalizeModeChange}
+      />
+      {data ? ` c:${data.L}, w:${data.W}  ` : `  `}
+    </>
+  );
 }
 
 const dropZoneStyle = {
@@ -44,11 +121,17 @@ function checkIfValidDicomFileName(name: string) {
 
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
+  const isValidMouseDown = useRef(false);
+  const clientX = useRef<number>()
+  const clientY = useRef<number>()
+  const dicomObj = useRef<any>(null);
+  const PyodideDicom = useRef<Function>()
+
   const [isPyodideLoading, setPyodideLoading] = useState(true);
   const [modality, setModality] = useState("")
   const [photometric, setPhotometric] = useState("")
   const [transferSyntax, setTransferSyntax] = useState("")
-  const [currFilePath, setCurrFilePath]  = useState("") 
+  const [currFilePath, setCurrFilePath] = useState("")
   const [resX, setResX] = useState<number>()
   const [resY, setResY] = useState<number>()
   const [pixelMax, setPixelMax] = useState<number>()
@@ -58,9 +141,42 @@ function App() {
   const [useWindowCenter, setUseWindowCenter] = useState<number>()
   const [useWindowWidth, setUseWindowWidth] = useState<number>()
   // todo: define a clear interface/type instead of any 
-  const dicomObj = useRef<any>(null);
-  const PyodideDicom = useRef<Function>()
+  const [currNormalizeMode, setCurrNormalizeMode] = useState<NormalizationMode>(NormalizationMode.WindowCenter)
 
+  const onMouseMove = useCallback((event: any) => {
+    console.log("onMousemove:", event);
+  }, []);
+
+  const onMouseCanvasDown = useCallback((event: any) => {
+    console.log("onMouseDown:", event, typeof event);
+
+    clientX.current = event.clientX;
+    clientY.current = event.clientY;
+    isValidMouseDown.current = true;
+
+    // this.setState({
+    //   isValidMouseDown: true,
+    // });
+
+    // this.clientX = event.clientX;
+    // this.clientY = event.clientY;
+
+    // // register mouse move event
+    window.addEventListener("mousemove", onMouseMove);
+  }, []);
+
+  const onMouseUp = useCallback((event: any) => {
+    console.log("onMouseUp:", event);
+
+    isValidMouseDown.current = false;
+
+    // this.setState({
+    //   isValidMouseDown: false,
+    // });
+
+    // // unregister mouse move event
+    window.removeEventListener("mousemove", onMouseMove);
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -78,8 +194,11 @@ function App() {
       }
     }
     init();
+    console.log("register mouseup")
+    window.addEventListener("mouseup", onMouseUp);
+
   }, []); // [] means only 1 time, if no [], means every update this will be called
-  
+
   const loadFile = async (file: File) => {
     setCurrFilePath(file.name)
     const buffer = await loadDicomFileAsync(file);
@@ -106,7 +225,7 @@ function App() {
       setPixelMin(image.min)
       setWindowCenter(image.window_center)
       setWindowWidth(image.window_width)
-      
+
 
       /** original logic is to const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
        * now changes to use a Python object instance in JS !!
@@ -174,13 +293,25 @@ function App() {
       }
     }
 
+
     // Do something with the files
   }, []);
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDropFiles,
   });
 
-  let info = ""  
+  const handleNormalizeModeChange = useCallback((
+    e: React.FormEvent<HTMLInputElement>,
+    data: CheckboxProps
+  ) => {
+    console.log("handleNormalizeModeChange")
+    const { value } = data;
+
+    const newMode = value as number;
+    setCurrNormalizeMode(newMode)
+  }, []);
+
+  let info = ""
   info += ` modality:${modality}; photometric:${photometric}; transferSyntax:${transferSyntax};`;
   info += ` resolution:${resX} x ${resY}`;
 
@@ -227,11 +358,27 @@ function App() {
           <div>
             {info}
             <br />
-            {` window center:${windowCenter} ; window width ${windowWidth}`}
-            <br />
-            {`pixel/HU max:${pixelMax}, min:${pixelMin}`}
-            <br />
-            {`${currFilePath}`}
+            {` window center:${windowCenter} ; window width ${windowWidth} ;`}
+            {` pixel/HU max:${pixelMax}, min:${pixelMin} ;`}
+            {` file: ${currFilePath} ;`}
+          </div>
+          <div>
+            <NormalizationComponent
+              mode={NormalizationMode.WindowCenter}
+              windowItem={
+                (useWindowCenter !== undefined && useWindowWidth !== undefined)
+                  ? { L: useWindowCenter, W: useWindowWidth }
+                  : undefined
+              }
+              currNormalizeMode={currNormalizeMode}
+              onChange={handleNormalizeModeChange}
+            />
+            <NormalizationComponent
+              disable={true}
+              mode={NormalizationMode.PixelHUMaxMin}
+              currNormalizeMode={currNormalizeMode}
+              onChange={handleNormalizeModeChange}
+            />
           </div>
         </div>
         <div className="flex-container">
@@ -240,6 +387,8 @@ function App() {
               {/* <img style={{width:500, height:250}} ref={myImg} /> */}
               <canvas
                 ref={myCanvasRef}
+                onMouseDown={onMouseCanvasDown}
+                // onMouseUp={onMouseUp}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}
               // style={{ backgroundColor: "black" }}
