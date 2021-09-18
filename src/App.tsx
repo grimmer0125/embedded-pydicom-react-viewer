@@ -2,11 +2,18 @@ import { useRef, useEffect, useState, useCallback } from "react";
 
 import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
-import { PyProxy, PyProxyBuffer } from '../public/pyodide/pyodide.d'
-
+import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 
+type PyProxyObj = any
+
 const jpeg = require("jpeg-lossless-decoder-js");
+
+enum NormalizationMode {
+  PixelHUMaxMin,
+  // below are for CT,
+  WindowCenter,
+}
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -37,11 +44,23 @@ function checkIfValidDicomFileName(name: string) {
 
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [isPyodideLoading, setPyodideLoading] = useState(true);
+  const [modality, setModality] = useState("")
+  const [photometric, setPhotometric] = useState("")
+  const [transferSyntax, setTransferSyntax] = useState("")
+  const [currFilePath, setCurrFilePath]  = useState("") 
+  const [resX, setResX] = useState<number>()
+  const [resY, setResY] = useState<number>()
+  const [pixelMax, setPixelMax] = useState<number>()
+  const [pixelMin, setPixelMin] = useState<number>()
+  const [windowCenter, setWindowCenter] = useState<number>()
+  const [windowWidth, setWindowWidth] = useState<number>()
+  const [useWindowCenter, setUseWindowCenter] = useState<number>()
+  const [useWindowWidth, setUseWindowWidth] = useState<number>()
   // todo: define a clear interface/type instead of any 
   const dicomObj = useRef<any>(null);
   const PyodideDicom = useRef<Function>()
 
-  const [isPyodideLoading, setPyodideLoading] = useState(true);
 
   useEffect(() => {
     async function init() {
@@ -60,8 +79,9 @@ function App() {
     }
     init();
   }, []); // [] means only 1 time, if no [], means every update this will be called
-
+  
   const loadFile = async (file: File) => {
+    setCurrFilePath(file.name)
     const buffer = await loadDicomFileAsync(file);
     // NOTE: besides getting return value (python code last line expression),
     // python data can be retrieved by accessing python global object:
@@ -72,16 +92,30 @@ function App() {
       const decoder = new jpeg.lossless.Decoder()
       console.log("has imported PyodideDicom class")
       dicomObj.current = PyodideDicom.current(buffer, decoder)
-      const image: PyProxy = dicomObj.current;
+      const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       console.log(`image max:${image.max}`)
       console.log(`image center:${image.window_center}`) // works !!!
 
-      /** original logic is to const  const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
+      setModality(image.modality)
+      setPhotometric(image.photometric)
+      setTransferSyntax(image.transferSyntaxUID)
+      setResX(image.width)
+      setResY(image.height)
+      setPixelMax(image.max)
+      setPixelMin(image.min)
+      setWindowCenter(image.window_center)
+      setWindowWidth(image.window_width)
+      
+
+      /** original logic is to const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
        * now changes to use a Python object instance in JS !!
        */
 
       if (image.ds) {
+        // console.log("image ds:", image.ds) // target: PyProxyClass
+        // console.log(image.ds) // Proxy
+        // console.log(typeof image.ds) // object
         console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
       }
 
@@ -108,7 +142,7 @@ function App() {
           image.height as number,
           image.transferSyntaxUID as string,
           image.photometric as string,
-          image.allocated_bits as number,
+          image.bit_allocated as number,
           myCanvasRef
         );
         pyBufferData.release()
@@ -145,6 +179,10 @@ function App() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDropFiles,
   });
+
+  let info = ""  
+  info += ` modality:${modality}; photometric:${photometric}; transferSyntax:${transferSyntax};`;
+  info += ` resolution:${resX} x ${resY}`;
 
   return (
     <div className="flex-container">
@@ -185,6 +223,15 @@ function App() {
                 </div>
               </div>
             </Dropzone> */}
+          </div>
+          <div>
+            {info}
+            <br />
+            {` window center:${windowCenter} ; window width ${windowWidth}`}
+            <br />
+            {`pixel/HU max:${pixelMax}, min:${pixelMin}`}
+            <br />
+            {`${currFilePath}`}
           </div>
         </div>
         <div className="flex-container">

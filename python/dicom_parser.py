@@ -57,10 +57,12 @@ class PyodideDicom:
     modality: Optional[str] = None
     photometric: Optional[str] = None
     transferSyntaxUID: Optional[str] = None
-    allocated_bits: Optional[int] = None
+    bit_allocated: Optional[int] = None
+    pixel_representation: Optional[int] = None
     ds: Optional[Union[FileDataset, DicomDir]] = None
     compressed_pixel_bytes: Optional[bytes] = None
     normalize_mode: NormalizeMode = NormalizeMode.window_center_mode
+    color_planar: Optional[str] = None
 
     @property
     def window_center(self):
@@ -106,13 +108,6 @@ class PyodideDicom:
         self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None
     ):
         print(f"get_manufacturer_independent_pixel_image2d_array")
-        # 8,8 or 16,12
-        allocated_bits = ds[0x0028, 0x0100].value
-        stored_bites = ds[0x0028, 0x0101].value
-        pr = ds[0x0028, 0x0103].value
-        print(f"pr:{pr}")
-        print(f"allocated_bits:{allocated_bits}")
-        print(f"stored_bites:{stored_bites}")
 
         # '1.2.840.10008.1.2.4.90'  #
         # ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.99'  # '1.2.840.10008.1.2.1.99'
@@ -209,13 +204,13 @@ class PyodideDicom:
                     # https://numpy.org/doc/stable/reference/generated/numpy.dtype.byteorder.html
                     # print(f"order:{dt.byteorder}") # native. guess probably is big endian
                     # todo: handle PR=1(signed number)
-                    if allocated_bits == 16:
-                        if pr == 0:
+                    if self.bit_allocated == 16:
+                        if self.pixel_representation == 0:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint16)
                         else:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int16)
                     else:
-                        if pr == 0:
+                        if self.pixel_representation == 0:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint8)
                         else:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int8)
@@ -484,11 +479,6 @@ class PyodideDicom:
         # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
         if self.photometric == "RGB" or self.photometric == "PALETTE COLOR":
             print("it is RGB or PALETTE COLOR")
-            try:
-                planar_config = self.ds[0x0028, 0x0006].value
-                print(f"planar:{planar_config}")
-            except:
-                print("no planar value")
 
             if normalize_image.ndim == 1:
                 print("flatten_jpeg_RGB_image1d_to_rgba_1d_image_array")
@@ -568,6 +558,8 @@ class PyodideDicom:
         jpeg_lossless_decoder: Any = None,
         normalize_mode=NormalizeMode.window_center_mode,
     ):
+        ## TODO: handle BitsAllocated 32,64 case
+
         # buffer: pyodide.JsProxy
         # decoder: pyodide.JsProxy
         print(
@@ -613,7 +605,24 @@ class PyodideDicom:
         print(f"Modality:{modality}")
         self.modality = modality
 
-        allocated_bits: int = ds[0x0028, 0x0100].value
+        self.bit_allocated = ds[0x0028, 0x0100].value
+        print(f"bit_allocated:{self.bit_allocated}")
+
+        self.pixel_representation = ds[0x0028, 0x0103].value
+        print(f"pr:{self.pixel_representation}")
+
+        # 8,8 or 16,12
+        # bit_allocated = ds[0x0028, 0x0100].value
+        bites_stored = ds[0x0028, 0x0101].value
+        print(f"stored_bites:{bites_stored}")
+
+        # try:
+        planar_config = ds.get((0x0028, 0x0006))
+        if planar_config:
+            self.color_planar = planar_config.value
+        #     print(f"planar:{planar_config}")
+        # except:
+        #     print("no planar value")
 
         transferSyntaxUID = ""
         try:
@@ -629,7 +638,6 @@ class PyodideDicom:
             photometric = ""
         self.photometric = photometric
         self.transferSyntaxUID = transferSyntaxUID
-        self.allocated_bits = allocated_bits
         frame_number = getattr(ds, "NumberOfFrames", 1)
         print(f"frame_number:{frame_number}")
 
@@ -672,11 +680,11 @@ class PyodideDicom:
                 # self.max = int(_max)
                 # self.photometric = photometric
                 # self.transferSyntaxUID = transferSyntaxUID
-                # self.allocated_bits = allocated_bits
+                # self.bit_allocated = bit_allocated
                 return
                 # compress_pixel_data is bytes
                 # 0                           1     2        3      4      5            6                 7
-                # return compress_pixel_data, width, height, None, None, photometric, transferSyntaxUID, allocated_bits
+                # return compress_pixel_data, width, height, None, None, photometric, transferSyntaxUID, bit_allocated
         ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
         # TODO: only get 1st frame for multiple frame case and will improve later
         if frame_number > 1:
