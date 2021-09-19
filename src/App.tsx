@@ -397,7 +397,7 @@ function App() {
             {` pixel/HU max:${pixelMax}, min:${pixelMin} ;`}
             {` file: ${currFilePath} ;`}
           </div>
-          <div>
+          <div className="flex-container">
             <NormalizationComponent
               mode={NormalizationMode.WindowCenter}
               windowItem={
