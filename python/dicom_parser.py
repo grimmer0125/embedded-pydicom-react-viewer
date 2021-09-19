@@ -47,9 +47,14 @@ class PyodideDicom:
     # 1. pillow for 50 https://pydicom.github.io/pydicom/dev/old/image_data_handlers.html
     # 2. multi files
     # 3. multi frame in 1 file
-
-    render_rgba_1d_ndarray: Optional[np.ndarray] = None
     image: Optional[np.ndarray] = None
+    ds: Optional[Union[FileDataset, DicomDir]] = None
+    render_rgba_1d_ndarray: Optional[np.ndarray] = None
+    compressed_pixel_bytes: Optional[bytes] = None
+
+    has_compressed_data = False
+    has_uncompressed_data = False
+
     width: Optional[int] = None
     height: Optional[int] = None
     max: Optional[int] = None
@@ -59,8 +64,6 @@ class PyodideDicom:
     transferSyntaxUID: Optional[str] = None
     bit_allocated: Optional[int] = None
     pixel_representation: Optional[int] = None
-    ds: Optional[Union[FileDataset, DicomDir]] = None
-    compressed_pixel_bytes: Optional[bytes] = None
     normalize_mode: NormalizeMode = NormalizeMode.window_center_mode
     color_planar: Optional[str] = None
 
@@ -279,12 +282,14 @@ class PyodideDicom:
         # print("start to normalization")
         start0 = time.time()
 
+        # print(f"shape:{image.shape}, type:{image.dtype}")
         ## step1: saturation
         if normalize_min != self.min or normalize_max != self.max:
             # print("clip the outside value")
             start = time.time()
-            image = np.clip(image, normalize_min, normalize_max)
-            # print(f"clip time:{time.time()-start}")  # 0.003
+            image = np.clip(image, normalize_min, normalize_max)  # in-place 0.004,0.005
+            # print(f"clip time:{time.time()-start}")  # 0.003, 0.004
+        # print(f"shape2:{image.shape}, type:{image.dtype}")
 
         # step2: normalize
 
@@ -296,6 +301,11 @@ class PyodideDicom:
         value_range = normalize_max - normalize_min
         # 0.003, if no astype, just 0.002. using // become 0.02
         # or using colormap is another fast way,
+        # MemoryError: Unable to allocate array with shape (786432,) and data type uint16
+        # MemoryError: Unable to allocate array with shape (786432,) and data type float64
+        # image2 = image = ((image - normalize_min) / value_range) * 255
+        # print(f"shape3:{image2.shape}, type:{image2.dtype}")  # float64
+
         image = (((image - normalize_min) / value_range) * 255).astype("uint8")
         # print(f"normalize time:{time.time()-start0}")  # 0.009 or 0.02
         # print(f"after normalize, center pixel:{image2d[height//2][width//2]}")
@@ -458,9 +468,11 @@ class PyodideDicom:
 
         # center 127, width 254, max:255, min = 0
         if normalize_mode == NormalizeMode.max_min_mode:
+            # print("mode1:")
             normalize_image = self.normalize_image(self.image, self.max, self.min)
         else:
             if normalize_window_center and normalize_window_width:
+                # print("mode2:")
                 min = normalize_window_center - math.floor(normalize_window_width / 2)
                 max = normalize_window_center + math.floor(normalize_window_width / 2)
                 normalize_image = self.normalize_image(self.image, max, min)
@@ -468,7 +480,11 @@ class PyodideDicom:
                 min = self.window_center - math.floor(self.window_width / 2)
                 max = self.window_center + math.floor(self.window_width / 2)
                 normalize_image = self.normalize_image(self.image, max, min)
+                print(
+                    f"mode3. max: {max}, {min}, {self.max}, {self.min}, {self.window_width}, {self.window_center}"
+                )
             else:
+                print("mode4:")
                 normalize_image = self.normalize_image(self.image, self.max, self.min)
 
         # else:
@@ -569,7 +585,14 @@ class PyodideDicom:
         #     useWindowCenter: newWindowCenter,
         #     useWindowWidth: newWindowWidth,
         #   });
-        print(f"render time:{time.time()-start}")  # 0.009
+        # print(f"render time:{time.time()-start}")  # 0.009
+
+    @property  ## memory leak !!!!
+    def rgba_1d_ndarray(self):
+        return self.render_rgba_1d_ndarray
+
+    def get_rgba_1d_ndarray(self):
+        return self.render_rgba_1d_ndarray
 
     def __init__(
         self,
@@ -629,6 +652,8 @@ class PyodideDicom:
 
         self.pixel_representation = ds[0x0028, 0x0103].value
         print(f"pr:{self.pixel_representation}")
+        # k = ds[0x0028, 0x0107].value
+        # print(f"store max:{k}")
 
         # 8,8 or 16,12
         # bit_allocated = ds[0x0028, 0x0100].value
@@ -687,6 +712,10 @@ class PyodideDicom:
             print(f"after get_manufacturer_independent_pixel_image2d_array")
             # NOTE: using image2d == None will throw a error which says some element is ambiguous
             self.compressed_pixel_bytes = compress_pixel_data
+
+            if compress_pixel_data:
+                self.has_compressed_data = True
+
             if image is None:
                 # return bytes data
                 # TODO: how to add width, height ?
@@ -704,6 +733,9 @@ class PyodideDicom:
                 # compress_pixel_data is bytes
                 # 0                           1     2        3      4      5            6                 7
                 # return compress_pixel_data, width, height, None, None, photometric, transferSyntaxUID, bit_allocated
+
+        self.has_uncompressed_data = True
+
         ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
         # TODO: only get 1st frame for multiple frame case and will improve later
         if frame_number > 1:
