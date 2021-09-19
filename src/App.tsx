@@ -119,6 +119,8 @@ function checkIfValidDicomFileName(name: string) {
 //   SayHi: () => void
 // }
 
+let total = 0;
+
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
   const isValidMouseDown = useRef(false);
@@ -145,6 +147,7 @@ function App() {
 
   const onMouseMove = (event: any) => {
     if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
+      console.log("onmousemove")
 
       let deltaX = event.clientX - clientX.current;
       let deltaY = clientY.current - event.clientY;
@@ -163,7 +166,7 @@ function App() {
       }
 
       if (deltaX === 0 && deltaY === 0) {
-        console.log(" delta x = y = 0")
+        // console.log(" delta x = y = 0")
         return;
       }
 
@@ -225,20 +228,52 @@ function App() {
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
   const renderFrame = () => {
-    const image = dicomObj.current;
+    const image: PyProxyObj = dicomObj.current;
+    // if (total != 0) {
+    //   console.log("not render33")
+    //   return
+    // }
     // todo: figure it out 
     // 1. need destroy old (e.g. image.destroy()) when assign new image ? yes
     // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
     // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
     // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
-    if (image.render_rgba_1d_ndarray) {
+    // const render_rgba_1d_ndarray: any = image.render_rgba_1d_ndarray;
+    // console.log("render_rgba_1d_ndarray:", render_rgba_1d_ndarray, typeof render_rgba_1d_ndarray)
+    // const kk = image.toJs({ depth: 1 })
+    // console.log("kk:", kk)
+
+
+    if (image.has_uncompressed_data) {
       // console.log("render uncompressedData");
-      const pyBufferData = (image.render_rgba_1d_ndarray as unknown as PyProxyBuffer).getBuffer("u8clamped");
+
+      // if (true) {
+
+      const ndarray_proxy = (image as any).get_rgba_1d_ndarray()//rgba_1d_ndarray //image.rgba_1d_ndarray
+      const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
+      (ndarray_proxy as PyProxyBuffer).destroy();
+
+      // if (true) {
+      // const ndarray = image.render_rgba_1d_ndarray // <- memory leak !!!
+      // const pyBufferData = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
+      // (ndarray as PyProxy).destroy()
+      // kk.destroy()
       // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
-      const uncompressedData = pyBufferData.data as Uint8ClampedArray
+      const uncompressedData = buffer.data as Uint8ClampedArray
       canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
       // pyBufferData.release()
-    } else if (image.compressed_pixel_bytes) {
+      // }
+
+      buffer.release(); // Release the memory when we're done
+
+      // } else {
+      //   // (ndarray as PyProxy).destroy()
+      //   console.log("not render2")
+      // }
+      // render_rgba_1d_ndarray.destroy();
+      // (image.render_rgba_1d_ndarray as PyProxyBuffer).destroy() // 沒用
+      total += 1;
+    } else if (image.has_compressed_data) {
       console.log("render compressedData");
       const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
       // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
@@ -256,6 +291,8 @@ function App() {
     } else {
       console.log("no uncompressedData & no compressedData")
     }
+    total += 1;
+
     // image.destroy();
   }
 
