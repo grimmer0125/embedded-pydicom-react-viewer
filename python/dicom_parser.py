@@ -51,6 +51,7 @@ class PyodideDicom:
     ds: Optional[Union[FileDataset, DicomDir]] = None
     render_rgba_1d_ndarray: Optional[np.ndarray] = None
     compressed_pixel_bytes: Optional[bytes] = None
+    jpeg_lossless_decoder: Any = None
 
     has_compressed_data = False
     has_uncompressed_data = False
@@ -437,6 +438,9 @@ class PyodideDicom:
         normalize_window_width: int = None,
         normalize_mode: NormalizeMode = None,
     ):
+        # if self.render_rgba_1d_ndarray is not None:
+        #     return
+
         start = time.time()  ## 0.13s !!!!
 
         # print("render_frame_to_rgba_1d !!!")
@@ -446,6 +450,18 @@ class PyodideDicom:
         if self.image is None:
             # TODO: jpeg 50 case, add it later
             print("not handle jpeg 50 in-py uncompress case")
+            # self.compressed_pixel_bytes = self.compressed_pixel_bytes
+
+            if self.transferSyntaxUID:
+                (
+                    image,
+                    compress_pixel_data,
+                ) = self.get_manufacturer_independent_pixel_image2d_array(
+                    self.ds, self.transferSyntaxUID, self.jpeg_lossless_decoder
+                )
+                print("reproduce compressed data")
+                self.compressed_pixel_byte = compress_pixel_data
+
             return
 
         if (
@@ -594,6 +610,10 @@ class PyodideDicom:
     def get_rgba_1d_ndarray(self):
         return self.render_rgba_1d_ndarray
 
+    # memory leak !!!!
+    def get_compressed_pixel_bytes(self):
+        return self.compressed_pixel_bytes
+
     def __init__(
         self,
         buffer: Any = None,
@@ -601,6 +621,8 @@ class PyodideDicom:
         normalize_mode=NormalizeMode.window_center_mode,
     ):
         ## TODO: handle BitsAllocated 32,64 case
+
+        self.jpeg_lossless_decoder = jpeg_lossless_decoder
 
         # buffer: pyodide.JsProxy
         # decoder: pyodide.JsProxy

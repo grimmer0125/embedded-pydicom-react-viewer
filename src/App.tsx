@@ -146,43 +146,43 @@ function App() {
   const [currNormalizeMode, setCurrNormalizeMode] = useState<NormalizationMode>(NormalizationMode.WindowCenter)
 
   const onMouseMove = (event: any) => {
-    if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
+    if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined) { // && pixelMax != undefined && pixelMin != undefined) {
       console.log("onmousemove")
 
-      let deltaX = event.clientX - clientX.current;
-      let deltaY = clientY.current - event.clientY;
+      // let deltaX = event.clientX - clientX.current;
+      // let deltaY = clientY.current - event.clientY;
 
-      let newWindowWidth, newWindowCenter;
+      // let newWindowWidth, newWindowCenter;
 
-      let previousWindowWidth = useWindowWidth ?? windowWidth;
-      if (previousWindowWidth) {
-        newWindowWidth = previousWindowWidth + deltaX;
-        if (newWindowWidth <= 1) {
-          newWindowWidth = 2;
-          deltaX = newWindowWidth - newWindowWidth;
-        }
-      } else {
-        newWindowWidth = Math.floor((pixelMax - pixelMin) / 2);
-      }
+      // let previousWindowWidth = useWindowWidth ?? windowWidth;
+      // if (previousWindowWidth) {
+      //   newWindowWidth = previousWindowWidth + deltaX;
+      //   if (newWindowWidth <= 1) {
+      //     newWindowWidth = 2;
+      //     deltaX = newWindowWidth - newWindowWidth;
+      //   }
+      // } else {
+      //   newWindowWidth = Math.floor((pixelMax - pixelMin) / 2);
+      // }
 
-      if (deltaX === 0 && deltaY === 0) {
-        // console.log(" delta x = y = 0")
-        return;
-      }
+      // if (deltaX === 0 && deltaY === 0) {
+      //   // console.log(" delta x = y = 0")
+      //   return;
+      // }
 
-      let previousWindowCenter = useWindowCenter ?? windowCenter;
-      if (previousWindowCenter) {
-        newWindowCenter = previousWindowCenter + deltaY;
-      } else {
-        newWindowCenter = Math.floor((pixelMin + pixelMax) / 2);
-      }
+      // let previousWindowCenter = useWindowCenter ?? windowCenter;
+      // if (previousWindowCenter) {
+      //   newWindowCenter = previousWindowCenter + deltaY;
+      // } else {
+      //   newWindowCenter = Math.floor((pixelMin + pixelMax) / 2);
+      // }
 
-      setUseWindowCenter(newWindowCenter)
-      setUseWindowWidth(newWindowWidth)
+      // setUseWindowCenter(newWindowCenter)
+      // setUseWindowWidth(newWindowWidth)
 
       const image: PyProxyObj = dicomObj.current
       // console.log("trigger new frame")
-      image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+      image.render_frame_to_rgba_1d() // newWindowCenter, newWindowWidth)
       renderFrame()
     } else {
       // console.log("not valid move")
@@ -249,7 +249,7 @@ function App() {
 
       // if (true) {
 
-      const ndarray_proxy = (image as any).get_rgba_1d_ndarray()//rgba_1d_ndarray //image.rgba_1d_ndarray
+      const ndarray_proxy = (image as any).rgba_1d_ndarray //image.rgba_1d_ndarray
       const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
       (ndarray_proxy as PyProxyBuffer).destroy();
 
@@ -272,22 +272,27 @@ function App() {
       // }
       // render_rgba_1d_ndarray.destroy();
       // (image.render_rgba_1d_ndarray as PyProxyBuffer).destroy() // 沒用
-      total += 1;
+      // total += 1;
     } else if (image.has_compressed_data) {
       console.log("render compressedData");
-      const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+      const compressed_pixel_bytes = image.get_compressed_pixel_bytes()
+      if (total == 0) {
+        const pyBufferData = (compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+        const compressedData = pyBufferData.data as Uint8Array;
+        canvasRender.renderCompressedData(
+          compressedData,
+          image.width as number,
+          image.height as number,
+          image.transferSyntaxUID as string,
+          image.photometric as string,
+          image.bit_allocated as number,
+          myCanvasRef
+        );
+        pyBufferData.release()
+      }
+      compressed_pixel_bytes.destroy()
       // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
-      const compressedData = pyBufferData.data as Uint8Array;
-      canvasRender.renderCompressedData(
-        compressedData,
-        image.width as number,
-        image.height as number,
-        image.transferSyntaxUID as string,
-        image.photometric as string,
-        image.bit_allocated as number,
-        myCanvasRef
-      );
-      pyBufferData.release()
+
     } else {
       console.log("no uncompressedData & no compressedData")
     }
