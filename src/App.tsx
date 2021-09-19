@@ -309,6 +309,9 @@ function App() {
   const resetUI = () => {
     const canvas = myCanvasRef.current;
     canvasRender.resetCanvas(canvas)
+    if (dicomObj.current) {
+      dicomObj.current.destroy()
+    }
   };
 
   const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
