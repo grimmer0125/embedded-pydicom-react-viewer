@@ -5,7 +5,7 @@ def parse_comppressed(ds):
     try:
         print(f"pixeldata:{len(ds.PixelData)}")
 
-        if getattr(ds, 'NumberOfFrames', 1) > 1:
+        if getattr(ds, "NumberOfFrames", 1) > 1:
             print("multi frame")
             j2k_precision, j2k_sign = None, None
             # multiple compressed frames

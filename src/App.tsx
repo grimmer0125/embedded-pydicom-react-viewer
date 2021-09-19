@@ -147,7 +147,7 @@ function App() {
 
   const onMouseMove = (event: any) => {
     if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined) { // && pixelMax != undefined && pixelMin != undefined) {
-      console.log("onmousemove")
+      // console.log("onmousemove")
 
       // let deltaX = event.clientX - clientX.current;
       // let deltaY = clientY.current - event.clientY;
@@ -274,23 +274,27 @@ function App() {
       // (image.render_rgba_1d_ndarray as PyProxyBuffer).destroy() // 沒用
       // total += 1;
     } else if (image.has_compressed_data) {
-      console.log("render compressedData");
-      const compressed_pixel_bytes = image.get_compressed_pixel_bytes()
-      if (total == 0) {
-        const pyBufferData = (compressed_pixel_bytes as PyProxyBuffer).getBuffer()
-        const compressedData = pyBufferData.data as Uint8Array;
-        canvasRender.renderCompressedData(
-          compressedData,
-          image.width as number,
-          image.height as number,
-          image.transferSyntaxUID as string,
-          image.photometric as string,
-          image.bit_allocated as number,
-          myCanvasRef
-        );
-        pyBufferData.release()
+      // console.log("render compressedData");
+      if (true) {
+        // console.log("render @@@@@@@@@@@@@")
+        const compressed_pixel_bytes = image.get_compressed_pixel_bytes()
+        if (true) {
+          const pyBufferData = (compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+          const compressedData = pyBufferData.data as Uint8Array;
+          canvasRender.renderCompressedData(
+            compressedData,
+            image.width as number,
+            image.height as number,
+            image.transferSyntaxUID as string,
+            image.photometric as string,
+            image.bit_allocated as number,
+            myCanvasRef
+          );
+          pyBufferData.release()
+        }
+
+        compressed_pixel_bytes.destroy()
       }
-      compressed_pixel_bytes.destroy()
       // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
 
     } else {

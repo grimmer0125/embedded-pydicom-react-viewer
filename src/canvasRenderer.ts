@@ -125,7 +125,7 @@ function renderCompressedData(
   allocated_bits: number,
   myCanvasRef: React.RefObject<HTMLCanvasElement>
 ) {
-  console.log("renderFrameByPythonCompressedData");
+  // console.log("renderFrameByPythonCompressedData");
 
   const myImg = new Image();
   const buffer = imageUnit8Array.buffer;
@@ -139,14 +139,14 @@ function renderCompressedData(
     );
   }
   const buffer2 = typedArrayToBuffer(imageUnit8Array);
-  console.log(
-    "len:",
-    imageUnit8Array.length,
-    buffer.byteLength,
-    buffer2.byteLength
-  ); //   718924, 75366400 (buffer.byteLength is more than actual size), 718924
+  // console.log(
+  //   "len:",
+  //   imageUnit8Array.length,
+  //   buffer.byteLength,
+  //   buffer2.byteLength
+  // ); //   718924, 75366400 (buffer.byteLength is more than actual size), 718924
 
-  console.log(`transferSyntaxUID:${transferSyntaxUID}`);
+  // console.log(`transferSyntaxUID:${transferSyntaxUID}`);
   if (transferSyntaxUID !== "1.2.840.10008.1.2.4.50") {
     // except 50, 57, 70. e.g. 80, 81 will go into here
     renderNonBaselineJPEG(
@@ -213,7 +213,7 @@ function renderCompressedData(
   if (myImg) {
     myImg.onload = function () {
       /// draw image to canvas
-      console.log("on load:", myImg.width, myImg.height);
+      // console.log("on load:", myImg.width, myImg.height);
       c.width = myImg.width;
       c.height = myImg.height;
       ctx.drawImage(myImg as any, 0, 0, myImg.width, myImg.height);

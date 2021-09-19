@@ -111,7 +111,7 @@ class PyodideDicom:
     def get_manufacturer_independent_pixel_image2d_array(
         self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None
     ):
-        print(f"get_manufacturer_independent_pixel_image2d_array")
+        # print(f"get_manufacturer_independent_pixel_image2d_array")
 
         # '1.2.840.10008.1.2.4.90'  #
         # ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.99'  # '1.2.840.10008.1.2.1.99'
@@ -119,19 +119,19 @@ class PyodideDicom:
         # print(f"syntax:{ds.file_meta.TransferSyntaxUID}")
         # RLE 1.2.840.10008.1.2.5:  US-PAL-8-10x-echo.dcm is automatically handled as uncompressed case
         if transferSyntaxUID and transferSyntaxUID in compressed_list:
-            print("compressed case !!!!!!!!!")
+            # print("compressed case !!!!!!!!!")
 
             # return None, ds.PixelData
             # ref: https://github.com/pydicom/pydicom/blob/master/pydicom/pixel_data_handlers/pillow_handler.py
-            print(
-                "try to get compressed dicom's pixel data manually, can not handle by pydicom in pyodide, lack of some pyodide extension"
-            )
+            # print(
+            #     "try to get compressed dicom's pixel data manually, can not handle by pydicom in pyodide, lack of some pyodide extension"
+            # )
             try:
-                print(f"pixeldata:{len(ds.PixelData)}")  # 2126020
+                # print(f"pixeldata:{len(ds.PixelData)}")  # 2126020
 
                 # TODO: only get 1st frame for multiple frame case and will improve later
                 if getattr(ds, "NumberOfFrames", 1) > 1:
-                    print("multi frame")
+                    # print("multi frame")
                     # j2k_precision, j2k_sign = None, None
                     # multiple compressed frames
                     # working case (50):
@@ -164,7 +164,7 @@ class PyodideDicom:
                     # TODO: what is the rule of -5/-1? But even not using pixel_data[:-1], pixel_data[:-5], still work
                     # p2 = pixel_data
                 else:
-                    print("single frame")
+                    # print("single frame")
                     # working case but browser can not render :
                     # - JPGLosslessP14SV1_1s_1f_8b.dcm,  DICOM made JPEG Lossless, 1.2.840.10008.1.2.4.70. 1024x768. local mac is able to view.
                     # - JPEG57-MR-MONO2-12-shoulder.dcm from https://barre.dev/medical/samples/, JPEG Lossless, 1.2.840.10008.1.2.4.57.
@@ -174,7 +174,7 @@ class PyodideDicom:
 
                     pixel_data = defragment_data(ds.PixelData)
                     # p2 = pixel_data
-                print(f"pixel_data:{len(pixel_data)}, {type(pixel_data)}")  # bytes
+                # print(f"pixel_data:{len(pixel_data)}, {type(pixel_data)}")  # bytes
                 # return None, pixel_data
                 # numpy_array = None
                 if (
@@ -200,7 +200,7 @@ class PyodideDicom:
                     # print(f"b:{b}")  # b:[object ArrayBuffer]
                     # print(f"b2:{b2}")  # <memory at 0x20adfe8> memoryview
                     b2 = b.to_py()
-                    print(f"b2 size:{len(b2)}")
+                    # print(f"b2 size:{len(b2)}")
 
                     # numpy_array = np.asarray(b2, dtype=np.uint8)
                     # dt = np.dtype(np.uint16)
@@ -220,11 +220,11 @@ class PyodideDicom:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int8)
                     # print(f"numpy:{numpy_array}")
                     # 1024*1024*2 or 1024*768
-                    print(f"numpy shape after using jpeg decoder:{numpy_array.shape}")
+                    # print(f"numpy shape after using jpeg decoder:{numpy_array.shape}")
 
-                    print(
-                        f"get_manufacturer_independent_pixel_image2d_array:type:{type(numpy_array)}, {type(pixel_data)} "
-                    )
+                    # print(
+                    #     f"get_manufacturer_independent_pixel_image2d_array:type:{type(numpy_array)}, {type(pixel_data)} "
+                    # )
                     return numpy_array, pixel_data
                 return None, pixel_data
             except Exception as e:
@@ -449,18 +449,32 @@ class PyodideDicom:
 
         if self.image is None:
             # TODO: jpeg 50 case, add it later
-            print("not handle jpeg 50 in-py uncompress case")
+            # print("not handle jpeg 50 in-py uncompress case")
             # self.compressed_pixel_bytes = self.compressed_pixel_bytes
 
-            if self.transferSyntaxUID:
+            if self.transferSyntaxUID and self.compressed_pixel_bytes:
+                start = time.time()
+                # new_bytes = bytes(len(self.compressed_pixel_bytes))
+                # str = self.compressed_pixel_bytes.hex()
+                # new_bytes = bytes.fromhex(str)
+                # self.compressed_pixel_bytes = new_bytes
+
+                # byteArrObj = bytearray(self.compressed_pixel_bytes)
+                # len_ = len(self.compressed_pixel_bytes)
+                # byteArrObj = bytearray(len_)
+                # for i in range(0, len_):
+                #     byteArrObj[i] = self.compressed_pixel_bytes[i]
+                # newBytes = bytes(byteArrObj)
+                # self.compressed_pixel_byte = newBytes
+
                 (
                     image,
                     compress_pixel_data,
                 ) = self.get_manufacturer_independent_pixel_image2d_array(
                     self.ds, self.transferSyntaxUID, self.jpeg_lossless_decoder
                 )
-                print("reproduce compressed data")
                 self.compressed_pixel_byte = compress_pixel_data
+                # print(f"reproduce compressed data:{time.time()-start}")
 
             return
 
