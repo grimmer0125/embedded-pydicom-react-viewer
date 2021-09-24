@@ -13,9 +13,39 @@ import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync }
 import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 
+
+// import * as daikon from "daikon";
+
+const JpegDecoder = require("./jpeg-baseline").JpegImage
+const jpeg = require("jpeg-lossless-decoder-js");
 type PyProxyObj = any
 
-const jpeg = require("jpeg-lossless-decoder-js");
+// image = daikon.Series.parseImage(new DataView(buffer));
+// console.log("daikon:", daikon)
+// console.log("daikon2:", JpegDecoder)
+
+// const a = new daikon.Image()
+// console.log("a:", a.decompressJPEG)
+
+const decompressJPEG = (jpg: any, isCompressedJPEGLossless: boolean, isCompressedJPEGBaseline: boolean, bitsAllocated: number) => {
+  if (isCompressedJPEGLossless) {
+    const decoder = new jpeg.lossless.Decoder();
+    return decoder.decode(jpg).buffer;
+  } else if (isCompressedJPEGBaseline) {
+    const decoder = new JpegDecoder();
+    decoder.parse(new Uint8Array(jpg));
+    const width = decoder.width;
+    const height = decoder.height;
+
+    let decoded;
+    if (bitsAllocated === 8) {
+      decoded = decoder.getData(width, height);
+    } else if (bitsAllocated === 16) {
+      decoded = decoder.getData16(width, height);
+    }
+    return decoded.buffer;
+  }
+}
 
 enum NormalizationMode {
   PixelHUMaxMin,
@@ -147,7 +177,6 @@ function App() {
 
   const onMouseMove = (event: any) => {
     if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
-      console.log("onmousemove")
 
       let deltaX = event.clientX - clientX.current;
       let deltaY = clientY.current - event.clientY;
@@ -249,7 +278,7 @@ function App() {
 
       // if (true) {
 
-      const ndarray_proxy = (image as any).get_rgba_1d_ndarray()//rgba_1d_ndarray //image.rgba_1d_ndarray
+      const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
       const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
       (ndarray_proxy as PyProxyBuffer).destroy();
 
@@ -275,7 +304,9 @@ function App() {
       total += 1;
     } else if (image.has_compressed_data) {
       console.log("render compressedData");
-      const pyBufferData = (image.compressed_pixel_bytes as PyProxyBuffer).getBuffer()
+      const compressed = (image as any).get_compressed_pixel() // compressed_pixel_bytes
+      const pyBufferData = (compressed as PyProxyBuffer).getBuffer()
+      compressed.destroy();
       // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
       const compressedData = pyBufferData.data as Uint8Array;
       canvasRender.renderCompressedData(
@@ -305,9 +336,8 @@ function App() {
     console.log("start to use python to parse parse dicom data");
 
     if (PyodideDicom.current) {
-      const decoder = new jpeg.lossless.Decoder()
       console.log("has imported PyodideDicom class")
-      dicomObj.current = PyodideDicom.current(buffer, decoder)
+      dicomObj.current = PyodideDicom.current(buffer, decompressJPEG)
       const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       console.log(`image max:${image.max}`)

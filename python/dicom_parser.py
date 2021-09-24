@@ -27,7 +27,7 @@ compressed_list = [
 
 
 handling_list = [
-    # "1.2.840.10008.1.2.4.50", <- this decoder can not handle
+    "1.2.840.10008.1.2.4.50",  # <- this decoder can not handle
     "1.2.840.10008.1.2.4.57",
     "1.2.840.10008.1.2.4.70",
 ]
@@ -108,7 +108,10 @@ class PyodideDicom:
         return ds
 
     def get_manufacturer_independent_pixel_image2d_array(
-        self, ds, transferSyntaxUID: str, jpeg_lossless_decoder: Any = None
+        self,
+        ds,
+        transferSyntaxUID: str,
+        decompressJPEG: Any = None,
     ):
         print(f"get_manufacturer_independent_pixel_image2d_array")
 
@@ -176,10 +179,7 @@ class PyodideDicom:
                 print(f"pixel_data:{len(pixel_data)}, {type(pixel_data)}")  # bytes
                 # return None, pixel_data
                 # numpy_array = None
-                if (
-                    jpeg_lossless_decoder is not None
-                    and transferSyntaxUID in handling_list
-                ):
+                if decompressJPEG is not None and transferSyntaxUID in handling_list:
 
                     # try:
                     #     fio = BytesIO(ds.PixelData)  # pixel_data)
@@ -192,9 +192,23 @@ class PyodideDicom:
                     # python bytes -> unit8array -> arrayBuffer
                     # p2 is arrayBuffer?
                     # cols * rows * bytesPerComponent * numComponents
-                    b = jpeg_lossless_decoder.decompress(
-                        pixel_data
-                    )  # ArrayBuffer's JsProxy
+
+                    ## TODO: might need reclaim pixel_data to release ???
+                    # https://pyodide.org/en/stable/usage/type-conversions.html#best-practices-for-avoiding-memory-leaks
+                    # jsobj = pyodide.create_proxy(pixel_data)
+                    # decompress
+                    # jsobj.destroy() # reclaim memory
+                    print("self.bit_allocated:" + str(self.bit_allocated))
+                    if transferSyntaxUID == "1.2.840.10008.1.2.4.50":
+                        # b2 size: 262144, 512x512
+                        b = decompressJPEG(pixel_data, False, True, self.bit_allocated)
+                    else:
+                        # 786432, 1024x768
+                        b = decompressJPEG(pixel_data, True, False, self.bit_allocated)
+
+                    # b = jpeg_lossless_decoder.decompress(
+                    #     pixel_data
+                    # )  # ArrayBuffer's JsProxy
                     # print(type(b))  # <class 'pyodide.JsProxy'> #
                     # print(f"b:{b}")  # b:[object ArrayBuffer]
                     # print(f"b2:{b2}")  # <memory at 0x20adfe8> memoryview
@@ -212,7 +226,7 @@ class PyodideDicom:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint16)
                         else:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int16)
-                    else:
+                    else:  # 8
                         if self.pixel_representation == 0:
                             numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint8)
                         else:
@@ -498,7 +512,7 @@ class PyodideDicom:
         # 2. obj.max gotten earily
         # 3. using 255 to normaizle + truncate when expand grey to rgba
         # 4. 3 modes. a. 1d b. rgb 1d (rgbrgb) c. rgb 1d (rrr...ggg...bbb...) <- Planar = 1
-        # 5. assume RGB is 8 bit or daikon already downsize to 8 bit?
+        # 5. assume RGB is 8 bit or decompressJPEG already downsize to 8 bit?
         # 6. not sure if handle floating data or not
         # 7. no mosue to adjust window center/width when no stored window center/width by default
         # 8. no windoe center mode on RGB
@@ -594,19 +608,20 @@ class PyodideDicom:
     def get_rgba_1d_ndarray(self):
         return self.render_rgba_1d_ndarray
 
+    def get_compressed_pixel(self):
+        return self.compressed_pixel_bytes
+
     def __init__(
         self,
         buffer: Any = None,
-        jpeg_lossless_decoder: Any = None,
+        decompressJPEG: Any = None,
         normalize_mode=NormalizeMode.window_center_mode,
     ):
         ## TODO: handle BitsAllocated 32,64 case
 
         # buffer: pyodide.JsProxy
         # decoder: pyodide.JsProxy
-        print(
-            f"__init__!!!!!!!!!!!!! buffer:{type(buffer)} decoder:{type(jpeg_lossless_decoder)}"
-        )
+        print(f"__init__!!!!!!!!!!!!! buffer:{type(buffer)}")
         if self.is_pyodide_env():
             # if buffer is None:
             #     print("buffer is None")
@@ -707,7 +722,7 @@ class PyodideDicom:
                 image,
                 compress_pixel_data,
             ) = self.get_manufacturer_independent_pixel_image2d_array(
-                ds, transferSyntaxUID, jpeg_lossless_decoder
+                ds, transferSyntaxUID, decompressJPEG
             )
             print(f"after get_manufacturer_independent_pixel_image2d_array")
             # NOTE: using image2d == None will throw a error which says some element is ambiguous
@@ -738,12 +753,12 @@ class PyodideDicom:
 
         ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
         # TODO: only get 1st frame for multiple frame case and will improve later
-        if frame_number > 1:
+        if frame_number > 1 and self.has_compressed_data is False:
             print("only get the 1st frame image2d data")
             image = image[0]
 
         _max, _min = self.get_image_maxmin(image)
-        print(f"uncompressed shape:{image.shape}")
+        print(f"uncompressed shape:{image.shape}")  # 空的?
         self.min = int(_min)
         self.max = int(_max)
         print(f"max:{self.max};{self.min}")
