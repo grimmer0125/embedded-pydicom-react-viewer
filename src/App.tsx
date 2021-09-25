@@ -154,6 +154,7 @@ function App() {
   const clientY = useRef<number>()
   const dicomObj = useRef<any>(null);
   const PyodideDicom = useRef<Function>()
+  const fileBuffer = useRef<any>(null);
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
   const [modality, setModality] = useState("")
@@ -206,9 +207,10 @@ function App() {
       setUseWindowWidth(newWindowWidth)
 
       const image: PyProxyObj = dicomObj.current
-      // console.log("trigger new frame")
+
       image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
       renderFrame()
+      // processDicomBuffer(fileBuffer.current)
     } else {
       // console.log("not valid move")
     }
@@ -323,21 +325,14 @@ function App() {
     // image.destroy();
   }
 
-  const loadFile = async (file: File) => {
-    setCurrFilePath(file.name)
-    const buffer = await loadDicomFileAsync(file);
-    // NOTE: besides getting return value (python code last line expression),
-    // python data can be retrieved by accessing python global object:
-    // pyodide.globals.get("image")
-    console.log("start to use python to parse parse dicom data");
-
+  const processDicomBuffer = (buffer: ArrayBuffer) => {
     if (PyodideDicom.current) {
-      console.log("has imported PyodideDicom class")
+      // console.log("has imported PyodideDicom class")
       dicomObj.current = PyodideDicom.current(buffer, decompressJPEG)
       const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
-      console.log(`image max:${image.max}`)
-      console.log(`image center:${image.window_center}`) // works !!!
+      // console.log(`image max:${image.max}`)
+      // console.log(`image center:${image.window_center}`) // works !!!
 
       setModality(image.modality)
       setPhotometric(image.photometric)
@@ -358,7 +353,7 @@ function App() {
         // console.log("image ds:", image.ds) // target: PyProxyClass
         // console.log(image.ds) // Proxy
         // console.log(typeof image.ds) // object
-        console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
+        // console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
       }
 
       renderFrame()
@@ -367,6 +362,19 @@ function App() {
     } else {
       console.log("has not imported PyodideDicom class, ignore")
     }
+
+  }
+
+  const loadFile = async (file: File) => {
+    setCurrFilePath(file.name)
+    const buffer = await loadDicomFileAsync(file);
+    fileBuffer.current = buffer
+    // NOTE: besides getting return value (python code last line expression),
+    // python data can be retrieved by accessing python global object:
+    // pyodide.globals.get("image")
+    // console.log("start to use python to parse parse dicom data");
+
+    processDicomBuffer(fileBuffer.current)
   }
 
   const resetUI = () => {
@@ -378,7 +386,7 @@ function App() {
   };
 
   const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
-    console.log("acceptedFiles");
+    // console.log("acceptedFiles");
 
     if (acceptedFiles.length > 0) {
       acceptedFiles.sort((a: any, b: any) => {
