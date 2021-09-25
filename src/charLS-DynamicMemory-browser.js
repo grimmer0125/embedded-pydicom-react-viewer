@@ -1,3 +1,6 @@
+/* eslint no-undef: 0 */
+/* eslint no-restricted-globals: 0 */
+/* eslint no-unused-expressions: 0 */
 /*! CharLS.js - v2.0.1 - 2016-06-08 | (c) 2016 Chris Hafey | https://github.com/chafey/charls */
 
 /*!
