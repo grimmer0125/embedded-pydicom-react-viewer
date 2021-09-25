@@ -12,12 +12,8 @@ import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
 import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
+import decompressJPEG from "./jpegDecoder"
 
-
-// import * as daikon from "daikon";
-
-const JpegDecoder = require("./jpeg-baseline").JpegImage
-const jpeg = require("jpeg-lossless-decoder-js");
 type PyProxyObj = any
 
 // image = daikon.Series.parseImage(new DataView(buffer));
@@ -27,25 +23,25 @@ type PyProxyObj = any
 // const a = new daikon.Image()
 // console.log("a:", a.decompressJPEG)
 
-const decompressJPEG = (jpg: any, isCompressedJPEGLossless: boolean, isCompressedJPEGBaseline: boolean, bitsAllocated: number) => {
-  if (isCompressedJPEGLossless) {
-    const decoder = new jpeg.lossless.Decoder();
-    return decoder.decode(jpg).buffer;
-  } else if (isCompressedJPEGBaseline) {
-    const decoder = new JpegDecoder();
-    decoder.parse(new Uint8Array(jpg));
-    const width = decoder.width;
-    const height = decoder.height;
+// const decompressJPEG = (jpg: any, isCompressedJPEGLossless: boolean, isCompressedJPEGBaseline: boolean, bitsAllocated: number) => {
+//   if (isCompressedJPEGLossless) {
+//     const decoder = new jpeg.lossless.Decoder();
+//     return decoder.decode(jpg).buffer;
+//   } else if (isCompressedJPEGBaseline) {
+//     const decoder = new JpegDecoder();
+//     decoder.parse(new Uint8Array(jpg));
+//     const width = decoder.width;
+//     const height = decoder.height;
 
-    let decoded;
-    if (bitsAllocated === 8) {
-      decoded = decoder.getData(width, height);
-    } else if (bitsAllocated === 16) {
-      decoded = decoder.getData16(width, height);
-    }
-    return decoded.buffer;
-  }
-}
+//     let decoded;
+//     if (bitsAllocated === 8) {
+//       decoded = decoder.getData(width, height);
+//     } else if (bitsAllocated === 16) {
+//       decoded = decoder.getData16(width, height);
+//     }
+//     return decoded.buffer;
+//   }
+// }
 
 enum NormalizationMode {
   PixelHUMaxMin,
