@@ -27,9 +27,14 @@ compressed_list = [
 
 
 handling_list = [
-    "1.2.840.10008.1.2.4.50",  # <- this decoder can not handle
+    "1.2.840.10008.1.2.4.50",
+    "1.2.840.10008.1.2.4.51",
     "1.2.840.10008.1.2.4.57",
     "1.2.840.10008.1.2.4.70",
+    "1.2.840.10008.1.2.4.90",  # not test/work yet
+    "1.2.840.10008.1.2.4.91",
+    "1.2.840.10008.1.2.4.80",
+    "1.2.840.10008.1.2.4.81",
 ]
 
 from enum import IntEnum, auto
@@ -202,12 +207,24 @@ class PyodideDicom:
                     # jsobj = pyodide.to_js(pixel_data)
                     # print(type(jsobj))  #
                     # print("b")
-                    if transferSyntaxUID == "1.2.840.10008.1.2.4.50":
-                        # b2 size: 262144, 512x512
-                        b = decompressJPEG(jsobj, False, True, self.bit_allocated)
-                    else:
-                        # 786432, 1024x768
-                        b = decompressJPEG(jsobj, True, False, self.bit_allocated)
+                    # if transferSyntaxUID == "1.2.840.10008.1.2.4.50":
+                    # b2 size: 262144, 512x512
+
+                    is_bytes_integer = False
+                    if (
+                        self.pixel_representation == 1
+                        and self.photometric != "RGB"
+                        or self.photometric != "PALETTE COLOR"
+                        and self.photometric != "YBR"
+                    ):
+                        is_bytes_integer = True
+
+                    b = decompressJPEG(
+                        jsobj, transferSyntaxUID, self.bit_allocated, is_bytes_integer
+                    )
+                    # else:
+                    # 786432, 1024x768
+
                     jsobj.destroy()
 
                     # b = jpeg_lossless_decoder.decompress(
