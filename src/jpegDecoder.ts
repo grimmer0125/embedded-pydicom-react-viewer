@@ -7,14 +7,17 @@ const decompressJPEG = (jpg: any, isCompressedJPEGLossless: boolean, isCompresse
   // 1. PyProxyClass 
   // 2. Uint8Array (if use pyodide.to_js first)
   // 3. PyProxyClass (is use pyodide.create_proxy)
+
+  jpg = jpg.getBuffer()
   if (isCompressedJPEGLossless) {
     // console.log("jpg:", jpg, typeof jpg)
     const decoder = new jpeg.lossless.Decoder();
-    const buffer = decoder.decode(jpg).buffer;
+    const buffer = decoder.decode(jpg.data.buffer).buffer;
+    jpg.release()
     return buffer
   } else if (isCompressedJPEGBaseline) {
     const decoder = new JpegDecoder();
-    decoder.parse(new Uint8Array(jpg));
+    decoder.parse(new Uint8Array(jpg.data.buffer));
     const width = decoder.width;
     const height = decoder.height;
 
@@ -25,6 +28,7 @@ const decompressJPEG = (jpg: any, isCompressedJPEGLossless: boolean, isCompresse
       decoded = decoder.getData16(width, height);
     }
     const buffer = decoded.buffer;
+    jpg.release()
     return buffer;
   }
 }

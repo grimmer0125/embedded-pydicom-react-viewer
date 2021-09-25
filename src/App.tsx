@@ -208,9 +208,9 @@ function App() {
 
       const image: PyProxyObj = dicomObj.current
 
-      image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
-      renderFrame()
-      // processDicomBuffer(fileBuffer.current)
+      // image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+      // renderFrame()
+      processDicomBuffer(fileBuffer.current)
     } else {
       // console.log("not valid move")
     }

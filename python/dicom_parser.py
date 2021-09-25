@@ -197,6 +197,10 @@ class PyodideDicom:
                     # https://pyodide.org/en/stable/usage/type-conversions.html#best-practices-for-avoiding-memory-leaks
                     # jsobj = pyodide.create_proxy(pixel_data)
                     # print("self.bit_allocated:" + str(self.bit_allocated))
+                    # case4: to_js(create_proxy), 也到了 2.1後就停了? <-忘了有沒有 destory
+                    # case3: proxy+destory(), **leak 也是會上去. 無 destory 也差不多
+                    # case2: to_js, 差不多, 但到了 2.25後就非常慢
+                    # case1. 直接丟 一開始快, 後來 1mb/1s, 然後很慢, 後來終於上去超過 2.1GB, 然後就 exception
                     jsobj = pyodide.create_proxy(pixel_data)  # JsProxy
                     # jsobj = pixel_data
                     # jsobj = pyodide.to_js(pixel_data)
@@ -208,7 +212,7 @@ class PyodideDicom:
                     else:
                         # 786432, 1024x768
                         b = decompressJPEG(jsobj, True, False, self.bit_allocated)
-                    jsobj.destroy()
+                    # jsobj.destroy()
 
                     # b = jpeg_lossless_decoder.decompress(
                     #     pixel_data
