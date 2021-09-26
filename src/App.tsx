@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import 'semantic-ui-css/semantic.min.css'
 
 import {
   Dropdown,
@@ -171,6 +172,9 @@ function App() {
   const [useWindowWidth, setUseWindowWidth] = useState<number>()
   // todo: define a clear interface/type instead of any 
   const [currNormalizeMode, setCurrNormalizeMode] = useState<NormalizationMode>(NormalizationMode.WindowCenter)
+  const [numFrames, setNumFrames] = useState<number>(1)
+  const [currFrameIndex, setCurrFrameIndex] = useState<number>(1)
+
 
   const onMouseMove = (event: any) => {
     const isGrey = photometric === "MONOCHROME1" || photometric === "MONOCHROME2"
@@ -208,7 +212,6 @@ function App() {
       setUseWindowWidth(newWindowWidth)
 
       const image: PyProxyObj = dicomObj.current
-
       image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
       renderFrame()
       // processDicomBuffer(fileBuffer.current)
@@ -344,6 +347,8 @@ function App() {
       setPixelMin(image.min)
       setWindowCenter(image.window_center)
       setWindowWidth(image.window_width)
+      setNumFrames(image.frame_num)
+      setCurrFrameIndex(1)
 
 
       /** original logic is to const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
@@ -384,6 +389,8 @@ function App() {
     if (dicomObj.current) {
       dicomObj.current.destroy()
     }
+    setCurrFrameIndex(1)
+    setNumFrames(1)
   };
 
   const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
@@ -422,6 +429,32 @@ function App() {
   info += ` modality:${modality}; photometric:${photometric}; transferSyntax:${transferSyntax};`;
   info += ` resolution:${resX} x ${resY}`;
 
+  const frameIndexes: any[] = Array.from({ length: numFrames }, (_, i) => i + 1)
+
+  const options = Array.from({ length: 10 }, (_, i) => {
+    return {
+      key: i + 1,
+      text: i + 1,
+      value: i + 1
+    }
+  })
+
+  const handleSwitchFrame = (
+    e: React.SyntheticEvent<HTMLElement, Event>,
+    obj: DropdownProps
+  ) => {
+    const value = obj.value as number;
+
+    console.log("switch frame:", value, currFrameIndex);
+
+    if (value !== currFrameIndex) {
+      setCurrFrameIndex(value)
+      const image: PyProxyObj = dicomObj.current
+      image.render_frame_to_rgba_1d.callKwargs({ frame_index: value - 1 })
+      renderFrame()
+    }
+  };
+
   return (
     <div className="flex-container">
       <div>
@@ -441,26 +474,6 @@ function App() {
                 <p>Drag 'n' drop some files here, or click to select files</p>
               )}
             </div>
-
-            {/* <Dropzone
-              // style={dropZoneStyle}
-              // getDataTransferItems={(evt) => fromEvent(evt)}
-              onDrop={onDropFiles}
-            >
-              <div
-                className="flex-column-justify-align-center"
-                style={{
-                  height: "100%",
-                }}
-              >
-                <div>
-                  <p>
-                    Try dropping DICOM image file here, <br />
-                    or click here to select file to view. <br />
-                  </p>
-                </div>
-              </div>
-            </Dropzone> */}
           </div>
           <div>
             {info}
@@ -486,6 +499,15 @@ function App() {
               currNormalizeMode={currNormalizeMode}
               onChange={handleNormalizeModeChange}
             />
+            <div>
+              {numFrames > 1 ? (
+                <Dropdown
+                  placeholder="Switch Frame"
+                  selection
+                  onChange={handleSwitchFrame}
+                  options={options}
+                />) : null}
+            </div>
           </div>
         </div>
         <div className="flex-container">

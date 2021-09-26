@@ -222,7 +222,7 @@ class PyodideDicom:
         # print(f"b:{b}")  # b:[object ArrayBuffer]
         # print(f"b2:{b2}")  # <memory at 0x20adfe8> memoryview
         b2 = b.to_py()
-        print(f"b2 size:{len(b2)}")
+        # print(f"b2 size:{len(b2)}")
 
         # numpy_array = np.asarray(b2, dtype=np.uint8)
         # dt = np.dtype(np.uint16)
@@ -238,7 +238,7 @@ class PyodideDicom:
 
             if self.width and self.height:
                 numComponents = len(b2) // self.width // self.height // 2
-                print("numComponents:" + str(numComponents))
+                # print("numComponents:" + str(numComponents))
         else:  # 8
             if self.pixel_representation == 0:
                 numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint8)
@@ -247,7 +247,7 @@ class PyodideDicom:
 
             if self.width and self.height:
                 numComponents = len(b2) // self.width // self.height
-                print("numComponents:" + str(numComponents))
+                # print("numComponents:" + str(numComponents))
 
         return numpy_array
         # print(f"numpy:{numpy_array}")
@@ -560,7 +560,6 @@ class PyodideDicom:
 
         if frame_index >= self.frame_num:
             raise IndexError("frame index is over frame num")
-
         ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
         # TODO: only get 1st frame for multiple frame case and will improve later
         if self.multi_frame_compressed_bytes is not None:
