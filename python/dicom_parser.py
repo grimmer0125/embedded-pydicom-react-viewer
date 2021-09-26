@@ -298,7 +298,7 @@ class PyodideDicom:
                     # 1. 0002.dcm, some are [-5], [-4], [-6]. 512x512
                     # 2. color3d_jpeg_baseline , some frames needs [-1] but some do not need. size unknown?
                     frame_count = 0
-                    for frame in generate_pixel_data_frame(ds.PixelData):
+                    for frame in decode_data_sequence(ds.PixelData):
                         self.multi_frame_compressed_bytes.append(frame)
 
                         frame_count += 1
@@ -444,7 +444,7 @@ class PyodideDicom:
         height = len(image2d)
         alpha = np.full((height, width), 255)
         stacked = np.dstack((image2d, alpha))
-        print(f"shape:{stacked.shape}")
+        # print(f"shape:{stacked.shape}")
         image = stacked.flatten()
         image = image.astype("uint8")
         return image
@@ -578,7 +578,7 @@ class PyodideDicom:
             self.decompressed_cache_dict[str(frame_index)] = image
         elif self.multi_frame_incompressed_image is not None:
             if self.frame_num > 1:
-                image: np.ndarray = self.multi_frame_incompressed_image[0]
+                image: np.ndarray = self.multi_frame_incompressed_image[frame_index]
             else:
                 image = self.multi_frame_incompressed_image
         else:
@@ -666,11 +666,17 @@ class PyodideDicom:
 
         ### flatten to 1 d array ###
         # afterwards, treat it as RGB image, the PALETTE file we tested has planar:1
-        if self.photometric == "RGB" or self.photometric == "PALETTE COLOR":
-            print("it is RGB or PALETTE COLOR")
+
+        if (
+            self.photometric == "RGB"
+            or self.photometric == "PALETTE COLOR"
+            or self.photometric == "YBR_FULL"  # color3d_jpeg_baseline-broken-multi
+            or self.photometric == "YBR_FULL_422"
+        ):
+            # print("it is RGB or PALETTE COLOR")
 
             if normalize_image.ndim == 1:
-                print("flatten_jpeg_RGB_image1d_to_rgba_1d_image_array")
+                # print("flatten_jpeg_RGB_image1d_to_rgba_1d_image_array")
                 # http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
                 # alpha = np.full_like(compress_pixel_data, 255)
                 # print(f"alpha1:{alpha.shape}")  # ()
@@ -697,7 +703,7 @@ class PyodideDicom:
                 # uncompress case
                 # if planar_config == 0:
                 # US-RGB-8-esopecho # 0.025s
-                print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
+                # print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
                 self.final_rgba_1d_ndarray = (
                     self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
                         normalize_image
@@ -835,7 +841,7 @@ class PyodideDicom:
         transferSyntaxUID = ""
         try:
             transferSyntaxUID: str = ds.file_meta.TransferSyntaxUID
-            # print(f"transferSyntax:{transferSyntaxUID}")
+            print(f"transferSyntax:{transferSyntaxUID}")
         except:
             print("no TransferSyntaxUID")
         try:
@@ -856,9 +862,9 @@ class PyodideDicom:
             # before: a grey 2d image
             self.multi_frame_incompressed_image = apply_color_lut(ds.pixel_array, ds)
             # after: a RGB 2d image
-            print(
-                f"PALETTE after apply_color_lut shape:{self.multi_frame_incompressed_image.shape}"
-            )
+            # print(
+            #     f"PALETTE after apply_color_lut shape:{self.multi_frame_incompressed_image.shape}"
+            # )
 
             # _max, _min = get_image2d_maxmin(image2d)
             # print(f'pixel (after color lut) min:{_min}')  # min same as before
