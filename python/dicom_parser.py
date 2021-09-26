@@ -346,9 +346,9 @@ class PyodideDicom:
                 print("failed to get compressed data")
                 raise e
         else:
-            print("uncompressed case")
+            print("incompressed case")
             print(
-                "start reading dicom pixel_array, uncompressed case uses apply_modality_lut"
+                "start reading dicom pixel_array, incompressed case uses apply_modality_lut"
             )
 
             try:
@@ -575,14 +575,18 @@ class PyodideDicom:
                 image = self.decompress_compressed_data(
                     self.multi_frame_compressed_bytes[frame_index]
                 )
+
+            if self.ds:
+                image = apply_modality_lut(image, self.ds)
             self.decompressed_cache_dict[str(frame_index)] = image
+
         elif self.multi_frame_incompressed_image is not None:
             if self.frame_num > 1:
                 image: np.ndarray = self.multi_frame_incompressed_image[frame_index]
             else:
                 image = self.multi_frame_incompressed_image
         else:
-            raise Exception("somehow no compressed/uncompressed data")
+            raise Exception("somehow no compressed/incompressed data")
 
         _max, _min = self.get_image_maxmin(image)
         # print(f"uncompressed shape:{image.shape}")  # 空的?
