@@ -1,8 +1,8 @@
 
-const JpegBaselineDecoder = require("./jpeg-baseline").JpegImage
 const jpegLossless = require("jpeg-lossless-decoder-js");
-const Jpx2000Image = require('./jpx');
-const JpegLSDecoder = require('./jpeg-ls');
+const JpegBaselineDecoder = require("./decoder/jpeg-baseline").JpegImage
+const Jpx2000Image = require('./decoder/jpx');
+const JpegLSDecoder = require('./decoder/jpeg-ls');
 
 const decompressJPEG = {
   lossless: (bytes: any) => {
