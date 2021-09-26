@@ -178,6 +178,7 @@ function App() {
 
   const onMouseMove = (event: any) => {
     const isGrey = photometric === "MONOCHROME1" || photometric === "MONOCHROME2"
+    // console.log("onMouseMove1:", isGrey, isValidMouseDown.current, clientX.current, clientY.current, pixelMax, pixelMin)
     if (isGrey && isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
 
       let deltaX = event.clientX - clientX.current;
@@ -210,7 +211,6 @@ function App() {
 
       setUseWindowCenter(newWindowCenter)
       setUseWindowWidth(newWindowWidth)
-
       const image: PyProxyObj = dicomObj.current
       image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
       renderFrame()
@@ -343,12 +343,18 @@ function App() {
       setTransferSyntax(image.transferSyntaxUID)
       setResX(image.width)
       setResY(image.height)
-      setPixelMax(image.max)
-      setPixelMin(image.min)
+      setNumFrames(image.frame_num)
+
+      setPixelMax(image.max_curr_frame)
+      setPixelMin(image.min_curr_frame)
       setWindowCenter(image.window_center)
       setWindowWidth(image.window_width)
-      setNumFrames(image.frame_num)
       setCurrFrameIndex(1)
+      if (currNormalizeMode === NormalizationMode.WindowCenter) {
+        setUseWindowCenter(image.window_center)
+        setUseWindowWidth(image.window_width)
+      }
+
 
 
       /** original logic is to const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
@@ -418,12 +424,27 @@ function App() {
     e: React.FormEvent<HTMLInputElement>,
     data: CheckboxProps
   ) => {
-    console.log("handleNormalizeModeChange")
     const { value } = data;
 
     const newMode = value as number;
     setCurrNormalizeMode(newMode)
-  }, []);
+    // console.log("handleNormalizeModeChange:", newMode) // 1 (center), 0 
+
+    if (newMode === NormalizationMode.WindowCenter) {
+      // console.log(`new is center:${windowCenter}`)
+      setUseWindowCenter(windowCenter)
+      setUseWindowWidth(windowWidth)
+      const image: PyProxyObj = dicomObj.current
+      image.render_frame_to_rgba_1d(windowCenter, windowWidth, NormalizationMode.WindowCenter)
+      renderFrame()
+    } else if (newMode === NormalizationMode.PixelHUMaxMin) {
+      // console.log("new is maxmin")
+      const image: PyProxyObj = dicomObj.current
+      image.render_frame_to_rgba_1d.callKwargs({ normalize_mode: NormalizationMode.PixelHUMaxMin })
+      renderFrame()
+    }
+
+  }, [windowCenter, windowWidth]);
 
   let info = ""
   info += ` modality:${modality}; photometric:${photometric}; transferSyntax:${transferSyntax};`;
@@ -451,6 +472,8 @@ function App() {
       setCurrFrameIndex(value)
       const image: PyProxyObj = dicomObj.current
       image.render_frame_to_rgba_1d.callKwargs({ frame_index: value - 1 })
+      setPixelMax(image.max_curr_frame)
+      setPixelMin(image.min_curr_frame)
       renderFrame()
     }
   };
@@ -494,7 +517,6 @@ function App() {
               onChange={handleNormalizeModeChange}
             />
             <NormalizationComponent
-              disable={true}
               mode={NormalizationMode.PixelHUMaxMin}
               currNormalizeMode={currNormalizeMode}
               onChange={handleNormalizeModeChange}

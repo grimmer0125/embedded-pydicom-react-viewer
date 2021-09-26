@@ -46,8 +46,8 @@ from enum import IntEnum, auto
 
 
 class NormalizeMode(IntEnum):
-    window_center_mode = auto()
-    max_min_mode = auto()
+    max_min_mode = 0
+    window_center_mode = 1
 
 
 @dataclass
@@ -74,8 +74,8 @@ class PyodideDicom:
 
     width: Optional[int] = None
     height: Optional[int] = None
-    max: Optional[int] = None
-    min: Optional[int] = None
+    max_curr_frame: Optional[int] = None
+    min_curr_frame: Optional[int] = None
     modality: Optional[str] = None
     photometric: Optional[str] = None
     transferSyntaxUID: Optional[str] = None
@@ -402,7 +402,7 @@ class PyodideDicom:
 
         # print(f"shape:{image.shape}, type:{image.dtype}")
         ## step1: saturation
-        if normalize_min != self.min or normalize_max != self.max:
+        if normalize_min != self.min_curr_frame or normalize_max != self.max_curr_frame:
             # print("clip the outside value")
             start = time.time()
             image = np.clip(image, normalize_min, normalize_max)  # in-place 0.004,0.005
@@ -557,9 +557,11 @@ class PyodideDicom:
         frame_index: int = 0,
     ):
         start = time.time()  ## 0.13s !!!!
-
         if frame_index >= self.frame_num:
             raise IndexError("frame index is over frame num")
+        # print(
+        #     f"render_frame_to_rgba_1d:{normalize_mode}, center:{normalize_window_center}"
+        # )
         ### multi frame case, workaround way to get its 1st frame, not consider switching case ###
         # TODO: only get 1st frame for multiple frame case and will improve later
         if self.multi_frame_compressed_bytes is not None:
@@ -584,9 +586,9 @@ class PyodideDicom:
 
         _max, _min = self.get_image_maxmin(image)
         # print(f"uncompressed shape:{image.shape}")  # 空的?
-        self.min = int(_min)
-        self.max = int(_max)
-        # print(f"max:{self.max};{self.min}")
+        self.min_curr_frame = int(_min)
+        self.max_curr_frame = int(_max)
+        # print(f"setup max_curr_frame:{int(_min)};{int(_max)}")
 
         if self.photometric == "MONOCHROME1":
             print("invert color for monochrome1")
@@ -601,8 +603,8 @@ class PyodideDicom:
 
         if (
             self.ds is None
-            or self.max is None
-            or self.min is None
+            or self.max_curr_frame is None
+            or self.min_curr_frame is None
             or self.width is None
             or self.height is None
         ):
@@ -618,25 +620,33 @@ class PyodideDicom:
         # I think previous RGB cases just use 8 bit RGB, so apply normalize on RGB (no harm)
 
         # center 127, width 254, max:255, min = 0
-        if normalize_mode == NormalizeMode.max_min_mode:
-            # print("mode1:")
-            normalize_image = self.normalize_image(image, self.max, self.min)
+        if self.normalize_mode == NormalizeMode.max_min_mode:
+            # print("mode0:max_min_mode")
+            max = self.max_curr_frame
+            min = self.min_curr_frame
+            normalize_image = self.normalize_image(image, max, min)
         else:
+            # print("mode1:window_center_mode")
             if normalize_window_center and normalize_window_width:
                 # print("mode2:")
-                min = normalize_window_center - math.floor(normalize_window_width / 2)
                 max = normalize_window_center + math.floor(normalize_window_width / 2)
+                min = normalize_window_center - math.floor(normalize_window_width / 2)
                 normalize_image = self.normalize_image(image, max, min)
             elif self.window_center and self.window_width:
-                min = self.window_center - math.floor(self.window_width / 2)
                 max = self.window_center + math.floor(self.window_width / 2)
+                min = self.window_center - math.floor(self.window_width / 2)
                 normalize_image = self.normalize_image(image, max, min)
                 # print(
                 #     f"mode3. max: {max}, {min}, {self.max}, {self.min}, {self.window_width}, {self.window_center}"
                 # )
             else:
+                max = self.max_curr_frame
+                min = self.min_curr_frame
                 # print("mode4:")
-                normalize_image = self.normalize_image(image, self.max, self.min)
+                normalize_image = self.normalize_image(
+                    image, self.max_curr_frame, self.min_curr_frame
+                )
+        # print(f"normalize max:{max};min:{min}")
 
         # else:
         #     print("it is RGB photometric, skip normalization?")
@@ -752,7 +762,7 @@ class PyodideDicom:
         self,
         buffer: Any = None,
         decompressJPEG: Any = None,
-        normalize_mode=NormalizeMode.window_center_mode,
+        normalize_mode=None,
     ):
         self.jpeg_decoder = decompressJPEG
 
@@ -887,8 +897,7 @@ class PyodideDicom:
 
         # self.has_uncompressed_data = True
 
-        self.normalize_mode = normalize_mode
-        self.render_frame_to_rgba_1d()
+        self.render_frame_to_rgba_1d(normalize_mode=normalize_mode)
 
 
 if __name__ == "__main__":
