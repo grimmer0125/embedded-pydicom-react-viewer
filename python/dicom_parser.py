@@ -209,19 +209,49 @@ class PyodideDicom:
                     # print("b")
                     # if transferSyntaxUID == "1.2.840.10008.1.2.4.50":
                     # b2 size: 262144, 512x512
-
-                    is_bytes_integer = False
                     if (
-                        self.pixel_representation == 1
-                        and self.photometric != "RGB"
-                        or self.photometric != "PALETTE COLOR"
-                        and self.photometric != "YBR"
+                        transferSyntaxUID == "1.2.840.10008.1.2.4.57"
+                        or transferSyntaxUID == "1.2.840.10008.1.2.4.70"
                     ):
-                        is_bytes_integer = True
+                        b = decompressJPEG.lossless(
+                            jsobj,
+                        )
+                    elif (
+                        transferSyntaxUID == "1.2.840.10008.1.2.4.50"
+                        or transferSyntaxUID == "1.2.840.10008.1.2.4.51"
+                    ):
+                        b = decompressJPEG.baseline(
+                            jsobj,
+                            self.bit_allocated,
+                        )
+                    elif (
+                        transferSyntaxUID == "1.2.840.10008.1.2.4.90"
+                        or transferSyntaxUID == "1.2.840.10008.1.2.4.91"
+                    ):
+                        b = decompressJPEG.jpeg2000(
+                            jsobj,
+                        )
+                    elif (
+                        transferSyntaxUID == "1.2.840.10008.1.2.4.80"
+                        or transferSyntaxUID == "1.2.840.10008.1.2.4.81"
+                    ):
 
-                    b = decompressJPEG(
-                        jsobj, transferSyntaxUID, self.bit_allocated, is_bytes_integer
-                    )
+                        is_bytes_integer = False
+                        if (
+                            self.pixel_representation == 1
+                            and self.photometric != "RGB"
+                            or self.photometric != "PALETTE COLOR"
+                            and self.photometric != "YBR"
+                        ):
+                            is_bytes_integer = True
+
+                        b = decompressJPEG.jpeg2000(jsobj, is_bytes_integer)
+                    else:
+                        raise ValueError("not fit compressed transferSyntaxUID")
+
+                    # b = decompressJPEG(
+                    #     jsobj, transferSyntaxUID, self.bit_allocated, is_bytes_integer
+                    # )
                     # else:
                     # 786432, 1024x768
 
