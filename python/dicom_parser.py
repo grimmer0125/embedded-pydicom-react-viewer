@@ -200,7 +200,7 @@ class PyodideDicom:
             ):
                 is_bytes_integer = True
 
-            b = jpeg_decoder.jpeg2000(jsobj, is_bytes_integer)
+            b = jpeg_decoder.jpegls(jsobj, is_bytes_integer)
         else:
             raise ValueError(
                 "not handle this compressed transferSyntaxUID yet1:"
