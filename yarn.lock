@@ -5914,6 +5914,7 @@ __metadata:
     react-dropzone: ^11.3.4
     react-scripts: 4.0.3
     reflect-metadata: ^0.1.13
+    semantic-ui-css: ^2.4.1
     semantic-ui-react: ^2.0.3
     typescript: ^4.1.2
     web-vitals: ^1.0.1
@@ -9121,6 +9122,13 @@ fsevents@^1.2.7:
   version: 2.0.4
   resolution: "jpeg-lossless-decoder-js@npm:2.0.4"
   checksum: c451453554bdbccc9701bdb041cd10fb54ca33bce83ef77426314fa61b49fb924b69c7827c02df2bb030abb871280ba053f640f939d78797874da7311d8628fe
+  languageName: node
+  linkType: hard
+
+"jquery@npm:x.*":
+  version: 3.6.0
+  resolution: "jquery@npm:3.6.0"
+  checksum: 8fd5fef4aa48fd374ec716dd1c1df1af407814a228e15c1260ca140de3a697c2a77c30c54ff1d238b6a3ab4ddc445ddeef9adce6c6d28e4869d85eb9d3951c0e
   languageName: node
   linkType: hard
 
@@ -13204,6 +13212,15 @@ resolve@^2.0.0-next.3:
   dependencies:
     node-forge: ^0.10.0
   checksum: 1fd8fd317dc0b7d713d12d828131ac03c53abf41c4538b263fecd37bbc15688526c631654049ff00806b757ccb85492de6a13d6fefcad5cb54926631e48a76e1
+  languageName: node
+  linkType: hard
+
+"semantic-ui-css@npm:^2.4.1":
+  version: 2.4.1
+  resolution: "semantic-ui-css@npm:2.4.1"
+  dependencies:
+    jquery: x.*
+  checksum: 6351d9bfbeed667a39b9cde08372865bd04612450103aabff174bc46558ad1ac123157cab2716670019abf5a70f56a77d79d082b4043d8893ed350b9a6fed837
   languageName: node
   linkType: hard
 
