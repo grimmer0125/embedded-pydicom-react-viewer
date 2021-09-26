@@ -9,6 +9,9 @@ import {
   Radio,
 } from "semantic-ui-react";
 
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
+
 import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
 import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
@@ -155,6 +158,12 @@ function App() {
   const clientY = useRef<number>()
   const dicomObj = useRef<any>(null);
   const PyodideDicom = useRef<Function>()
+  const files = useRef<any>(null);
+
+  const [totalFiles, setTotalFiles] = useState<number>(0)
+  const [currFileNo, setCurrFileNo] = useState<number>(0)
+
+  // for testing 
   const fileBuffer = useRef<any>(null);
 
   const [isPyodideLoading, setPyodideLoading] = useState(true);
@@ -378,6 +387,10 @@ function App() {
   }
 
   const loadFile = async (file: File) => {
+    if (!checkIfValidDicomFileName(file.name)) {
+      return
+    }
+
     setCurrFilePath(file.name)
     const buffer = await loadDicomFileAsync(file);
     fileBuffer.current = buffer
@@ -386,7 +399,7 @@ function App() {
     // pyodide.globals.get("image")
     // console.log("start to use python to parse parse dicom data");
 
-    processDicomBuffer(fileBuffer.current)
+    processDicomBuffer(buffer)
   }
 
   const resetUI = () => {
@@ -406,14 +419,13 @@ function App() {
       acceptedFiles.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       });
-      const file = acceptedFiles[0];
+      files.current = acceptedFiles;
+      const file = files.current[0];
+      setCurrFileNo(1)
+      setTotalFiles(acceptedFiles.length)
       resetUI();
-      if (checkIfValidDicomFileName(file.name)) {
-        await loadFile(file);
-      }
+      loadFile(file);
     }
-
-
     // Do something with the files
   }, []);
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -478,6 +490,31 @@ function App() {
     }
   };
 
+  const switchFile = (value: number) => {
+    // this.setState({
+    //   currFileNo: value,
+    // });
+    setCurrFileNo(value)
+
+    // const { ifShowSagittalCoronal } = this.state;
+    // // console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal);
+    // if (ifShowSagittalCoronal) {
+    //   this.buildAxialView(
+    //     this.currentSeries,
+    //     this.currentSeriesImageObjects,
+    //     value - 1
+    //   );
+    // } else {
+    const newFile = files.current[value - 1];
+    // console.log("switch to image:", value, newFile);
+    // if (!this.isOnlineMode) {
+    loadFile(newFile);
+    // } else {
+    //   this.fetchFile(newFile);
+    // }
+    // }
+  };
+
   return (
     <div className="flex-container">
       <div>
@@ -503,7 +540,7 @@ function App() {
             <br />
             {` current window center:${useWindowCenter} ; window width ${useWindowWidth} ;`}
             {` pixel/HU max:${pixelMax}, min:${pixelMin} ;`}
-            {` file: ${currFilePath} ;`}
+            {/* {` file: ${currFilePath} ;`} */}
           </div>
           <div className="flex-container">
             <NormalizationComponent
@@ -532,6 +569,35 @@ function App() {
             </div>
           </div>
         </div>
+        {totalFiles > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ width: 600 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                {`${currFilePath}. ${currFileNo}/${totalFiles}`}
+              </div>
+              <div className="flex-container">
+                {/* {isCommonAxialView ? <div>{"S"}</div> : null} */}
+                <Slider
+                  value={currFileNo}
+                  step={1}
+                  min={1}
+                  max={totalFiles}
+                  onChange={switchFile}
+                />
+                {/* {isCommonAxialView ? <div>{"I"}</div> : null}{" "} */}
+              </div>
+            </div>
+          </div>) : null}
         <div className="flex-container">
           <div className="flex-column-justify-align-center">
             <div className="flex-column_align-center">
