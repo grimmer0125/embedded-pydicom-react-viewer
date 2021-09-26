@@ -1,27 +1,21 @@
 
-const JpegDecoder = require("./jpeg-baseline").JpegImage
-const jpeg = require("jpeg-lossless-decoder-js");
-const JpxImage = require('./jpx');
+const JpegBaselineDecoder = require("./jpeg-baseline").JpegImage
+const jpegLossless = require("jpeg-lossless-decoder-js");
+const Jpx2000Image = require('./jpx');
 const JpegLSDecoder = require('./jpeg-ls');
 
-// borrow from https://github.com/rii-mango/daikon/blob/master/src/image.js#L706
-const decompressJPEG = (buffer: any, transferSyntaxUID: string, bitsAllocated: number, isBytesInteger: boolean) => {
-  // 1. PyProxyClass 
-  // 2. Uint8Array (if use pyodide.to_js first)
-  // 3. PyProxyClass (is use pyodide.create_proxy)
-
-  buffer = buffer.getBuffer()
-
-  if (transferSyntaxUID === "1.2.840.10008.1.2.4.57" || transferSyntaxUID === "1.2.840.10008.1.2.4.70") {
-    // JPEGLossless
-    // console.log("jpg:", jpg, typeof jpg)
-    const decoder = new jpeg.lossless.Decoder();
+const decompressJPEG = {
+  lossless: (bytes: any) => {
+    const buffer = bytes.getBuffer()
+    const decoder = new jpegLossless.lossless.Decoder();
     const decoded = decoder.decode(buffer.data);
     buffer.release()
     return decoded.buffer
-  } else if (transferSyntaxUID === "1.2.840.10008.1.2.4.50" || transferSyntaxUID === "1.2.840.10008.1.2.4.51") { // 50, 51
+  },
+  baseline: (bytes: any, bitsAllocated: number) => {
     // JPEGBaseline
-    const decoder = new JpegDecoder();
+    const buffer = bytes.getBuffer()
+    const decoder = new JpegBaselineDecoder();
     decoder.parse(new Uint8Array(buffer.data));
     const width = decoder.width;
     const height = decoder.height;
@@ -34,17 +28,20 @@ const decompressJPEG = (buffer: any, transferSyntaxUID: string, bitsAllocated: n
     }
     buffer.release()
     return decoded.buffer;
-  } else if (transferSyntaxUID === "1.2.840.10008.1.2.4.90" || transferSyntaxUID === "1.2.840.10008.1.2.4.91") {
+  },
+  jpeg2000: (bytes: any) => {
     // JPEG_2000
     // remaining not tested yet: "1.2.840.10008.1.2.4.90"
-
-    const decoder = new JpxImage();
+    const buffer = bytes.getBuffer()
+    const decoder = new Jpx2000Image();
     decoder.parse(new Uint8Array(buffer.data));
     const decoded = decoder.tiles[0].items;
     buffer.release()
     return decoded.buffer;
-  } else if (transferSyntaxUID === "1.2.840.10008.1.2.4.80" || transferSyntaxUID === "1.2.840.10008.1.2.4.81") {
+  },
+  jpegls: (bytes: any, isBytesInteger: boolean) => {
     // JPEGLS
+    const buffer = bytes.getBuffer()
     const decoder = new JpegLSDecoder();
     const decoded = decoder.decodeJPEGLS(new Uint8Array(buffer.data), isBytesInteger);
     buffer.release()
@@ -54,5 +51,3 @@ const decompressJPEG = (buffer: any, transferSyntaxUID: string, bitsAllocated: n
 }
 
 export default decompressJPEG;
-
-
