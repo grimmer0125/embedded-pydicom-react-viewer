@@ -327,6 +327,10 @@ function App() {
 
   const processDicomBuffer = (buffer: ArrayBuffer) => {
     if (PyodideDicom.current) {
+      if (dicomObj.current) {
+        dicomObj.current.destroy()
+      }
+
       // console.log("has imported PyodideDicom class")
       dicomObj.current = PyodideDicom.current(buffer, decompressJPEG)
       const image: PyProxyObj = dicomObj.current;
