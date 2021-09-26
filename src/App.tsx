@@ -173,7 +173,8 @@ function App() {
   const [currNormalizeMode, setCurrNormalizeMode] = useState<NormalizationMode>(NormalizationMode.WindowCenter)
 
   const onMouseMove = (event: any) => {
-    if (isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
+    const isGrey = photometric === "MONOCHROME1" || photometric === "MONOCHROME2"
+    if (isGrey && isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
 
       let deltaX = event.clientX - clientX.current;
       let deltaY = clientY.current - event.clientY;
@@ -271,55 +272,55 @@ function App() {
     // console.log("kk:", kk)
 
 
-    if (image.has_uncompressed_data) {
-      // console.log("render uncompressedData");
+    // if (image.has_uncompressed_data) {
+    // console.log("render uncompressedData");
 
-      // if (true) {
+    // if (true) {
 
-      const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
-      const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
-      (ndarray_proxy as PyProxyBuffer).destroy();
+    const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+    const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
+    (ndarray_proxy as PyProxyBuffer).destroy();
 
-      // if (true) {
-      // const ndarray = image.render_rgba_1d_ndarray // <- memory leak !!!
-      // const pyBufferData = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
-      // (ndarray as PyProxy).destroy()
-      // kk.destroy()
-      // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
-      const uncompressedData = buffer.data as Uint8ClampedArray
-      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-      // pyBufferData.release()
-      // }
+    // if (true) {
+    // const ndarray = image.render_rgba_1d_ndarray // <- memory leak !!!
+    // const pyBufferData = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
+    // (ndarray as PyProxy).destroy()
+    // kk.destroy()
+    // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
+    const uncompressedData = buffer.data as Uint8ClampedArray
+    canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+    // pyBufferData.release()
+    // }
 
-      buffer.release(); // Release the memory when we're done
+    buffer.release(); // Release the memory when we're done
 
-      // } else {
-      //   // (ndarray as PyProxy).destroy()
-      //   console.log("not render2")
-      // }
-      // render_rgba_1d_ndarray.destroy();
-      // (image.render_rgba_1d_ndarray as PyProxyBuffer).destroy() // 沒用
-      total += 1;
-    } else if (image.has_compressed_data) {
-      console.log("render compressedData");
-      const compressed = (image as any).get_compressed_pixel() // compressed_pixel_bytes
-      const pyBufferData = (compressed as PyProxyBuffer).getBuffer()
-      compressed.destroy();
-      // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
-      const compressedData = pyBufferData.data as Uint8Array;
-      canvasRender.renderCompressedData(
-        compressedData,
-        image.width as number,
-        image.height as number,
-        image.transferSyntaxUID as string,
-        image.photometric as string,
-        image.bit_allocated as number,
-        myCanvasRef
-      );
-      pyBufferData.release()
-    } else {
-      console.log("no uncompressedData & no compressedData")
-    }
+    // } else {
+    //   // (ndarray as PyProxy).destroy()
+    //   console.log("not render2")
+    // }
+    // render_rgba_1d_ndarray.destroy();
+    // (image.render_rgba_1d_ndarray as PyProxyBuffer).destroy() // 沒用
+    // total += 1;
+    // } else if (image.has_compressed_data) {
+    //   console.log("render compressedData");
+    //   const compressed = (image as any).get_compressed_pixel() // compressed_pixel_bytes
+    //   const pyBufferData = (compressed as PyProxyBuffer).getBuffer()
+    //   compressed.destroy();
+    //   // console.log("pyBufferData data type2, ", typeof pyBufferData.data, pyBufferData.data) // Uint8Array
+    //   const compressedData = pyBufferData.data as Uint8Array;
+    //   canvasRender.renderCompressedData(
+    //     compressedData,
+    //     image.width as number,
+    //     image.height as number,
+    //     image.transferSyntaxUID as string,
+    //     image.photometric as string,
+    //     image.bit_allocated as number,
+    //     myCanvasRef
+    //   );
+    //   pyBufferData.release()
+    // } else {
+    //   console.log("no uncompressedData & no compressedData")
+    // }
     total += 1;
 
     // image.destroy();
@@ -327,10 +328,6 @@ function App() {
 
   const processDicomBuffer = (buffer: ArrayBuffer) => {
     if (PyodideDicom.current) {
-      if (dicomObj.current) {
-        dicomObj.current.destroy()
-      }
-
       // console.log("has imported PyodideDicom class")
       dicomObj.current = PyodideDicom.current(buffer, decompressJPEG)
       const image: PyProxyObj = dicomObj.current;

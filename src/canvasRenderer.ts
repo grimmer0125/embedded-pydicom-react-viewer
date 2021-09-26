@@ -36,6 +36,8 @@ function renderUncompressedData(
   ctx.putImageData(imgData, 0, 0);
 };
 
+
+/** this function is deprecated */
 // todo: know width, height, color_bit first ?????
 // 1. JPGLosslessP14SV1_1s_1f_8b:70 works 1024x768x1 Uint8Array
 // 2. JPEG57-MR-MONO2-12-shoulder: 57, 1024x1024, 2byteColor: Uint16Array
@@ -116,6 +118,7 @@ function renderNonBaselineJPEG(
   renderUncompressedData(pixels, rawDataWidth, rawDataHeight, myCanvasRef);
 };
 
+/** this function is deprecated */
 function renderCompressedData(
   imageUnit8Array: Uint8Array,
   rawDataWidth: number,
