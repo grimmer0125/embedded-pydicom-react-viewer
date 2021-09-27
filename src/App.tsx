@@ -48,7 +48,7 @@ type PyProxyObj = any
 // }
 
 enum NormalizationMode {
-  PixelHUMaxMin,
+  PixelHUMaxMin, //start from 0 
   WindowCenter,
   // below are for CT,   // https://radiopaedia.org/articles/windowing-ct
   AbdomenSoftTissues, //W:400 L:50
@@ -354,8 +354,8 @@ function App() {
       setResY(image.height)
       setNumFrames(image.frame_num)
 
-      setPixelMax(image.max_curr_frame)
-      setPixelMin(image.min_curr_frame)
+      setPixelMax(image.frame_max)
+      setPixelMin(image.frame_min)
       setWindowCenter(image.window_center)
       setWindowWidth(image.window_width)
       setCurrFrameIndex(1)
@@ -438,21 +438,31 @@ function App() {
   ) => {
     const { value } = data;
 
-    const newMode = value as number;
-    setCurrNormalizeMode(newMode)
+    const normalize_mode = value as number;
+    setCurrNormalizeMode(normalize_mode)
     // console.log("handleNormalizeModeChange:", newMode) // 1 (center), 0 
 
-    if (newMode === NormalizationMode.WindowCenter) {
+    if (normalize_mode === NormalizationMode.WindowCenter) {
       // console.log(`new is center:${windowCenter}`)
       setUseWindowCenter(windowCenter)
       setUseWindowWidth(windowWidth)
       const image: PyProxyObj = dicomObj.current
       image.render_frame_to_rgba_1d(windowCenter, windowWidth, NormalizationMode.WindowCenter)
       renderFrame()
-    } else if (newMode === NormalizationMode.PixelHUMaxMin) {
+    } else if (normalize_mode === NormalizationMode.PixelHUMaxMin) {
       // console.log("new is maxmin")
       const image: PyProxyObj = dicomObj.current
-      image.render_frame_to_rgba_1d.callKwargs({ normalize_mode: NormalizationMode.PixelHUMaxMin })
+      image.render_frame_to_rgba_1d.callKwargs({ normalize_mode })
+      renderFrame()
+    } else {
+      const data = WindowCenterWidthConst[normalize_mode];
+      const tmpWindowCenter = data.L;
+      const tmpWindowWidth = data.W;
+
+      setUseWindowCenter(tmpWindowCenter)
+      setUseWindowWidth(tmpWindowWidth)
+      const image: PyProxyObj = dicomObj.current
+      image.render_frame_to_rgba_1d.callKwargs(tmpWindowCenter, tmpWindowWidth, { normalize_mode })
       renderFrame()
     }
 
@@ -484,8 +494,8 @@ function App() {
       setCurrFrameIndex(value)
       const image: PyProxyObj = dicomObj.current
       image.render_frame_to_rgba_1d.callKwargs({ frame_index: value - 1 })
-      setPixelMax(image.max_curr_frame)
-      setPixelMin(image.min_curr_frame)
+      setPixelMax(image.frame_max)
+      setPixelMin(image.frame_min)
       renderFrame()
     }
   };
@@ -553,6 +563,7 @@ function App() {
               currNormalizeMode={currNormalizeMode}
               onChange={handleNormalizeModeChange}
             />
+
             <NormalizationComponent
               mode={NormalizationMode.PixelHUMaxMin}
               currNormalizeMode={currNormalizeMode}
@@ -567,6 +578,37 @@ function App() {
                   options={options}
                 />) : null}
             </div>
+          </div>
+          <div className="flex-container">
+            {modality === "CT" && (
+              <>
+                <NormalizationComponent
+                  mode={NormalizationMode.AbdomenSoftTissues}
+                  currNormalizeMode={currNormalizeMode}
+                  onChange={handleNormalizeModeChange}
+                />
+                <NormalizationComponent
+                  mode={NormalizationMode.SpineSoftTissues}
+                  currNormalizeMode={currNormalizeMode}
+                  onChange={handleNormalizeModeChange}
+                />
+
+                <NormalizationComponent
+                  mode={NormalizationMode.SpineBone}
+                  currNormalizeMode={currNormalizeMode}
+                  onChange={handleNormalizeModeChange}
+                />
+                <NormalizationComponent
+                  mode={NormalizationMode.Brain}
+                  currNormalizeMode={currNormalizeMode}
+                  onChange={handleNormalizeModeChange}
+                />
+                <NormalizationComponent
+                  mode={NormalizationMode.Lungs}
+                  currNormalizeMode={currNormalizeMode}
+                  onChange={handleNormalizeModeChange}
+                />
+              </>)}
           </div>
         </div>
         {totalFiles > 0 ? (
