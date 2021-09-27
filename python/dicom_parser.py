@@ -232,17 +232,25 @@ class PyodideDicom:
         # todo: handle PR=1(signed number)
         if self.bit_allocated == 16:
             if self.pixel_representation == 0:
+                # print("111")
+                # JPEG57-MR-MONO2-12-shoulder
                 numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint16)
             else:
+                # print("222")
+                # CT-MONO2-16-chest
                 numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int16)
 
+            ## TODO: use numComponents to detect 16/8 may be better?
             if self.width and self.height:
                 numComponents = len(b2) // self.width // self.height // 2
                 # print("numComponents:" + str(numComponents))
         else:  # 8
             if self.pixel_representation == 0:
+                # print("333")
+                # JPGLosslessP14SV1_1s_1f_8b
                 numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.uint8)
             else:
+                # print("444")
                 numpy_array: np.ndarray = np.frombuffer(b2, dtype=np.int8)
 
             if self.width and self.height:
@@ -562,6 +570,7 @@ class PyodideDicom:
                     self.multi_frame_compressed_bytes[frame_index]
                 )
                 if self.ds:
+                    # JPEG57-MR-MONO2-12-shoulder
                     image = apply_modality_lut(image, self.ds)
             self.decompressed_cache_dict[str(frame_index)] = image
 
@@ -577,7 +586,7 @@ class PyodideDicom:
         # print(f"uncompressed shape:{image.shape}")  # 空的?
         self.frame_min = int(_min)
         self.frame_max = int(_max)
-        # print(f"setup frame_max:{int(_min)};{int(_max)}")
+        # print(f"setup frame_max:{int(_min)};{int(_max)};{self.photometric}")
 
         if self.photometric == "MONOCHROME1":
             # print("invert color for monochrome1")
@@ -660,14 +669,15 @@ class PyodideDicom:
         if (
             self.photometric == "RGB"
             or self.photometric == "PALETTE COLOR"
-            or self.photometric == "YBR_FULL"  # color3d_jpeg_baseline-broken-multi
+            or self.photometric == "YBR_FULL"
+            # color3d_jpeg_baseline-broken-multi (0,243), 1.2.840.10008.1.2.4.50
             or self.photometric == "YBR_FULL_422"
         ):
             # print("it is RGB or PALETTE COLOR")
 
             if normalize_image.ndim == 1:
                 # print("flatten_jpeg_RGB_image1d_to_rgba_1d_image_array")
-                # http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70
+                # http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm 1.2.840.10008.1.2.4.70 (0,255)
                 # alpha = np.full_like(compress_pixel_data, 255)
                 # print(f"alpha1:{alpha.shape}")  # ()
                 # indexes: sometimes it will throw error, e.g. http://medistim.com/wp-content/uploads/2016/07/bmode.dcm
@@ -690,9 +700,9 @@ class PyodideDicom:
                 #     normalize_image, indexes, 255
                 # )  # 0.06s
             else:
-                # uncompress case
+                # uncompress case (such as PALETTE COLOR, US-PAL-8-10x-echo). (0,65280)
                 # if planar_config == 0:
-                # US-RGB-8-esopecho # 0.025s
+                # US-RGB-8-esopecho # 0.025s  (16,248)
                 # print("flatten_rgb_image2d_plan0_to_rgba_1d_image_array!!")
                 self.final_rgba_1d_ndarray = (
                     self.flatten_rgb_image2d_plan0_to_rgba_1d_image_array(
