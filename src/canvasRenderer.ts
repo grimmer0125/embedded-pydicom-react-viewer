@@ -1,6 +1,7 @@
 const jpeg = require("jpeg-lossless-decoder-js");
 
 function resetCanvas(canvas: HTMLCanvasElement | null) {
+  // TODO: clear the other two canvas
   if (!canvas) {
     return;
   }
@@ -14,14 +15,17 @@ function renderUncompressedData(
   imageUnit8Array: Uint8ClampedArray,
   rawDataWidth: number,
   rawDataHeight: number,
-  myCanvasRef: React.RefObject<HTMLCanvasElement>
+  myCanvasRef: React.RefObject<HTMLCanvasElement>,
+  extraHeightScale?: number,
+  extraWidthScale?: number
 ) {
   if (!myCanvasRef.current) {
     console.log("canvasRef is not ready, return");
     return;
   }
 
-  const c = myCanvasRef.current;
+  //const c = myCanvasRef.current;
+  const c = document.createElement("canvas");
   c.width = rawDataWidth;
   c.height = rawDataHeight;
 
@@ -34,7 +38,25 @@ function renderUncompressedData(
   // console.log(rawDataWidth, rawDataHeight, imageUnit8Array.byteLength);
   const imgData = new ImageData(imageUnit8Array, rawDataWidth, rawDataHeight);
   ctx.putImageData(imgData, 0, 0);
+
+  // rescale 
+  // const extraHeightScale = 1
+  // const extraWidthScale = 1
+  const c2: any = myCanvasRef.current;
+  c2.width = rawDataWidth
+  c2.height = rawDataHeight
+  if (extraHeightScale) {
+    c2.height = c2.height * extraHeightScale;
+  }
+  if (extraWidthScale) {
+    c2.width = c2.width * extraWidthScale;
+  }
+  const ctx2 = c2.getContext("2d");
+  ctx2.drawImage(c, 0, 0, c2.width, c2.height);
 };
+
+
+
 
 
 /** this function is deprecated */

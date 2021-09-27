@@ -17,6 +17,7 @@ import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync }
 import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 import decompressJPEG from "./jpegDecoder"
+import { file } from "@babel/types";
 
 type PyProxyObj = any
 
@@ -46,6 +47,11 @@ type PyProxyObj = any
 //     return decoded.buffer;
 //   }
 // }
+
+enum SeriesMode {
+  NoSeries,
+  Series
+}
 
 enum NormalizationMode {
   PixelHUMaxMin, //start from 0 
@@ -139,7 +145,7 @@ function checkIfValidDicomFileName(name: string) {
     name.toLowerCase().endsWith(".dcm") === false &&
     name.toLowerCase().endsWith(".dicom") === false
   ) {
-    console.log("not dicom file:", name);
+    // console.log("not dicom file:", name);
     return false;
   }
   return true;
@@ -153,15 +159,22 @@ let total = 0;
 
 function App() {
   const myCanvasRef = useRef<HTMLCanvasElement>(null);
+  const myCanvasRefSagittal = useRef<HTMLCanvasElement>(null);
+  const myCanvasRefCorona = useRef<HTMLCanvasElement>(null);
+
   const isValidMouseDown = useRef(false);
   const clientX = useRef<number>()
   const clientY = useRef<number>()
   const dicomObj = useRef<any>(null);
   const PyodideDicom = useRef<Function>()
-  const files = useRef<any>(null);
+  const files = useRef<File[]>([]);
 
   const [totalFiles, setTotalFiles] = useState<number>(0)
   const [currFileNo, setCurrFileNo] = useState<number>(0)
+
+  const [ifShowSagittalCoronal, setIfShowSagittalCoronal] = useState<SeriesMode>(SeriesMode.NoSeries);
+  const [isCommonAxialView, setIsCommonAxialView] = useState(false);
+  // const [seriesMode, setSeriesMode] = useState("notSeriesMode")
 
   // for testing 
   const fileBuffer = useRef<any>(null);
@@ -289,22 +302,63 @@ function App() {
 
     // if (true) {
 
-    const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
-    const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
-    (ndarray_proxy as PyProxyBuffer).destroy();
+    const ax_ndarray = (image as any).get_ax_ndarray()
+    if (ax_ndarray) {
+      console.log("ax_ndarray")
+      const buffer = (ax_ndarray as PyProxyBuffer).getBuffer("u8clamped");
+      (ax_ndarray as PyProxyBuffer).destroy();
+      const uncompressedData = buffer.data as Uint8ClampedArray
+      console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
+      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+      buffer.release();
+    } else {
+      const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+      if (ndarray_proxy) {
+        console.log("ndarray_proxy")
+        const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
+        (ndarray_proxy as PyProxyBuffer).destroy();
 
-    // if (true) {
-    // const ndarray = image.render_rgba_1d_ndarray // <- memory leak !!!
-    // const pyBufferData = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
-    // (ndarray as PyProxy).destroy()
-    // kk.destroy()
-    // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
-    const uncompressedData = buffer.data as Uint8ClampedArray
-    canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-    // pyBufferData.release()
-    // }
+        // if (true) {
+        // const ndarray = image.render_rgba_1d_ndarray // <- memory leak !!!
+        // const pyBufferData = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
+        // (ndarray as PyProxy).destroy()
+        // kk.destroy()
+        // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
+        const uncompressedData = buffer.data as Uint8ClampedArray
+        canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+        // pyBufferData.release()
+        // }
 
-    buffer.release(); // Release the memory when we're done
+        buffer.release(); // Release the memory when we're done
+      }
+    }
+
+    const sag_ndarray = (image as any).get_sag_ndarray()
+    if (sag_ndarray) {
+      const shape = image.get_3d_shape().toJs();
+      console.log("sag_ndarray:", shape);
+
+      const buffer = (sag_ndarray as PyProxyBuffer).getBuffer("u8clamped");
+      (sag_ndarray as PyProxyBuffer).destroy();
+      const uncompressedData = buffer.data as Uint8ClampedArray
+      canvasRender.renderUncompressedData(uncompressedData, shape[0] as number, shape[2] as number, myCanvasRefSagittal, image.sag_aspect);
+      buffer.release();
+    }
+
+    const cor_ndarray = (image as any).get_cor_ndarray()
+    if (cor_ndarray) {
+      const shape = image.get_3d_shape().toJs();
+      console.log("cor_ndarray")
+      const buffer = (cor_ndarray as PyProxyBuffer).getBuffer("u8clamped");
+      (cor_ndarray as PyProxyBuffer).destroy();
+      const uncompressedData = buffer.data as Uint8ClampedArray
+      canvasRender.renderUncompressedData(uncompressedData, shape[1] as number, shape[2] as number, myCanvasRefCorona, image.cor_aspect);
+      buffer.release();
+    }
+
+
+
+
 
     // } else {
     //   // (ndarray as PyProxy).destroy()
@@ -333,15 +387,16 @@ function App() {
     // } else {
     //   console.log("no uncompressedData & no compressedData")
     // }
-    total += 1;
+    // total += 1;
 
     // image.destroy();
   }
 
-  const processDicomBuffer = (buffer: ArrayBuffer) => {
+
+  const processDicomBuffer = (buffer?: ArrayBuffer, bufferList?: ArrayBuffer[]) => {
     if (PyodideDicom.current) {
       // console.log("has imported PyodideDicom class")
-      dicomObj.current = PyodideDicom.current(buffer, decompressJPEG)
+      dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
       const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       // console.log(`image max:${image.max}`)
@@ -354,10 +409,14 @@ function App() {
       setResY(image.height)
       setNumFrames(image.frame_num)
 
+      // maybe global? 是的使用它去 normalize, 但 ui上是用 axial 平面來 show max 
       setPixelMax(image.frame_max)
       setPixelMin(image.frame_min)
+
+      // maybe global?  ui 顯示上是以 axial 使用的主. 不然就是 global max.min
       setWindowCenter(image.window_center)
       setWindowWidth(image.window_width)
+
       setCurrFrameIndex(1)
       if (currNormalizeMode === NormalizationMode.WindowCenter) {
         setUseWindowCenter(image.window_center)
@@ -370,12 +429,12 @@ function App() {
        * now changes to use a Python object instance in JS !!
        */
 
-      if (image.ds) {
-        // console.log("image ds:", image.ds) // target: PyProxyClass
-        // console.log(image.ds) // Proxy
-        // console.log(typeof image.ds) // object
-        // console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
-      }
+      // if (image.ds) {
+      // console.log("image ds:", image.ds) // target: PyProxyClass
+      // console.log(image.ds) // Proxy
+      // console.log(typeof image.ds) // object
+      // console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
+      // }
 
       renderFrame()
 
@@ -387,11 +446,11 @@ function App() {
   }
 
   const loadFile = async (file: File) => {
-    if (!checkIfValidDicomFileName(file.name)) {
-      return
-    }
+    // if (!checkIfValidDicomFileName(file.name)) {
+    //   return
+    // }
 
-    setCurrFilePath(file.name)
+    // setCurrFilePath(file.name)
     const buffer = await loadDicomFileAsync(file);
     fileBuffer.current = buffer
     // NOTE: besides getting return value (python code last line expression),
@@ -419,15 +478,46 @@ function App() {
       acceptedFiles.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       });
-      files.current = acceptedFiles;
-      const file = files.current[0];
-      setCurrFileNo(1)
-      setTotalFiles(acceptedFiles.length)
+
+      files.current = acceptedFiles.filter((file) => {
+        return checkIfValidDicomFileName(file.name);
+      })
+    }
+
+    if (files.current.length > 0) {
       resetUI();
-      loadFile(file);
+
+      console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal)
+      if (ifShowSagittalCoronal === SeriesMode.Series) {
+        console.log("3d mode1")
+        // todo: 要改成用 series images? 有些可能不符合 
+        // 1 currentFileNo 是 series.images 一半 
+        // 2 setCurrFilePath 要現在設嗎? 還是要改成是 dicom 符合的?
+        // 3 要改成是 dicom 符合的嗎? series mode? yes
+        // setTotalFiles(files.current.length)
+        /** ~ loadFile */
+        const promiseList: any[] = [];
+        files.current.forEach((file, index) => {
+          // if (typeof file === "string") {
+          //   // fetch
+          // } else 
+          promiseList.push(loadDicomFileAsync(file));
+        });
+        const bufferList = await Promise.all(promiseList);
+        processDicomBuffer(undefined, bufferList)
+      } else {
+        console.log("2d mode2")
+
+        const file = files.current[0];
+        setTotalFiles(files.current.length)
+        setCurrFileNo(1)
+        setCurrFilePath(file.name)
+
+        loadFile(file);
+      }
     }
     // Do something with the files
-  }, []);
+  }, [ifShowSagittalCoronal]);
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDropFiles,
   });
@@ -518,12 +608,34 @@ function App() {
     const newFile = files.current[value - 1];
     // console.log("switch to image:", value, newFile);
     // if (!this.isOnlineMode) {
+    setCurrFilePath(newFile.name)
     loadFile(newFile);
     // } else {
     //   this.fetchFile(newFile);
     // }
     // }
   };
+
+  const handleSeriesModeChange = async (e: any, obj: any) => {
+    // const { value } = obj;
+    if (ifShowSagittalCoronal === SeriesMode.NoSeries) {
+      console.log("to series")
+      setIfShowSagittalCoronal(SeriesMode.Series)
+
+    } else {
+      console.log("to no series")
+
+      setIfShowSagittalCoronal(SeriesMode.NoSeries)
+      if (files.current.length > 0) {
+        const newFile = files.current[0];
+        setTotalFiles(files.current.length)
+        setCurrFileNo(1)
+        // if (this.isOnlineMode) {
+        setCurrFilePath(file.name)
+        loadFile(newFile);
+      }
+    }
+  }
 
   return (
     <div className="flex-container">
@@ -545,7 +657,7 @@ function App() {
               )}
             </div>
           </div>
-          <div>
+          <div className="flex-container">
             {info}
             <br />
             {` current window center:${useWindowCenter} ; window width ${useWindowWidth} ;`}
@@ -610,6 +722,15 @@ function App() {
                 />
               </>)}
           </div>
+          <div className="flex-container">
+            <Radio
+              toggle
+              value={SeriesMode[ifShowSagittalCoronal]}
+              checked={ifShowSagittalCoronal === SeriesMode.Series}
+              onChange={handleSeriesModeChange}
+            />
+            {"  Enable Series mode"}
+          </div>
         </div>
         {totalFiles > 0 ? (
           <div
@@ -644,6 +765,7 @@ function App() {
           <div className="flex-column-justify-align-center">
             <div className="flex-column_align-center">
               {/* <img style={{width:500, height:250}} ref={myImg} /> */}
+              {/* AxialView */}
               <canvas
                 ref={myCanvasRef}
                 onMouseDown={onMouseCanvasDown}
@@ -651,10 +773,39 @@ function App() {
                 // onMouseUp={onMouseUp}
                 width={MAX_WIDTH_SERIES_MODE}
                 height={MAX_HEIGHT_SERIES_MODE}
-              // style={{ backgroundColor: "black" }}
+                style={{ backgroundColor: "black" }}
               />
             </div>
           </div>
+          {ifShowSagittalCoronal === SeriesMode.Series && (
+            <>
+              <div className="flex-column-justify-align-center">
+                <div className="flex-column_align-center">
+                  {/* Sagittal */}
+                  <canvas
+                    ref={myCanvasRefSagittal}
+                    onMouseDown={onMouseCanvasDown}
+                    onMouseMove={onMouseMove}
+                    width={MAX_WIDTH_SERIES_MODE}
+                    height={MAX_HEIGHT_SERIES_MODE}
+                    style={{ backgroundColor: "yellow" }}
+                  />
+                </div>
+              </div>
+              <div className="flex-column-justify-align-center">
+                <div className="flex-column_align-center">
+                  {/* Corona */}
+                  <canvas
+                    ref={myCanvasRefCorona}
+                    onMouseDown={onMouseCanvasDown}
+                    onMouseMove={onMouseMove}
+                    width={MAX_WIDTH_SERIES_MODE}
+                    height={MAX_HEIGHT_SERIES_MODE}
+                    style={{ backgroundColor: "green" }}
+                  />
+                </div>
+              </div>
+            </>)}
         </div>
       </div>
     </div>
