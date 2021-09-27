@@ -16,6 +16,7 @@ from pydicom.encaps import (
     decode_data_sequence,
     generate_pixel_data_frame,
 )
+
 import pyodide
 
 compressed_list = [
@@ -100,10 +101,16 @@ class PyodideDicom:
         # 0028,1050, width: 0028,1051
         # ref: https://radiopaedia.org/articles/windowing-ct
         if self.ds:
+            # if "WindowWidth" in self.ds:
+            #     print(f"ds.WindowWidth: {self.ds.WindowWidth}")
             # if isinstance(self.ds, DicomDir):
             el = self.ds.get((0x0028, 0x1050))
             if el:
-                return el.value  # elf.ds[0x0028, 0x1050].value
+                # https://stackoverflow.com/questions/10088701/dicom-window-center-window-width/10090870
+                if type(el.value) == pydicom.multival.MultiValue:
+                    # multiple window center/width setting
+                    return el.value[0]
+                return el.value
             # print(f"b2:{b2}")
             # c = self.ds.get([0x9999, 0x9999]) # None
             # print(f"c:{c}")
@@ -114,8 +121,11 @@ class PyodideDicom:
     @property
     def window_width(self):
         if self.ds:
+            #  width: [300, 1500], center [40, 300]
             el = self.ds.get((0x0028, 0x1051))
             if el:
+                if type(el.value) == pydicom.multival.MultiValue:
+                    return el.value[0]
                 return el.value
         return None
 
@@ -124,6 +134,7 @@ class PyodideDicom:
         #     f"get buffer from javascript, copied memory to wasm heap, start to read dicom:{type(buffer_memory)}"
         # )
         # file_name = "image-00000-ot.dcm"
+        ## TODO: reading brain_001.dcm is so long, use stop_before_pixels?
         ds = pydicom.dcmread(BytesIO(buffer_memory), force=True)
         # print("read dicom ok")
         # patient_name = ds.PatientName
@@ -132,7 +143,6 @@ class PyodideDicom:
 
     def get_pydicom_dataset_from_local_file(self, path: str):
         ds = pydicom.dcmread(path, force=True)
-        print("read dicom ok")
         return ds
 
     def decompress_compressed_data(self, pixel_data: bytes):
@@ -357,8 +367,9 @@ class PyodideDicom:
                     arr = ds.pixel_array
                     # raise e
 
-            print(f"read dicom pixel_array ok, shape:{arr.shape}")
+            # print(f"read dicom pixel_array ok, shape:{arr.shape}")
             image = apply_modality_lut(arr, ds)
+            # print("ok")
             # if self.frame_num > 1:
             self.multi_frame_incompressed_image = image
             # return image, None
@@ -632,6 +643,9 @@ class PyodideDicom:
                 min = normalize_window_center - math.floor(normalize_window_width / 2)
                 normalize_image = self.normalize_image(image, max, min)
             elif self.window_center and self.window_width:
+                # print("mode3:")
+
+                # print(f"mode3. max0: {self.window_width}, {self.window_center}")
                 max = self.window_center + math.floor(self.window_width / 2)
                 min = self.window_center - math.floor(self.window_width / 2)
                 normalize_image = self.normalize_image(image, max, min)
@@ -805,7 +819,7 @@ class PyodideDicom:
 
             # deprecated, use plot.py to do local experiment
             # start to do some local Python stuff, e.g. testing
-            ds = self.get_pydicom_dataset_from_local_file("dicom/image-00000-ot.dcm")
+            ds = self.get_pydicom_dataset_from_local_file("dicom_samples/brain_001.dcm")
 
         self.ds = ds
         width: int = ds[0x0028, 0x0011].value
