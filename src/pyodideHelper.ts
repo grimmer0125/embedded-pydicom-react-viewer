@@ -68,7 +68,7 @@ const loadPyodideDicomModule = d4c.wrap(async () => {
 });
 
 const loadDicomFileAsync = d4c.wrap(async (file: File): Promise<ArrayBuffer> => {
-    console.log("loadDicomFileAsync")
+    // console.log("loadDicomFileAsync")
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
