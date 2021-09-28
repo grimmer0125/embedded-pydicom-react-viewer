@@ -170,11 +170,14 @@ function App() {
   const files = useRef<File[]>([]);
 
   const [totalFiles, setTotalFiles] = useState<number>(0)
+  const [totalCoronaFrames, setTotalCoronaFrames] = useState<number>(0)
+  const [totalSagittalFrames, setTotalSagittalFrames] = useState<number>(0)
   const [currFileNo, setCurrFileNo] = useState<number>(0)
+  const [currentSagittalNo, setCurrentSagittalNo] = useState<number>(0)
+  const [currentCoronaNo, setCurrentCoronaNo] = useState<number>(0)
 
   const [ifShowSagittalCoronal, setIfShowSagittalCoronal] = useState<SeriesMode>(SeriesMode.NoSeries);
   const [isCommonAxialView, setIsCommonAxialView] = useState(false);
-  // const [seriesMode, setSeriesMode] = useState("notSeriesMode")
 
   // for testing 
   const fileBuffer = useRef<any>(null);
@@ -281,6 +284,7 @@ function App() {
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
   const renderFrame = () => {
+    // TODO: add parameters to specify which should be updated 
     const image: PyProxyObj = dicomObj.current;
 
     // todo: figure it out 
@@ -295,17 +299,17 @@ function App() {
 
     const ax_ndarray = (image as any).get_ax_ndarray()
     if (ax_ndarray) {
-      console.log("ax_ndarray")
+      // console.log("ax_ndarray")
       const buffer = (ax_ndarray as PyProxyBuffer).getBuffer("u8clamped");
       (ax_ndarray as PyProxyBuffer).destroy();
       const uncompressedData = buffer.data as Uint8ClampedArray
-      console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
+      // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
       canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
       buffer.release();
     } else {
       const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
       if (ndarray_proxy) {
-        console.log("ndarray_proxy")
+        // console.log("ndarray_proxy")
         const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
         (ndarray_proxy as PyProxyBuffer).destroy();
         // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
@@ -317,24 +321,24 @@ function App() {
 
     const sag_ndarray = (image as any).get_sag_ndarray()
     if (sag_ndarray) {
-      const shape = image.get_3d_shape().toJs();
-      console.log("sag_ndarray:", shape);
+      // const shape = image.get_3d_shape().toJs();
+      // console.log("sag_ndarray:", shape);
 
       const buffer = (sag_ndarray as PyProxyBuffer).getBuffer("u8clamped");
       (sag_ndarray as PyProxyBuffer).destroy();
       const uncompressedData = buffer.data as Uint8ClampedArray
-      canvasRender.renderUncompressedData(uncompressedData, shape[0] as number, shape[2] as number, myCanvasRefSagittal, image.sag_aspect);
+      canvasRender.renderUncompressedData(uncompressedData, image.series_dim_y as number, image.series_dim_z as number, myCanvasRefSagittal, image.sag_aspect);
       buffer.release();
     }
 
     const cor_ndarray = (image as any).get_cor_ndarray()
     if (cor_ndarray) {
-      const shape = image.get_3d_shape().toJs();
-      console.log("cor_ndarray")
+      // const shape = image.get_3d_shape().toJs();
+      // console.log("cor_ndarray")
       const buffer = (cor_ndarray as PyProxyBuffer).getBuffer("u8clamped");
       (cor_ndarray as PyProxyBuffer).destroy();
       const uncompressedData = buffer.data as Uint8ClampedArray
-      canvasRender.renderUncompressedData(uncompressedData, shape[1] as number, shape[2] as number, myCanvasRefCorona, image.cor_aspect);
+      canvasRender.renderUncompressedData(uncompressedData, image.series_dim_x as number, image.series_dim_z as number, myCanvasRefCorona, image.cor_aspect);
       buffer.release();
     }
 
@@ -386,11 +390,13 @@ function App() {
       setResY(image.height)
       setNumFrames(image.frame_num)
 
-      // maybe global? 是的使用它去 normalize, 但 ui上是用 axial 平面來 show max 
+      // normalization: using global series max in 3d 
+      // but https://grimmer.io/dicom-web-viewer/ show axial plan's max on UI
+      // now we correct this by using global max/min 
       setPixelMax(image.frame_max ?? image.max_3d)
       setPixelMin(image.frame_min ?? image.min_3d)
 
-      // maybe global?  ui 顯示上是以 axial 使用的主. 不然就是 global max.min
+      // by default it is referring 1st dicom in series mode
       setWindowCenter(image.window_center)
       setWindowWidth(image.window_width)
 
@@ -412,12 +418,16 @@ function App() {
       // }
 
       if (bufferList) {
-        setTotalFiles(3)
-        // todo: 要改成用 series images? 有些可能不符合 
-        // 1 currentFileNo 是 series.images 一半 
-        // 2 setCurrFilePath 要現在設嗎? 還是要改成是 dicom 符合的?
-        // 3 要改成是 dicom 符合的嗎? series mode? yes
-        // setTotalFiles(files.current.length)
+        setTotalFiles(image.series_dim_z)
+        setTotalCoronaFrames(image.series_dim_y)
+        setTotalSagittalFrames(image.series_dim_x)
+
+        setCurrFileNo(image.series_z + 1)
+        setCurrentCoronaNo(image.series_y + 1)
+        setCurrentSagittalNo(image.series_x + 1)
+
+        // console.log(image.series_dim_y, image.series_dim_x, image.series_y, image.series_x)
+        // TODO: setCurrFilePath ??????????
       }
 
       renderFrame()
@@ -471,9 +481,9 @@ function App() {
     if (files.current.length > 0) {
       resetUI();
 
-      console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal)
+      // console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal)
       if (ifShowSagittalCoronal === SeriesMode.Series) {
-        console.log("3d mode1")
+        // console.log("3d mode1")
         /** ~ loadFile */
         const promiseList: any[] = [];
         files.current.forEach((file, index) => {
@@ -485,7 +495,7 @@ function App() {
         const bufferList = await Promise.all(promiseList);
         processDicomBuffer(undefined, bufferList)
       } else {
-        console.log("2d mode2")
+        // console.log("2d mode2")
 
         const file = files.current[0];
         setTotalFiles(files.current.length)
@@ -569,30 +579,49 @@ function App() {
     }
   };
 
+  const switchSagittal = (value: number) => {
+    setCurrentSagittalNo(value)
+    dicomObj.current.redner_sag_view(value - 1)
+    renderFrame()
+  }
+
+  const switchCorona = (value: number) => {
+    setCurrentCoronaNo(value)
+    dicomObj.current.redner_cor_view(value - 1)
+    renderFrame()
+  }
+
   const switchFile = (value: number) => {
     // this.setState({
     //   currFileNo: value,
     // });
-    setCurrFileNo(value)
 
-    // const { ifShowSagittalCoronal } = this.state;
-    // // console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal);
-    // if (ifShowSagittalCoronal) {
-    //   this.buildAxialView(
-    //     this.currentSeries,
-    //     this.currentSeriesImageObjects,
-    //     value - 1
-    //   );
-    // } else {
-    const newFile = files.current[value - 1];
-    // console.log("switch to image:", value, newFile);
-    // if (!this.isOnlineMode) {
-    setCurrFilePath(newFile.name)
-    loadFile(newFile);
-    // } else {
-    //   this.fetchFile(newFile);
-    // }
-    // }
+    if (ifShowSagittalCoronal === SeriesMode.NoSeries) {
+      setCurrFileNo(value)
+
+      // const { ifShowSagittalCoronal } = this.state;
+      // // console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal);
+      // if (ifShowSagittalCoronal) {
+      //   this.buildAxialView(
+      //     this.currentSeries,
+      //     this.currentSeriesImageObjects,
+      //     value - 1
+      //   );
+      // } else {
+      const newFile = files.current[value - 1];
+      // console.log("switch to image:", value, newFile);
+      // if (!this.isOnlineMode) {
+      setCurrFilePath(newFile.name)
+      loadFile(newFile);
+      // } else {
+      //   this.fetchFile(newFile);
+      // }
+      // }
+    } else {
+      setCurrFileNo(value)
+      dicomObj.current.render_axial_view(value - 1)
+      renderFrame()
+    }
   };
 
   const handleSeriesModeChange = async (e: any, obj: any) => {
@@ -615,6 +644,8 @@ function App() {
       }
     }
   }
+
+
 
   return (
     <div className="flex-container">
@@ -736,8 +767,30 @@ function App() {
                   max={totalFiles}
                   onChange={switchFile}
                 />
-                {/* {isCommonAxialView ? <div>{"I"}</div> : null}{" "} */}
               </div>
+              {ifShowSagittalCoronal === SeriesMode.Series && (
+                <>
+                  <div className="flex-container">
+                    {/* {isCommonAxialView ? <div>{"I"}</div> : null}{" "} */}
+                    <Slider
+                      value={currentSagittalNo}
+                      step={1}
+                      min={1}
+                      max={totalSagittalFrames}
+                      onChange={switchSagittal}
+                    />
+                  </div>
+                  <div className="flex-container">
+                    <Slider
+                      value={currentCoronaNo}
+                      step={1}
+                      min={1}
+                      max={totalCoronaFrames}
+                      onChange={switchCorona}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>) : null}
         <div className="flex-container">

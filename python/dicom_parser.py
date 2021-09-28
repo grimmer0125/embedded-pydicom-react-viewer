@@ -58,19 +58,21 @@ class PyodideDicom:
     # ** 1. pillow for 50 https://pydicom.github.io/pydicom/dev/old/image_data_handlers.html
     # x 2. multi files
     # x 3. multi frame in 1 file
-    ds: Optional[Union[FileDataset, DicomDir]] = None
+    ds: Optional[Union[FileDataset]] = None
     jpeg_decoder: Any = None
     compressed_bytes: Optional[List[bytes]] = None
     decompressed_cache_dict: Optional[Dict[str, np.ndarray]] = None
     incompressed_image: Optional[np.ndarray] = None
 
     series_group: Optional[List[List[FileDataset]]] = None
-    img3d_group: Optional[List[np.ndarray]] = None
-    img3d_group_index: int = -1
-
+    series_img3d_group: Optional[List[np.ndarray]] = None
+    series_group_index: int = -1
+    series_x: int = 0
+    series_y: int = 0
+    series_z: int = 0
     max_3d: Optional[int] = None
     min_3d: Optional[int] = None
-    valid_3d_files: Optional[int] = None
+    # valid_3d_files: Optional[int] = None
     ax_aspect: float = 1
     sag_aspect: float = 1
     cor_aspect: float = 1
@@ -363,10 +365,10 @@ class PyodideDicom:
                 print("failed to get compressed data")
                 raise e
         else:
-            print("incompressed case")
-            print(
-                "start reading dicom pixel_array, incompressed case uses apply_modality_lut"
-            )
+            # print("incompressed case")
+            # print(
+            #     "start reading dicom pixel_array, incompressed case uses apply_modality_lut"
+            # )
 
             try:
                 arr = ds.pixel_array
@@ -376,7 +378,7 @@ class PyodideDicom:
                     raise e
                 else:
                     # http://dicom.nema.org/dicom/2013/output/chtml/part05/chapter_10.html
-                    print("read data fail may due to no TransferSyntaxUID")
+                    # print("read data fail may due to no TransferSyntaxUID")
                     ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
                     arr = ds.pixel_array
                     # raise e
@@ -822,21 +824,34 @@ class PyodideDicom:
     def get_cor_ndarray(self):
         return self.cor_ndarray
 
-    def get_3d_shape(self):
+    @property
+    def series_dim_x(self):
         if self.img3d is not None:
-            return self.img3d.shape
-        return
+            return self.img3d.shape[0]
+        return 0
+
+    @property
+    def series_dim_y(self):
+        if self.img3d is not None:
+            return self.img3d.shape[1]
+        return 0
+
+    @property
+    def series_dim_z(self):
+        if self.img3d is not None:
+            return self.img3d.shape[2]
+        return 0
 
     @property
     def img3d(self):
-        if self.img3d_group is not None and len(self.img3d_group) > 0:
-            return self.img3d_group[self.img3d_group_index]
+        if self.series_img3d_group is not None and len(self.series_img3d_group) > 0:
+            return self.series_img3d_group[self.series_group_index]
         return None
 
     @property
     def img3d_count(self):
-        if self.img3d_group is not None:
-            return len(self.img3d_group)
+        if self.series_img3d_group is not None:
+            return len(self.series_img3d_group)
         return 0
 
     def get_image_after_all_transform_exclude_multi_frame(self, ds):
@@ -936,32 +951,38 @@ class PyodideDicom:
         # self.has_uncompressed_data = True
         return incompressed_image, compressed_bytes
 
-    def render_axial_view(self, i: int = None):
+    def render_axial_view(self, z: int = None):
         if self.img3d is not None:
-            if not i:
-                i = self.img3d.shape[2] // 2
-            ax_image = self.img3d[:, :, i]
-            print(f"ax_image:{ax_image.shape}")
+            if not z:
+                self.series_z = self.img3d.shape[2] // 2
+            else:
+                self.series_z = z
+            ax_image = self.img3d[:, :, self.series_z]
+            # print(f"ax_image:{ax_image.shape}")
             self.render_frame_to_rgba_1d(
                 ax_image=ax_image, _max=self.max_3d, _min=self.min_3d
             )
 
-    def redner_sag_view(self, i: int = None):
+    def redner_sag_view(self, x: int = None):
         if self.img3d is not None:
-            if not i:
-                i = self.img3d.shape[1] // 2
-            sag_image = self.img3d[:, i, :].T
-            print(f"sag_image:{sag_image.shape}")
+            if not x:
+                self.series_x = self.img3d.shape[1] // 2
+            else:
+                self.series_x = x
+            sag_image = self.img3d[:, self.series_x, :].T
+            # print(f"sag_image:{sag_image.shape}")
             self.render_frame_to_rgba_1d(
                 sag_image=sag_image, _max=self.max_3d, _min=self.min_3d
             )
 
-    def redner_cor_view(self, i: int = None):
+    def redner_cor_view(self, y: int = None):
         if self.img3d is not None:
-            if not i:
-                i = self.img3d.shape[0] // 2
-            cor_image = self.img3d[i, :, :].T
-            print(f"cor_image:{cor_image.shape}")
+            if not y:
+                self.series_y = self.img3d.shape[0] // 2
+            else:
+                self.series_y = y
+            cor_image = self.img3d[self.series_y, :, :].T
+            # print(f"cor_image:{cor_image.shape}")
             self.render_frame_to_rgba_1d(
                 cor_image=cor_image, _max=self.max_3d, _min=self.min_3d
             )
@@ -1025,14 +1046,14 @@ class PyodideDicom:
     def switch_series_group(self, new_index: int):
         if not self.series_group:
             return
-        if self.img3d_group_index == new_index:
+        if self.series_group_index == new_index:
             return
-        self.img3d_group_index = new_index
+        self.series_group_index = new_index
 
         slices = self.series_group[new_index]
         # if len(slices) > 0:
         self._fill_ds_meta(slices[0])
-        self.valid_3d_files = len(slices)
+        # self.valid_3d_files = len(slices)
         # pixel aspects, assuming all slices are the same
         ps = slices[0].PixelSpacing
         ss = slices[0].SliceThickness
@@ -1042,7 +1063,7 @@ class PyodideDicom:
         print(f"as:{self.ax_aspect}, s:{self.sag_aspect}, cor:{self.cor_aspect}")
 
         if self.img3d is not None:
-            print(f"shape:{self.img3d.shape}")
+            print(f"3d shape:{self.img3d.shape}")
             self.max_3d, self.min_3d = self.get_image_maxmin(self.img3d)
 
     def handle_3d_projection_view(
@@ -1071,14 +1092,17 @@ class PyodideDicom:
         series_dict: Dict[str, List[FileDataset]] = {}
         skipcount = 0
         for file in files:
-            frame_num = getattr(file, "NumberOfFrames", 1)
-            if frame_num > 1:
-                raise Exception("every file should only have 1 frame")
+            # frame_num = getattr(file, "NumberOfFrames", 1)
+            # if frame_num > 1:
+            #     raise Exception("every file should only have 1 frame")
             if file.get((0x0400, 0x0010)) is None:
                 file.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
 
             # f.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
-            if hasattr(file, "SliceLocation"):
+            if (
+                hasattr(file, "SliceLocation")
+                and getattr(file, "NumberOfFrames", 1) == 1
+            ):
 
                 # and self.get_series_id(file) == seried_id
                 series_id = self.get_series_id(file)
@@ -1089,14 +1113,14 @@ class PyodideDicom:
                 series.append(file)
             else:
                 ## usually the not match part is Series Instance UID
-                print(f"not matched tag:{self.get_series_id(file)}")
+                # print(f"not matched tag:{self.get_series_id(file)}")
                 skipcount = skipcount + 1
 
-        print("skipped, no SliceLocation/matched tag: {}".format(skipcount))
+        print("skipped, no SliceLocation or is multi-frame: {}".format(skipcount))
 
         self.series_group = []
         for key, series in series_dict.items():
-            print("in series_dict dict")
+            # print("in series_dict dict")
             # ensure they are in the correct order
             series = sorted(series, key=lambda s: s.SliceLocation)
             series = list(reversed(series))
@@ -1105,8 +1129,8 @@ class PyodideDicom:
             # if not slices:
             #     slices = series
         # self.img3d_list = series_dict.values()
-        print(f"series_group:{len(self.series_group)}")
-        self.img3d_group = []
+        print(f"series_group count:{len(self.series_group)}")
+        self.series_img3d_group = []
         for series in self.series_group:
             # create 3D array
             # img = self.get_image_after_all_transform_exclude_multi_frame(slices[0])
@@ -1120,8 +1144,8 @@ class PyodideDicom:
                 img2d = self.get_image_after_all_transform_exclude_multi_frame(s)
                 # img2d = s.pixel_array
                 img3d[:, :, i] = img2d
-            self.img3d_group.append(img3d)
-        print(f"img3d_group:{len(self.img3d_group)}")
+            self.series_img3d_group.append(img3d)
+        # print(f"img3d_group:{len(self.series_img3d_group)}")
 
         self.switch_series_group(0)
 
@@ -1182,12 +1206,12 @@ class PyodideDicom:
         transferSyntaxUID = ""
         try:
             transferSyntaxUID: str = ds.file_meta.TransferSyntaxUID
-            print(f"transferSyntax:{transferSyntaxUID}")
+            # print(f"transferSyntax:{transferSyntaxUID}")
         except:
             print("no TransferSyntaxUID")
         try:
             photometric: str = ds.PhotometricInterpretation
-            print(f"photometric:{photometric}")
+            # print(f"photometric:{photometric}")
         except:
             print("no photometric")
             photometric = ""
@@ -1214,10 +1238,10 @@ class PyodideDicom:
         # print(f"__init__!!!!!!!!!!!!! buffer:{type(buffer)}")
         if self.is_pyodide_env():
             if buffer_list is not None:
-                print("3d")
+                # print("3d")
                 self.handle_3d_projection_view(buffer_list)
                 return
-            print("2d")
+            # print("2d")
 
             # if buffer is None:
             #     print("buffer is None")
