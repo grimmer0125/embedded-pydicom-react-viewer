@@ -236,9 +236,22 @@ function App() {
 
       setUseWindowCenter(newWindowCenter)
       setUseWindowWidth(newWindowWidth)
-      const image: PyProxyObj = dicomObj.current
-      image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+
+      if (ifShowSagittalCoronal === SeriesMode.Series) {
+        dicomObj.current.redner_sag_view.callKwargs({
+          normalize_window_center: newWindowCenter, normalize_window_width: newWindowWidth
+        });
+        dicomObj.current.redner_cor_view.callKwargs({
+          normalize_window_center: newWindowCenter, normalize_window_width: newWindowWidth
+        });
+        dicomObj.current.render_axial_view.callKwargs({
+          normalize_window_center: newWindowCenter, normalize_window_width: newWindowWidth
+        });
+      } else {
+        dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+      }
       renderFrame()
+
       // processDicomBuffer(fileBuffer.current)
     } else {
       // console.log("not valid move")
@@ -422,9 +435,12 @@ function App() {
         setTotalCoronaFrames(image.series_dim_y)
         setTotalSagittalFrames(image.series_dim_x)
 
+        // might be duplicate set (if actively drage slider for first time and setup here for 2nd time 
+        // but it is fine)  
         setCurrFileNo(image.series_z + 1)
         setCurrentCoronaNo(image.series_y + 1)
         setCurrentSagittalNo(image.series_x + 1)
+
         setIsCommonAxialView(image.is_common_axial_direction)
 
         // console.log(image.series_dim_y, image.series_dim_x, image.series_y, image.series_x)
@@ -457,19 +473,52 @@ function App() {
   }
 
   const resetUI = () => {
-    const canvas = myCanvasRef.current;
-    canvasRender.resetCanvas(canvas)
+    canvasRender.resetCanvas(myCanvasRef.current)
+    canvasRender.resetCanvas(myCanvasRefSagittal.current)
+    canvasRender.resetCanvas(myCanvasRefCorona.current)
+
     if (dicomObj.current) {
       dicomObj.current.destroy()
     }
+
     setCurrFrameIndex(1)
     setNumFrames(1)
   };
 
-  const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
-    // console.log("acceptedFiles");
+  const renderFiles = async (files: File[], seriesMode: SeriesMode) => {
 
-    if (acceptedFiles.length > 0) {
+    resetUI();
+
+    // console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal)
+    if (!files || files.length === 0) {
+      return
+    }
+    if (seriesMode === SeriesMode.Series) {
+      // console.log("3d mode1")
+      /** ~ loadFile */
+      const promiseList: any[] = [];
+      files.forEach((file, index) => {
+        // if (typeof file === "string") {
+        //   // fetch
+        // } else 
+        promiseList.push(loadDicomFileAsync(file));
+      });
+      const bufferList = await Promise.all(promiseList);
+      processDicomBuffer(undefined, bufferList)
+    } else {
+      // console.log("2d mode2")
+
+      const file = files[0];
+      setTotalFiles(files.length)
+      setCurrFileNo(1)
+      setCurrFilePath(file.name)
+      loadFile(file);
+    }
+  }
+
+  const onDropFiles = useCallback(async (acceptedFiles?: File[]) => {
+
+    if (acceptedFiles && acceptedFiles.length > 0) {
       acceptedFiles.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       });
@@ -480,31 +529,8 @@ function App() {
     }
 
     if (files.current.length > 0) {
-      resetUI();
 
-      // console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal)
-      if (ifShowSagittalCoronal === SeriesMode.Series) {
-        // console.log("3d mode1")
-        /** ~ loadFile */
-        const promiseList: any[] = [];
-        files.current.forEach((file, index) => {
-          // if (typeof file === "string") {
-          //   // fetch
-          // } else 
-          promiseList.push(loadDicomFileAsync(file));
-        });
-        const bufferList = await Promise.all(promiseList);
-        processDicomBuffer(undefined, bufferList)
-      } else {
-        // console.log("2d mode2")
-
-        const file = files.current[0];
-        setTotalFiles(files.current.length)
-        setCurrFileNo(1)
-        setCurrFilePath(file.name)
-
-        loadFile(file);
-      }
+      renderFiles(files.current, ifShowSagittalCoronal)
     }
     // Do something with the files
   }, [ifShowSagittalCoronal]);
@@ -520,31 +546,91 @@ function App() {
 
     const normalize_mode = value as number;
     setCurrNormalizeMode(normalize_mode)
-    // console.log("handleNormalizeModeChange:", newMode) // 1 (center), 0 
 
-    if (normalize_mode === NormalizationMode.WindowCenter) {
-      // console.log(`new is center:${windowCenter}`)
-      setUseWindowCenter(windowCenter)
-      setUseWindowWidth(windowWidth)
-      const image: PyProxyObj = dicomObj.current
-      image.render_frame_to_rgba_1d(windowCenter, windowWidth, NormalizationMode.WindowCenter)
-      renderFrame()
-    } else if (normalize_mode === NormalizationMode.PixelHUMaxMin) {
+    // if (normalize_mode === NormalizationMode.WindowCenter) {
+    //   // console.log(`new is center:${windowCenter}`)
+    //   setUseWindowCenter(windowCenter)
+    //   setUseWindowWidth(windowWidth)
+
+    //   const image: PyProxyObj = dicomObj.current
+    //   if (ifShowSagittalCoronal === SeriesMode.Series) {
+    //     dicomObj.current.render_axial_view.callKwargs({
+    //       normalize_window_center: windowCenter, normalize_window_width: windowWidth,
+    //       normalize_mode: NormalizationMode.WindowCenter
+    //     });
+    //     dicomObj.current.redner_sag_view.callKwargs({
+    //       normalize_window_center: windowCenter, normalize_window_width: windowWidth,
+    //       normalize_mode: NormalizationMode.WindowCenter
+    //     });
+    //     dicomObj.current.redner_cor_view.callKwargs({
+    //       normalize_window_center: windowCenter, normalize_window_width: windowWidth,
+    //       normalize_mode: NormalizationMode.WindowCenter
+    //     });
+    //   } else {
+    //     image.render_frame_to_rgba_1d(windowCenter, windowWidth, NormalizationMode.WindowCenter)
+    //   }
+    // } else 
+
+    const image: PyProxyObj = dicomObj.current
+
+    let normalize_window_center = undefined;
+    let normalize_window_width = undefined;
+
+    if (normalize_mode === NormalizationMode.PixelHUMaxMin) {
       // console.log("new is maxmin")
-      const image: PyProxyObj = dicomObj.current
-      image.render_frame_to_rgba_1d.callKwargs({ normalize_mode })
-      renderFrame()
+      // if (ifShowSagittalCoronal === SeriesMode.Series) {
+      //   image.render_axial_view.callKwargs({
+      //     normalize_mode
+      //   });
+      //   image.redner_sag_view.callKwargs({
+      //     normalize_mode
+      //   });
+      //   image.redner_cor_view.callKwargs({
+      //     normalize_mode
+      //   });
+      // } else {
+      //   image.render_frame_to_rgba_1d.callKwargs({ normalize_mode })
+      // }
     } else {
-      const data = WindowCenterWidthConst[normalize_mode];
-      const tmpWindowCenter = data.L;
-      const tmpWindowWidth = data.W;
 
-      setUseWindowCenter(tmpWindowCenter)
-      setUseWindowWidth(tmpWindowWidth)
-      const image: PyProxyObj = dicomObj.current
-      image.render_frame_to_rgba_1d.callKwargs(tmpWindowCenter, tmpWindowWidth, { normalize_mode })
-      renderFrame()
+      if (normalize_mode === NormalizationMode.WindowCenter) {
+        normalize_window_center = windowCenter;
+        normalize_window_width = windowWidth;
+      } else {
+        const data = WindowCenterWidthConst[normalize_mode];
+        const tmpWindowCenter = data.L;
+        const tmpWindowWidth = data.W;
+
+        normalize_window_center = tmpWindowCenter;
+        normalize_window_width = tmpWindowWidth;
+      }
+
+      setUseWindowCenter(normalize_window_center)
+      setUseWindowWidth(normalize_window_width)
     }
+
+    if (ifShowSagittalCoronal === SeriesMode.Series) {
+      image.render_axial_view.callKwargs({
+        normalize_window_center, normalize_window_width,
+        normalize_mode
+      });
+      image.redner_sag_view.callKwargs({
+        normalize_window_center, normalize_window_width,
+        normalize_mode
+      });
+      image.redner_cor_view.callKwargs({
+        normalize_window_center, normalize_window_width,
+        normalize_mode
+      });
+    } else {
+      image.render_frame_to_rgba_1d.callKwargs({
+        normalize_window_center, normalize_window_width,
+        normalize_mode
+      })
+    }
+    renderFrame()
+
+
 
   }, [windowCenter, windowWidth]);
 
@@ -626,24 +712,35 @@ function App() {
   };
 
   const handleSeriesModeChange = async (e: any, obj: any) => {
-    // const { value } = obj;
+    const { value } = obj;
+    console.log("handleSeriesModeChange:", value)
+
+    let seriesMode;
     if (ifShowSagittalCoronal === SeriesMode.NoSeries) {
-      console.log("to series")
-      setIfShowSagittalCoronal(SeriesMode.Series)
+      seriesMode = SeriesMode.Series;
+      console.log("to series:", value)
+      setIfShowSagittalCoronal(seriesMode)
 
     } else {
-      console.log("to no series")
+      console.log("to no series", value)
+      seriesMode = SeriesMode.NoSeries;
+
 
       setIfShowSagittalCoronal(SeriesMode.NoSeries)
-      if (files.current.length > 0) {
-        const newFile = files.current[0];
-        setTotalFiles(files.current.length)
-        setCurrFileNo(1)
-        // if (this.isOnlineMode) {
-        setCurrFilePath(file.name)
-        loadFile(newFile);
-      }
+      // if (files.current.length > 0) {
+      //   const file = files.current[0];
+      //   setTotalFiles(files.current.length)
+      //   setCurrFileNo(1)
+      //   // if (this.isOnlineMode) {
+      //   setCurrFilePath(file.name)
+      //   loadFile(file);
+      // }
     }
+
+    renderFiles(files.current, seriesMode)
+
+
+    // onDropFiles()
   }
 
   const axisLabel = (char: string) => {

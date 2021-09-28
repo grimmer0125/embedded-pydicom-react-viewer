@@ -67,9 +67,9 @@ class PyodideDicom:
     series_group: Optional[List[List[FileDataset]]] = None
     series_img3d_group: Optional[List[np.ndarray]] = None
     series_group_index: int = -1
-    series_x: int = 0
-    series_y: int = 0
-    series_z: int = 0
+    series_x: int = -1
+    series_y: int = -1
+    series_z: int = -1
     max_3d: Optional[int] = None
     min_3d: Optional[int] = None
     # valid_3d_files: Optional[int] = None
@@ -951,39 +951,75 @@ class PyodideDicom:
         # self.has_uncompressed_data = True
         return incompressed_image, compressed_bytes
 
-    def render_axial_view(self, z: int = None):
+    def render_axial_view(
+        self,
+        z: int = None,
+        normalize_window_center: int = None,
+        normalize_window_width: int = None,
+        normalize_mode: NormalizeMode = None,
+    ):
         if self.img3d is not None:
             if not z:
-                self.series_z = self.img3d.shape[2] // 2
+                if self.series_z == -1:
+                    self.series_z = self.img3d.shape[2] // 2
             else:
                 self.series_z = z
             ax_image = self.img3d[:, :, self.series_z]
             self.render_frame_to_rgba_1d(
-                ax_image=ax_image, _max=self.max_3d, _min=self.min_3d
+                ax_image=ax_image,
+                _max=self.max_3d,
+                _min=self.min_3d,
+                normalize_window_center=normalize_window_center,
+                normalize_window_width=normalize_window_width,
+                normalize_mode=normalize_mode,
             )
 
-    def redner_sag_view(self, x: int = None):
+    def redner_sag_view(
+        self,
+        x: int = None,
+        normalize_window_center: int = None,
+        normalize_window_width: int = None,
+        normalize_mode: NormalizeMode = None,
+    ):
         if self.img3d is not None:
             if not x:
-                self.series_x = self.img3d.shape[1] // 2
+                if self.series_x == -1:
+                    self.series_x = self.img3d.shape[1] // 2
             else:
                 self.series_x = x
             sag_image = self.img3d[:, self.series_x, :].T
             # print(f"sag_image:{sag_image.shape}")
             self.render_frame_to_rgba_1d(
-                sag_image=sag_image, _max=self.max_3d, _min=self.min_3d
+                sag_image=sag_image,
+                _max=self.max_3d,
+                _min=self.min_3d,
+                normalize_window_center=normalize_window_center,
+                normalize_window_width=normalize_window_width,
+                normalize_mode=normalize_mode,
             )
 
-    def redner_cor_view(self, y: int = None):
+    def redner_cor_view(
+        self,
+        y: int = None,
+        normalize_window_center: int = None,
+        normalize_window_width: int = None,
+        normalize_mode: NormalizeMode = None,
+    ):
         if self.img3d is not None:
             if not y:
-                self.series_y = self.img3d.shape[0] // 2
+                if self.series_y == -1:
+                    self.series_y = self.img3d.shape[0] // 2
             else:
                 self.series_y = y
             cor_image = self.img3d[self.series_y, :, :].T
             # print(f"cor_image:{cor_image.shape}")
             self.render_frame_to_rgba_1d(
-                cor_image=cor_image, _max=self.max_3d, _min=self.min_3d
+                cor_image=cor_image,
+                _max=self.max_3d,
+                _min=self.min_3d,
+                normalize_window_center=normalize_window_center,
+                normalize_window_width=normalize_window_width,
+                normalize_mode=normalize_mode,
             )
 
     def get_tag(self, ds, tag):
