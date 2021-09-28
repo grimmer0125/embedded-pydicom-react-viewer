@@ -584,19 +584,18 @@ class PyodideDicom:
         _min: int = None,
     ):
         start = time.time()  ## 0.13s !!!!
-        # image2d_for_3d
         if ax_image is not None:
             image = ax_image
-            if not _max or not _min:
-                raise ValueError("should pass _max _min along with image2d_3d")
+            if _max is None or _min is None:
+                raise ValueError("should pass _max _min along with ax_image")
         elif sag_image is not None:
             image = sag_image
-            if not _max or not _min:
-                raise ValueError("should pass _max _min along with image2d_3d")
+            if _max is None or _min is None:
+                raise ValueError("should pass _max _min along with sag_image")
         elif cor_image is not None:
             image = cor_image
-            if not _max or not _min:
-                raise ValueError("should pass _max _min along with image2d_3d")
+            if _max is None or _min is None:
+                raise ValueError("should pass _max _min along with cor_image")
         else:
             if frame_index >= self.frame_num:
                 raise IndexError("frame index is over frame num")
@@ -959,7 +958,6 @@ class PyodideDicom:
             else:
                 self.series_z = z
             ax_image = self.img3d[:, :, self.series_z]
-            # print(f"ax_image:{ax_image.shape}")
             self.render_frame_to_rgba_1d(
                 ax_image=ax_image, _max=self.max_3d, _min=self.min_3d
             )
@@ -1064,19 +1062,21 @@ class PyodideDicom:
         direction = self.get_tag(ds, (0x0020, 0x0037))
         if direction == "[1, 0, 0, 0, 1, 0]":
             self.is_common_axial_direction = True
-        self._fill_ds_meta(ds)
+        self.fill_ds_meta(ds)
         # self.valid_3d_files = len(slices)
         # pixel aspects, assuming all slices are the same
         ps = ds.PixelSpacing
         ss = ds.SliceThickness
         self.ax_aspect = ps[1] / ps[0]
-        self.sag_aspect = ss / ps[1]  # 0.11
-        self.cor_aspect = ss / ps[0]  # 9.01
-        print(f"as:{self.ax_aspect}, s:{self.sag_aspect}, cor:{self.cor_aspect}")
+        self.sag_aspect = ss / ps[1]
+        self.cor_aspect = ss / ps[0]
+        print(f"ax:{self.ax_aspect}, sag:{self.sag_aspect}, cor:{self.cor_aspect}")
 
         if self.img3d is not None:
-            print(f"3d shape:{self.img3d.shape}")
+            print(f"switch_series_group self.img3d shape:{self.img3d.shape}")
             self.max_3d, self.min_3d = self.get_image_maxmin(self.img3d)
+        else:
+            print("switch_series_group no self.img3d")
 
     def handle_3d_projection_view(
         self,
@@ -1182,7 +1182,7 @@ class PyodideDicom:
 
         # plt.show()
 
-    def _fill_ds_meta(self, ds):
+    def fill_ds_meta(self, ds):
         ###### DICOM meta fields #####
         self.ds = ds
         width: int = ds[0x0028, 0x0011].value
@@ -1284,7 +1284,7 @@ class PyodideDicom:
             # start to do some local Python stuff, e.g. testing
             ds = self.get_pydicom_dataset_from_local_file("dicom_samples/brain_001.dcm")
 
-        self._fill_ds_meta(ds)
+        self.fill_ds_meta(ds)
 
         (
             self.incompressed_image,
