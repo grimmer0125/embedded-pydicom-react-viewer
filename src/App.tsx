@@ -839,7 +839,7 @@ function App() {
               checked={ifShowSagittalCoronal === SeriesMode.Series}
               onChange={handleSeriesModeChange}
             />
-            {"  Enable Series mode"}
+            {"  Series mode"}
           </div>
         </div>
         {totalFiles > 0 ? (
