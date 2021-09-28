@@ -64,10 +64,14 @@ class PyodideDicom:
     decompressed_cache_dict: Optional[Dict[str, np.ndarray]] = None
     incompressed_image: Optional[np.ndarray] = None
 
-    img3d: Optional[np.ndarray] = None
+    series_group: Optional[List[List[FileDataset]]] = None
+    img3d_group: Optional[List[np.ndarray]] = None
+    img3d_group_index: int = -1
+
     max_3d: Optional[int] = None
     min_3d: Optional[int] = None
     valid_3d_files: Optional[int] = None
+    ax_aspect: float = 1
     sag_aspect: float = 1
     cor_aspect: float = 1
     ax_ndarray: Optional[np.ndarray] = None
@@ -823,6 +827,18 @@ class PyodideDicom:
             return self.img3d.shape
         return
 
+    @property
+    def img3d(self):
+        if self.img3d_group is not None and len(self.img3d_group) > 0:
+            return self.img3d_group[self.img3d_group_index]
+        return None
+
+    @property
+    def img3d_count(self):
+        if self.img3d_group is not None:
+            return len(self.img3d_group)
+        return 0
+
     def get_image_after_all_transform_exclude_multi_frame(self, ds):
         photometric = ds.PhotometricInterpretation
         transferSyntaxUID = ds.file_meta.TransferSyntaxUID
@@ -1006,6 +1022,29 @@ class PyodideDicom:
         id += " (" + cols + " x " + rows + ")"
         return id
 
+    def switch_series_group(self, new_index: int):
+        if not self.series_group:
+            return
+        if self.img3d_group_index == new_index:
+            return
+        self.img3d_group_index = new_index
+
+        slices = self.series_group[new_index]
+        # if len(slices) > 0:
+        self._fill_ds_meta(slices[0])
+        self.valid_3d_files = len(slices)
+        # pixel aspects, assuming all slices are the same
+        ps = slices[0].PixelSpacing
+        ss = slices[0].SliceThickness
+        self.ax_aspect = ps[1] / ps[0]
+        self.sag_aspect = ss / ps[1]  # 0.11
+        self.cor_aspect = ss / ps[0]  # 9.01
+        print(f"as:{self.ax_aspect}, s:{self.sag_aspect}, cor:{self.cor_aspect}")
+
+        if self.img3d is not None:
+            print(f"shape:{self.img3d.shape}")
+            self.max_3d, self.min_3d = self.get_image_maxmin(self.img3d)
+
     def handle_3d_projection_view(
         self,
         buffer_list: Any = None,
@@ -1029,6 +1068,7 @@ class PyodideDicom:
             seried_id = self.get_series_id(files[0])
 
         # skip files with no SliceLocation (eg scout views)
+        series_dict: Dict[str, List[FileDataset]] = {}
         slices = []
         skipcount = 0
         for file in files:
@@ -1039,8 +1079,15 @@ class PyodideDicom:
                 file.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
 
             # f.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
-            if hasattr(file, "SliceLocation") and self.get_series_id(file) == seried_id:
-                slices.append(file)
+            if hasattr(file, "SliceLocation"):
+
+                # and self.get_series_id(file) == seried_id
+                series_id = self.get_series_id(file)
+                series = series_dict.get(series_id)
+                if not series:
+                    series = []
+                    series_dict[series_id] = series
+                series.append(file)
             else:
                 ## usually the not match part is Series Instance UID
                 print(f"not matched tag:{self.get_series_id(file)}")
@@ -1048,40 +1095,36 @@ class PyodideDicom:
 
         print("skipped, no SliceLocation/matched tag: {}".format(skipcount))
 
-        # ensure they are in the correct order
-        slices = sorted(slices, key=lambda s: s.SliceLocation)
-        slices = list(reversed(slices))
-        # print(slices)
-        if len(slices) > 0:
-            self._fill_ds_meta(slices[0])
-            self.valid_3d_files = len(slices)
+        self.series_group = []
+        for key, series in series_dict.items():
+            print("in series_dict dict")
+            # ensure they are in the correct order
+            series = sorted(series, key=lambda s: s.SliceLocation)
+            series = list(reversed(series))
+            self.series_group.append(series)
+            # series_dict[key] = series
+            # if not slices:
+            #     slices = series
+        # self.img3d_list = series_dict.values()
+        print(f"series_group:{len(self.series_group)}")
+        self.img3d_group = []
+        for series in self.series_group:
+            # create 3D array
+            # img = self.get_image_after_all_transform_exclude_multi_frame(slices[0])
+            img_shape = list(
+                self.get_image_after_all_transform_exclude_multi_frame(series[0]).shape
+            )
+            img_shape.append(len(series))
+            img3d = np.zeros(img_shape)
+            # fill 3D array with the images from the files
+            for i, s in enumerate(series):
+                img2d = self.get_image_after_all_transform_exclude_multi_frame(s)
+                # img2d = s.pixel_array
+                img3d[:, :, i] = img2d
+            self.img3d_group.append(img3d)
+        print(f"img3d_group:{len(self.img3d_group)}")
 
-        # pixel aspects, assuming all slices are the same
-        ps = slices[0].PixelSpacing
-        ss = slices[0].SliceThickness
-        ax_aspect = ps[1] / ps[0]
-        self.sag_aspect = ss / ps[1]  # 0.11
-        self.cor_aspect = ss / ps[0]  # 9.01
-
-        print(f"as:{ax_aspect}, s:{self.sag_aspect}, cor:{self.cor_aspect}")
-
-        # create 3D array
-        # img = self.get_image_after_all_transform_exclude_multi_frame(slices[0])
-        img_shape = list(
-            self.get_image_after_all_transform_exclude_multi_frame(slices[0]).shape
-        )
-        img_shape.append(len(slices))
-        img3d = np.zeros(img_shape)
-
-        # fill 3D array with the images from the files
-        for i, s in enumerate(slices):
-            img2d = self.get_image_after_all_transform_exclude_multi_frame(s)
-            # img2d = s.pixel_array
-            img3d[:, :, i] = img2d
-        self.img3d = img3d
-
-        print(f"shape:{img3d.shape}")
-        self.max_3d, self.min_3d = self.get_image_maxmin(self.img3d)
+        self.switch_series_group(0)
 
         self.render_axial_view()
         # ax_image = img3d[:, :, img_shape[2] // 2]
