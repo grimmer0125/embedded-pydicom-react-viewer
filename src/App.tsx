@@ -425,6 +425,7 @@ function App() {
         setCurrFileNo(image.series_z + 1)
         setCurrentCoronaNo(image.series_y + 1)
         setCurrentSagittalNo(image.series_x + 1)
+        setIsCommonAxialView(image.is_common_axial_direction)
 
         // console.log(image.series_dim_y, image.series_dim_x, image.series_y, image.series_x)
         // TODO: setCurrFilePath ??????????
@@ -645,7 +646,9 @@ function App() {
     }
   }
 
-
+  const axisLabel = (char: string) => {
+    return (isCommonAxialView ? <div>{char}</div> : <div>{" "}</div>)
+  }
 
   return (
     <div className="flex-container">
@@ -759,7 +762,7 @@ function App() {
                 {`${currFilePath}. ${currFileNo}/${totalFiles}`}
               </div>
               <div className="flex-container">
-                {/* {isCommonAxialView ? <div>{"S"}</div> : null} */}
+                {axisLabel("S")}
                 <Slider
                   value={currFileNo}
                   step={1}
@@ -767,11 +770,12 @@ function App() {
                   max={totalFiles}
                   onChange={switchFile}
                 />
+                {axisLabel("I")}
               </div>
               {ifShowSagittalCoronal === SeriesMode.Series && (
                 <>
                   <div className="flex-container">
-                    {/* {isCommonAxialView ? <div>{"I"}</div> : null}{" "} */}
+                    {axisLabel("R")}
                     <Slider
                       value={currentSagittalNo}
                       step={1}
@@ -779,8 +783,10 @@ function App() {
                       max={totalSagittalFrames}
                       onChange={switchSagittal}
                     />
+                    {axisLabel("L")}
                   </div>
                   <div className="flex-container">
+                    {axisLabel("A")}
                     <Slider
                       value={currentCoronaNo}
                       step={1}
@@ -788,6 +794,7 @@ function App() {
                       max={totalCoronaFrames}
                       onChange={switchCorona}
                     />
+                    {axisLabel("P")}
                   </div>
                 </>
               )}
@@ -795,9 +802,10 @@ function App() {
           </div>) : null}
         <div className="flex-container">
           <div className="flex-column-justify-align-center">
+            {axisLabel("A")}
             <div className="flex-column_align-center">
-              {/* <img style={{width:500, height:250}} ref={myImg} /> */}
-              {/* AxialView */}
+              {axisLabel("R")}
+              {/* Axial */}
               <canvas
                 ref={myCanvasRef}
                 onMouseDown={onMouseCanvasDown}
@@ -807,12 +815,16 @@ function App() {
                 height={MAX_HEIGHT_SERIES_MODE}
                 style={{ backgroundColor: "black" }}
               />
+              {axisLabel("L")}
             </div>
+            {axisLabel("P")}
           </div>
           {ifShowSagittalCoronal === SeriesMode.Series && (
             <>
               <div className="flex-column-justify-align-center">
+                {axisLabel("S")}
                 <div className="flex-column_align-center">
+                  {axisLabel("A")}
                   {/* Sagittal */}
                   <canvas
                     ref={myCanvasRefSagittal}
@@ -822,11 +834,15 @@ function App() {
                     height={MAX_HEIGHT_SERIES_MODE}
                     style={{ backgroundColor: "yellow" }}
                   />
+                  {axisLabel("P")}
                 </div>
+                {axisLabel("I")}
               </div>
               <div className="flex-column-justify-align-center">
+                {axisLabel("S")}
                 <div className="flex-column_align-center">
                   {/* Corona */}
+                  {axisLabel("R")}
                   <canvas
                     ref={myCanvasRefCorona}
                     onMouseDown={onMouseCanvasDown}
@@ -835,7 +851,9 @@ function App() {
                     height={MAX_HEIGHT_SERIES_MODE}
                     style={{ backgroundColor: "green" }}
                   />
+                  {axisLabel("L")}
                 </div>
+                {axisLabel("I")}
               </div>
             </>)}
         </div>

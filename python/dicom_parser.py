@@ -79,6 +79,7 @@ class PyodideDicom:
     ax_ndarray: Optional[np.ndarray] = None
     sag_ndarray: Optional[np.ndarray] = None
     cor_ndarray: Optional[np.ndarray] = None
+    is_common_axial_direction = False
 
     # image: Optional[np.ndarray] = None
     final_rgba_1d_ndarray: Optional[np.ndarray] = None
@@ -987,41 +988,48 @@ class PyodideDicom:
                 cor_image=cor_image, _max=self.max_3d, _min=self.min_3d
             )
 
+    def get_tag(self, ds, tag):
+        el = ds.get(tag)
+        if el:
+            return str(el.value)
+        else:
+            return ""
+
     def get_series_id(self, ds):
-        def get_tag(ds, tag):
-            el = ds.get(tag)
-            if el:
-                return str(el.value)
-            else:
-                return ""
 
         # https://pydicom.github.io/pydicom/stable/auto_examples/plot_dicom_difference.html
         # CT With/Without Contrast-Abdomen
-        des = get_tag(ds, (0x0008, 0x1030))  # .value  # this.getSeriesDescription();
+        des = self.get_tag(
+            ds, (0x0008, 0x1030)
+        )  # .value  # this.getSeriesDescription();
         # print(f"series desc:{des}")
 
         # 1.3.12.2.1107.5.1.4.39722.30000013081301233446800000758
-        uid = get_tag(ds, (0x0020, 0x000E))  # .value  # this.getSeriesInstanceUID();
+        uid = self.get_tag(
+            ds, (0x0020, 0x000E)
+        )  # .value  # this.getSeriesInstanceUID();
         # print(f"series id:{uid}")
 
         # 2
-        num = get_tag(ds, (0x0020, 0x0011))  # ].value  # this.getSeriesNumber();
+        num = self.get_tag(ds, (0x0020, 0x0011))  # ].value  # this.getSeriesNumber();
         # print(f"series num:{num}")  # 2
 
         # may empty
-        echo = get_tag(ds, (0x0018, 0x0086))  # .value  # this.getEchoNumber();
+        echo = self.get_tag(ds, (0x0018, 0x0086))  # .value  # this.getEchoNumber();
         # print(f"echo:{echo}")
 
         # [1, 0, 0, 0, 1, 0]
-        orientation = get_tag(ds, (0x0020, 0x0037))  # ].value  # this.getOrientation();
+        orientation = self.get_tag(
+            ds, (0x0020, 0x0037)
+        )  # ].value  # this.getOrientation();
 
         # 512
-        cols = get_tag(ds, (0x0028, 0x0011))  # .value  # this.getCols();
+        cols = self.get_tag(ds, (0x0028, 0x0011))  # .value  # this.getCols();
         # width: int = ds[0x0028, 0x0011].value
         # print(f"width:{width}, {cols}")
 
         # 512
-        rows = get_tag(ds, (0x0028, 0x0010))  # ].value  # this.getRows();
+        rows = self.get_tag(ds, (0x0028, 0x0010))  # ].value  # this.getRows();
 
         id = ""
 
@@ -1052,11 +1060,15 @@ class PyodideDicom:
 
         slices = self.series_group[new_index]
         # if len(slices) > 0:
-        self._fill_ds_meta(slices[0])
+        ds = slices[0]
+        direction = self.get_tag(ds, (0x0020, 0x0037))
+        if direction == "[1, 0, 0, 0, 1, 0]":
+            self.is_common_axial_direction = True
+        self._fill_ds_meta(ds)
         # self.valid_3d_files = len(slices)
         # pixel aspects, assuming all slices are the same
-        ps = slices[0].PixelSpacing
-        ss = slices[0].SliceThickness
+        ps = ds.PixelSpacing
+        ss = ds.SliceThickness
         self.ax_aspect = ps[1] / ps[0]
         self.sag_aspect = ss / ps[1]  # 0.11
         self.cor_aspect = ss / ps[0]  # 9.01
