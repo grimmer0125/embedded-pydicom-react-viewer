@@ -950,6 +950,62 @@ class PyodideDicom:
                 cor_image=cor_image, _max=self.max_3d, _min=self.min_3d
             )
 
+    def get_series_id(self, ds):
+        def get_tag(ds, tag):
+            el = ds.get(tag)
+            if el:
+                return str(el.value)
+            else:
+                return ""
+
+        # https://pydicom.github.io/pydicom/stable/auto_examples/plot_dicom_difference.html
+        # CT With/Without Contrast-Abdomen
+        des = get_tag(ds, (0x0008, 0x1030))  # .value  # this.getSeriesDescription();
+        # print(f"series desc:{des}")
+
+        # 1.3.12.2.1107.5.1.4.39722.30000013081301233446800000758
+        uid = get_tag(ds, (0x0020, 0x000E))  # .value  # this.getSeriesInstanceUID();
+        # print(f"series id:{uid}")
+
+        # 2
+        num = get_tag(ds, (0x0020, 0x0011))  # ].value  # this.getSeriesNumber();
+        # print(f"series num:{num}")  # 2
+
+        # may empty
+        echo = get_tag(ds, (0x0018, 0x0086))  # .value  # this.getEchoNumber();
+        # print(f"echo:{echo}")
+
+        # [1, 0, 0, 0, 1, 0]
+        orientation = get_tag(ds, (0x0020, 0x0037))  # ].value  # this.getOrientation();
+
+        # 512
+        cols = get_tag(ds, (0x0028, 0x0011))  # .value  # this.getCols();
+        # width: int = ds[0x0028, 0x0011].value
+        # print(f"width:{width}, {cols}")
+
+        # 512
+        rows = get_tag(ds, (0x0028, 0x0010))  # ].value  # this.getRows();
+
+        id = ""
+
+        if des:
+            id += " " + des
+
+        if uid:
+            id += " " + uid
+
+        if num:
+            id += " " + num
+
+        if echo:
+            id += " " + echo
+
+        if orientation:
+            id += " " + orientation
+
+        id += " (" + cols + " x " + rows + ")"
+        return id
+
     def handle_3d_projection_view(
         self,
         buffer_list: Any = None,
@@ -968,6 +1024,9 @@ class PyodideDicom:
             files.append(ds)
 
         print("file count: {}".format(len(files)))
+        # print(f"first:{self.get_series_id(files[0])}")
+        if len(files) > 0:
+            seried_id = self.get_series_id(files[0])
 
         # skip files with no SliceLocation (eg scout views)
         slices = []
@@ -980,12 +1039,14 @@ class PyodideDicom:
                 file.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
 
             # f.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
-            if hasattr(file, "SliceLocation"):
+            if hasattr(file, "SliceLocation") and self.get_series_id(file) == seried_id:
                 slices.append(file)
             else:
+                ## usually the not match part is Series Instance UID
+                print(f"not matched tag:{self.get_series_id(file)}")
                 skipcount = skipcount + 1
 
-        print("skipped, no SliceLocation: {}".format(skipcount))
+        print("skipped, no SliceLocation/matched tag: {}".format(skipcount))
 
         # ensure they are in the correct order
         slices = sorted(slices, key=lambda s: s.SliceLocation)
