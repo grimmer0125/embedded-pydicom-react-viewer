@@ -1064,12 +1064,11 @@ class PyodideDicom:
 
         print("file count: {}".format(len(files)))
         # print(f"first:{self.get_series_id(files[0])}")
-        if len(files) > 0:
-            seried_id = self.get_series_id(files[0])
+        # if len(files) > 0:
+        #     seried_id = self.get_series_id(files[0])
 
         # skip files with no SliceLocation (eg scout views)
         series_dict: Dict[str, List[FileDataset]] = {}
-        slices = []
         skipcount = 0
         for file in files:
             frame_num = getattr(file, "NumberOfFrames", 1)
