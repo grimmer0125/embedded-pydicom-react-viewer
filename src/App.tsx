@@ -282,25 +282,16 @@ function App() {
 
   const renderFrame = () => {
     const image: PyProxyObj = dicomObj.current;
-    // if (total != 0) {
-    //   console.log("not render33")
-    //   return
-    // }
+
     // todo: figure it out 
-    // 1. need destroy old (e.g. image.destroy()) when assign new image ? yes
-    // 2. how to get toJS(1) effect when assigning a python object instance to dicom.current?
-    // 3. /** TODO: need releasing pyBufferData? pyBufferData.release()
+    // 1. x need destroy old (e.g. image.destroy()) when assign new image ? yes
+    // 2. x how to get toJS(1) effect when assigning a python object instance to dicom.current?
+    // 3. x /** TODO: need releasing pyBufferData? pyBufferData.release()
     // * ref: https://pyodide.org/en/stable/usage/type-conversions.html#converting-python-buffer-objects-to-javascript */
     // const render_rgba_1d_ndarray: any = image.render_rgba_1d_ndarray;
     // console.log("render_rgba_1d_ndarray:", render_rgba_1d_ndarray, typeof render_rgba_1d_ndarray)
     // const kk = image.toJs({ depth: 1 })
     // console.log("kk:", kk)
-
-
-    // if (image.has_uncompressed_data) {
-    // console.log("render uncompressedData");
-
-    // if (true) {
 
     const ax_ndarray = (image as any).get_ax_ndarray()
     if (ax_ndarray) {
@@ -317,18 +308,9 @@ function App() {
         console.log("ndarray_proxy")
         const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
         (ndarray_proxy as PyProxyBuffer).destroy();
-
-        // if (true) {
-        // const ndarray = image.render_rgba_1d_ndarray // <- memory leak !!!
-        // const pyBufferData = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
-        // (ndarray as PyProxy).destroy()
-        // kk.destroy()
         // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
         const uncompressedData = buffer.data as Uint8ClampedArray
         canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-        // pyBufferData.release()
-        // }
-
         buffer.release(); // Release the memory when we're done
       }
     }
@@ -355,10 +337,6 @@ function App() {
       canvasRender.renderUncompressedData(uncompressedData, shape[1] as number, shape[2] as number, myCanvasRefCorona, image.cor_aspect);
       buffer.release();
     }
-
-
-
-
 
     // } else {
     //   // (ndarray as PyProxy).destroy()
@@ -388,7 +366,6 @@ function App() {
     //   console.log("no uncompressedData & no compressedData")
     // }
     // total += 1;
-
     // image.destroy();
   }
 
@@ -410,8 +387,8 @@ function App() {
       setNumFrames(image.frame_num)
 
       // maybe global? 是的使用它去 normalize, 但 ui上是用 axial 平面來 show max 
-      setPixelMax(image.frame_max)
-      setPixelMin(image.frame_min)
+      setPixelMax(image.frame_max ?? image.max_3d)
+      setPixelMin(image.frame_min ?? image.min_3d)
 
       // maybe global?  ui 顯示上是以 axial 使用的主. 不然就是 global max.min
       setWindowCenter(image.window_center)
@@ -423,8 +400,6 @@ function App() {
         setUseWindowWidth(image.window_width)
       }
 
-
-
       /** original logic is to const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
        * now changes to use a Python object instance in JS !!
        */
@@ -435,6 +410,15 @@ function App() {
       // console.log(typeof image.ds) // object
       // console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
       // }
+
+      if (bufferList) {
+        setTotalFiles(3)
+        // todo: 要改成用 series images? 有些可能不符合 
+        // 1 currentFileNo 是 series.images 一半 
+        // 2 setCurrFilePath 要現在設嗎? 還是要改成是 dicom 符合的?
+        // 3 要改成是 dicom 符合的嗎? series mode? yes
+        // setTotalFiles(files.current.length)
+      }
 
       renderFrame()
 
@@ -490,11 +474,6 @@ function App() {
       console.log("ifShowSagittalCoronal:", ifShowSagittalCoronal)
       if (ifShowSagittalCoronal === SeriesMode.Series) {
         console.log("3d mode1")
-        // todo: 要改成用 series images? 有些可能不符合 
-        // 1 currentFileNo 是 series.images 一半 
-        // 2 setCurrFilePath 要現在設嗎? 還是要改成是 dicom 符合的?
-        // 3 要改成是 dicom 符合的嗎? series mode? yes
-        // setTotalFiles(files.current.length)
         /** ~ loadFile */
         const promiseList: any[] = [];
         files.current.forEach((file, index) => {
@@ -661,7 +640,7 @@ function App() {
             {info}
             <br />
             {` current window center:${useWindowCenter} ; window width ${useWindowWidth} ;`}
-            {` pixel/HU max:${pixelMax}, min:${pixelMin} ;`}
+            {` ${modality === "CT" ? "HU" : "pixel"} max:${pixelMax}, min:${pixelMin} ;`}
             {/* {` file: ${currFilePath} ;`} */}
           </div>
           <div className="flex-container">
