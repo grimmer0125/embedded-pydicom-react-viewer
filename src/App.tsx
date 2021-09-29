@@ -14,11 +14,11 @@ import "rc-slider/assets/index.css";
 
 import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
-import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
+// import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 import decompressJPEG from "./jpegDecoder"
-import { file } from "@babel/types";
 
+type PyProxyBuffer = any
 type PyProxyObj = any
 
 // image = daikon.Series.parseImage(new DataView(buffer));
