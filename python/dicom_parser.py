@@ -182,7 +182,7 @@ class PyodideDicom:
         # https://pyodide.org/en/stable/usage/type-conversions.html#best-practices-for-avoiding-memory-leaks
         # jsobj = pyodide.create_proxy(pixel_data)
         # print("self.bit_allocated:" + str(self.bit_allocated))
-        jsobj = pyodide.create_proxy(pixel_data)  # JsProxy
+        jsobj = pixel_data  # pyodide.create_proxy(pixel_data)  # JsProxy
         # jsobj = pixel_data
         # jsobj = pyodide.to_js(pixel_data)
         # print(type(jsobj))  #
@@ -239,7 +239,7 @@ class PyodideDicom:
         # else:
         # 786432, 1024x768
 
-        jsobj.destroy()
+        # jsobj.destroy()
 
         # b = jpeg_lossless_decoder.decompress(
         #     pixel_data

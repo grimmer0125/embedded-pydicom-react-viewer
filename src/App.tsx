@@ -320,8 +320,10 @@ function App() {
       canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
       buffer.release();
     } else {
-      const ndarray_proxy = (image as any).final_rgba_1d_ndarray //get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+      const ndarray_proxy = (image as any).final_rgba_1d_ndarray //get_rgba_1d_ndarray()
       if (ndarray_proxy) {
+        // can use CR-MONO1-10-chest.dcm to test 
+        console.log("isseu1: memory leak when direclty accessing final_rgba_1d_ndarray")
         // console.log("ndarray_proxy")
         const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
         (ndarray_proxy as PyProxyBuffer).destroy();

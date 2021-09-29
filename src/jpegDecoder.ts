@@ -6,10 +6,13 @@ const JpegLSDecoder = require('./decoder/jpeg-ls');
 
 const decompressJPEG = {
   lossless: (bytes: any) => {
-    const buffer = bytes.getBuffer()
+    console.log("issue2: why decode can accepty pyproxy, the parameter needs arraybuffer:", bytes, typeof bytes)
+    // can use JPEG57-MR-MONO2-12-shoulder.dcm to test 
+
+    const buffer = bytes; //bytes.getBuffer()
     const decoder = new jpegLossless.lossless.Decoder();
-    const decoded = decoder.decode(buffer.data);
-    buffer.release()
+    const decoded = decoder.decode(buffer);
+    // buffer.release()
     return decoded.buffer
   },
   baseline: (bytes: any, bitsAllocated: number) => {
