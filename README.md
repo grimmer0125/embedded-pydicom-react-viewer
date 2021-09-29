@@ -84,12 +84,11 @@ https://github.com/nvm-sh/nvm January 2021: there are no pre-compiled NodeJS bin
 Make sure you have Node.js (v15.14.0+), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed first. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created.
 
 Then
-
-1. `npm install --global yarn`
-2. `yarn set version berry`
+1. `git submodule update --init --recursive`
+2. `npm install --global yarn`
 3. `yarn install`
-4. `poetry shell`
-5. `poetry install`
+4. (optional) `poetry shell`
+5. (optional) `poetry install`
 
 ### Start coding
 
