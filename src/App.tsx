@@ -320,7 +320,7 @@ function App() {
       canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
       buffer.release();
     } else {
-      const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+      const ndarray_proxy = (image as any).final_rgba_1d_ndarray //get_rgba_1d_ndarray() //render_rgba_1d_ndarray
       if (ndarray_proxy) {
         // console.log("ndarray_proxy")
         const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
@@ -392,6 +392,7 @@ function App() {
       // console.log("has imported PyodideDicom class")
       dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
       const image: PyProxyObj = dicomObj.current;
+
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       // console.log(`image max:${image.max}`)
       // console.log(`image center:${image.window_center}`) // works !!!

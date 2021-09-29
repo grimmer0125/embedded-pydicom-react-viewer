@@ -46,9 +46,9 @@ const d4c = new D4C();
 const initPyodideAndLoadPydicom = d4c.wrap(async () => {
     console.log("initPyodide:")
 
-    // globalThis.pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" });
+    globalThis.pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/dev/full/" });
     // globalThis.pyodide = await loadPyodide({ indexURL: "pyodide/" }); <- not work in 0.18, works in 0.17
-    globalThis.pyodide = await loadPyodide({ indexURL: baseURL + "pyodide/" });
+    // globalThis.pyodide = await loadPyodide({ indexURL: baseURL + "pyodide/" });
 
     // await pyodide.loadPackage(['numpy', 'micropip']);
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();
