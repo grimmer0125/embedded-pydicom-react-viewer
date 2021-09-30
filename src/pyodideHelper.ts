@@ -9,7 +9,19 @@ declare var pyodide: any;
 declare var globalThis: any;
 declare var self: any;
 
-const baseURL = window.location.href ?? self.location.origin + "/"
+// const baseURL = window.location.href ?? self.location.origin + "/"
+
+function baseURL() {
+    let baseURL = ""
+    const regex = /chrome-extension:\/\/.*(?=\/index.html)/;
+    const matchExtensionURL = window.location.href.match(regex)
+    if (matchExtensionURL) {
+        baseURL = matchExtensionURL[0] + "/"
+    } else {
+        baseURL = window.location.href + "/"
+    }
+    return baseURL
+}
 
 // const test: number[] = []
 // function add(x: number) {
@@ -48,7 +60,7 @@ const initPyodideAndLoadPydicom = d4c.wrap(async () => {
 
     // globalThis.pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" });
     // globalThis.pyodide = await loadPyodide({ indexURL: "pyodide/" }); <- not work in 0.18, works in 0.17
-    globalThis.pyodide = await loadPyodide({ indexURL: baseURL + "pyodide/" });
+    globalThis.pyodide = await loadPyodide({ indexURL: baseURL() + "pyodide/" });
 
     // await pyodide.loadPackage(['numpy', 'micropip']);
     const pythonCode = await (await fetch('python/pyodide_init.py')).text();

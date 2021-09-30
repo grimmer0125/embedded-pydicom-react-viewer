@@ -1,5 +1,5 @@
 {
-  "name": "embedded-python-dicom-visualization-reactapp",
+  "name": "embedded-pydicom-react-viewer",
   "version": "0.1.0",
   "dependencies": {
     "@testing-library/jest-dom": "^5.11.4",
@@ -9,6 +9,7 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
+    "cross-env": "^7.0.3",
     "d4c-queue": "^1.4.0",
     "jpeg-lossless-decoder-js": "^2.0.4",
     "rc-slider": "^9.7.2",
@@ -24,9 +25,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "cross-env INLINE_RUNTIME_CHUNK=false react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "yarn run build",
+    "deploy": "gh-pages -d build"    
   },
   "eslintConfig": {
     "extends": [
@@ -47,6 +50,7 @@
     ]
   },
   "devDependencies": {
+    "gh-pages": "^3.2.3",
     "prettier": "^2.4.0"
   }
 }

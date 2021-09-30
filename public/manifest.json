@@ -1,25 +1,35 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
-  "icons": [
-    {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
+  "short_name": "DICOM image viewer",
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+
+  "manifest_version": 2,
+  "name": "DICOM image viewer(dev)",
+  "description": "This extension allows the user to view DICOM image",
+  "version": "1.7",
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "icons": {
+    "16": "Dicom_16.png",
+    "48": "Dicom_48.png",
+    "128": "Dicom_128.png"
+  },
+  "browser_action": {
+    "default_title": "DICOM image viewer (just open url or local file which needs enable local file access!)"
+  },
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "web_accessible_resources": ["index.html"],
+  "permissions": ["webRequest", "webRequestBlocking", "<all_urls>"],
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+U",
+        "mac": "Command+U",
+        "linux": "Ctrl+U"
+      }
+    }
+  }
 }
