@@ -8,7 +8,8 @@ const decompressJPEG = {
   lossless: (bytes: any) => {
     const buffer = bytes.getBuffer()
     const decoder = new jpegLossless.lossless.Decoder();
-    const decoded = decoder.decode(buffer.data);
+    const data = buffer.data;
+    const decoded = decoder.decode(data, data.byteOffset, data.byteLength);
     buffer.release()
     return decoded.buffer
   },
