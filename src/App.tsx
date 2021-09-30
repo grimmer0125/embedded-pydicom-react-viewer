@@ -651,7 +651,7 @@ function App() {
 
   let info = ""
   info += ` modality:${modality}; photometric:${photometric}; transferSyntax:${transferSyntax};`;
-  info += ` resolution:${resX} x ${resY}`;
+  info += ` resolution:${resX && resY ? (resX.toString() + "x" + resY.toString()) : ""}`;
 
   const frameIndexes: any[] = Array.from({ length: numFrames }, (_, i) => i + 1)
 
@@ -780,7 +780,7 @@ function App() {
         </div>
         <div>
           <div className="flex-container">
-            <div style={dropZoneStyle} {...getRootProps()}>
+            <div style={dropZoneStyle} {...getRootProps()} className="flex-column_align-center">
               <input {...getInputProps()} />
               {isDragActive ? (
                 <p>Drop the files here ...</p>
@@ -792,8 +792,8 @@ function App() {
           <div className="flex-container">
             {info}
             <br />
-            {` current window center:${useWindowCenter} ; window width ${useWindowWidth} ;`}
-            {` ${modality === "CT" ? "HU" : "pixel"} max:${pixelMax}, min:${pixelMin} ;`}
+            {` current window_center:${useWindowCenter ?? ""} ; window_width ${useWindowWidth ?? ""} ;`}
+            {` ${modality === "CT" ? "HU" : "pixel"} max:${pixelMax ?? ""}, min:${pixelMin ?? ""} ;`}
             {/* {` file: ${currFilePath} ;`} */}
           </div>
           <div className="flex-container">
