@@ -13,8 +13,8 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 import { useDropzone } from "react-dropzone";
-import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync } from "./pyodideHelper";
-import { PyProxyBuffer, PyProxy } from '../public/pyodide/pyodide.d'
+import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, fetchDicomFileAsync } from "./pyodideHelper";
+import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 import decompressJPEG from "./jpegDecoder"
 import { file } from "@babel/types";
@@ -167,7 +167,7 @@ function App() {
   const clientY = useRef<number>()
   const dicomObj = useRef<any>(null);
   const PyodideDicom = useRef<Function>()
-  const files = useRef<File[]>([]);
+  const files = useRef<File[] | string[]>([]);
 
   const [totalFiles, setTotalFiles] = useState<number>(0)
   const [totalCoronaFrames, setTotalCoronaFrames] = useState<number>(0)
@@ -278,7 +278,72 @@ function App() {
     // window.removeEventListener("mousemove", onMouseMove);
   }, []);
 
+  const onOpenFileURLs = (fileURLStr: string) => {
+    const onlineFiles = fileURLStr.split("file://"); // https:// or file://xx + file://xx2
+    onlineFiles.sort((a, b) => {
+      return a.localeCompare(b);
+    });
+    console.log("sorted online files:", onlineFiles);
+
+    const tmpFiles = []
+    // case1:
+    // e.g. chrome-extension://fpklmaeeoagikoaiakadencfmhodampd/index.html#https://raw.githubusercontent.com/grimmer0125/dicom-web-viewer/test/image-00000-ot.dcm
+    // -> fileURLStr = "https://raw.githubusercontent.com/grimmer0125/dicom-web-viewer/test/image-00000-ot.dcm"
+    // -> files = ["https://raw.githubusercontent.com/grimmer0125/dicom-web-viewer/test/image-00000-ot.dcm]
+    // case2:
+    // drag a local file. e.g. fileURLs.split("file://"); fileURLStr = "file://xxx.dcm"
+    // files = ["", "/users/grimmer/downloads/dicom/image-00000-ot.dcm"]
+    // this.files = [];
+    if (onlineFiles.length === 1) {
+      // case1
+      tmpFiles.push(`${onlineFiles[0]}`);
+    } else {
+      // case2
+      onlineFiles.forEach((file, index) => {
+        if (index !== 0 || files.current.length === 1) {
+          tmpFiles.push(`file://${file}`);
+        }
+      });
+    }
+
+    files.current = tmpFiles.filter((file: string) => {
+      return checkIfValidDicomFileName(file);
+    })
+
+    if (files.current.length > 0) {
+      renderFiles(files.current, ifShowSagittalCoronal)
+    }
+  }
+
+
   useEffect(() => {
+
+    function checkOnlineFiles() {
+      // window.addEventListener("mouseup", this.onMouseUp);
+      // window.addEventListener("mouseup", this.onMouseUp);
+
+      // get file path from current url, e.g.
+      // chrome-extension://jfnlfimghfiagibfigmlopnfljpfnnje/dicom.html#file:///tmp/test.dcm
+      const url = window.location.href;
+      // 'http://localhost#http://medistim.com/wp-content/uploads/2016/07/ttfm.dcm'; //
+      // console.log("current url:", url);
+
+      if (
+        url.toLowerCase().indexOf(".dcm") !== -1 ||
+        url.toLowerCase().indexOf(".dicom") !== -1
+      ) {
+        // const paths = url.split("#");
+        const firstHash = url.indexOf("#");
+        if (firstHash > -1) {
+          const fileURLs = url.substring(firstHash + 1, url.length);
+          // const filePath = paths[1];
+          // this.fetchFile(filePath);
+
+          onOpenFileURLs(fileURLs);
+        }
+      }
+    }
+
     async function init() {
       console.log("initialize Pyodide, python browser runtime");
       // todo: sometimes App will be reloaded due to CRA hot load and hrow exception due to 2nd load pyodide
@@ -288,6 +353,7 @@ function App() {
           PyodideDicom.current = await loadPyodideDicomModule();
           setPyodideLoading(false);
           console.log("finish initializing Pyodide");
+          checkOnlineFiles()
         } catch {
           console.log("init pyodide error, probably duplicate loading it");
         }
@@ -468,21 +534,7 @@ function App() {
 
   }
 
-  const loadFile = async (file: File) => {
-    // if (!checkIfValidDicomFileName(file.name)) {
-    //   return
-    // }
 
-    // setCurrFilePath(file.name)
-    const buffer = await loadDicomFileAsync(file);
-    fileBuffer.current = buffer
-    // NOTE: besides getting return value (python code last line expression),
-    // python data can be retrieved by accessing python global object:
-    // pyodide.globals.get("image")
-    // console.log("start to use python to parse parse dicom data");
-
-    processDicomBuffer(buffer)
-  }
 
   const resetUI = () => {
     canvasRender.resetCanvas(myCanvasRef.current)
@@ -497,7 +549,33 @@ function App() {
     setNumFrames(1)
   };
 
-  const renderFiles = async (files: File[], seriesMode: SeriesMode) => {
+  const loadFile = async (file: File | string) => {
+    // if (!checkIfValidDicomFileName(file.name)) {
+    //   return
+    // }
+
+    // setCurrFilePath(file.name)
+    let buffer;
+    if (typeof file === "string") {
+      buffer = await fetchDicomFileAsync(file)
+    } else {
+      buffer = await loadDicomFileAsync(file);
+    }
+    // fileBuffer.current = buffer
+    // NOTE: besides getting return value (python code last line expression),
+    // python data can be retrieved by accessing python global object:
+    // pyodide.globals.get("image")
+    // console.log("start to use python to parse parse dicom data");
+
+    processDicomBuffer(buffer)
+  }
+
+  const fileName = (file: File | string) => {
+    return typeof file === "string" ? file : file.name
+  }
+
+  // loadSeriesFilesToRender or fetchFile
+  const renderFiles = async (files: File[] | string[], seriesMode: SeriesMode) => {
 
     resetUI();
 
@@ -510,20 +588,21 @@ function App() {
       /** ~ loadFile */
       const promiseList: any[] = [];
       files.forEach((file, index) => {
-        // if (typeof file === "string") {
-        //   // fetch
-        // } else 
-        promiseList.push(loadDicomFileAsync(file));
+        if (typeof file === "string") {
+          promiseList.push(fetchDicomFileAsync(file));
+        } else {
+          promiseList.push(loadDicomFileAsync(file));
+        }
       });
       const bufferList = await Promise.all(promiseList);
       processDicomBuffer(undefined, bufferList)
     } else {
-      // console.log("2d mode2")
 
       const file = files[0];
       setTotalFiles(files.length)
+
       setCurrFileNo(1)
-      setCurrFilePath(file.name)
+      setCurrFilePath(fileName(file))
       loadFile(file);
     }
   }
@@ -538,14 +617,14 @@ function App() {
       files.current = acceptedFiles.filter((file) => {
         return checkIfValidDicomFileName(file.name);
       })
-    }
 
-    if (files.current.length > 0) {
-
-      renderFiles(files.current, ifShowSagittalCoronal)
+      if (files.current.length > 0) {
+        renderFiles(files.current, ifShowSagittalCoronal)
+      }
     }
     // Do something with the files
   }, [ifShowSagittalCoronal]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDropFiles,
   });
@@ -700,6 +779,8 @@ function App() {
     renderFrame({ cor_ndarray })
   }
 
+
+
   const switchFile = (value: number) => {
     // this.setState({
     //   currFileNo: value,
@@ -720,7 +801,7 @@ function App() {
       const newFile = files.current[value - 1];
       // console.log("switch to image:", value, newFile);
       // if (!this.isOnlineMode) {
-      setCurrFilePath(newFile.name)
+      setCurrFilePath(fileName(newFile))
       loadFile(newFile);
       // } else {
       //   this.fetchFile(newFile);
@@ -760,9 +841,6 @@ function App() {
     }
 
     renderFiles(files.current, seriesMode)
-
-
-    // onDropFiles()
   }
 
   const axisLabel = (char: string) => {
