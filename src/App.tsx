@@ -515,6 +515,8 @@ function App() {
       // console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
       // }
 
+      setIsCommonAxialView(image.is_common_axial_direction)
+
       if (bufferList) {
         setTotalFiles(image.series_dim_z)
         setTotalCoronaFrames(image.series_dim_y)
@@ -526,7 +528,6 @@ function App() {
         setCurrentCoronaNo(image.series_y + 1)
         setCurrentSagittalNo(image.series_x + 1)
 
-        setIsCommonAxialView(image.is_common_axial_direction)
 
 
         const ax_ndarray = image.get_ax_ndarray()
