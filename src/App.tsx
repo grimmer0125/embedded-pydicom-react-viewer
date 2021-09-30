@@ -54,7 +54,7 @@ enum SeriesMode {
 }
 
 enum NormalizationMode {
-  PixelHUMaxMin, //start from 0 
+  Pixel_MaxMin_Mode, //start from 0 
   WindowCenter,
   // below are for CT,   // https://radiopaedia.org/articles/windowing-ct
   AbdomenSoftTissues, //W:400 L:50
@@ -588,7 +588,7 @@ function App() {
     let normalize_window_center = undefined;
     let normalize_window_width = undefined;
 
-    if (normalize_mode === NormalizationMode.PixelHUMaxMin) {
+    if (normalize_mode === NormalizationMode.Pixel_MaxMin_Mode) {
       // console.log("new is maxmin")
       // if (ifShowSagittalCoronal === SeriesMode.Series) {
       //   image.render_axial_view.callKwargs({
@@ -809,7 +809,7 @@ function App() {
             />
 
             <NormalizationComponent
-              mode={NormalizationMode.PixelHUMaxMin}
+              mode={NormalizationMode.Pixel_MaxMin_Mode}
               currNormalizeMode={currNormalizeMode}
               onChange={handleNormalizeModeChange}
             />
