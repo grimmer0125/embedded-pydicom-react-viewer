@@ -21,32 +21,19 @@ import decompressJPEG from "./jpegDecoder"
 type PyProxyBuffer = any
 type PyProxyObj = any
 
-// image = daikon.Series.parseImage(new DataView(buffer));
-// console.log("daikon:", daikon)
-// console.log("daikon2:", JpegDecoder)
+const MAX_WIDTH_SINGLE_MODE = 1280;
+const MAX_HEIGHT_SINGLE_MODE = 1024;
+const MAX_WIDTH_SERIES_MODE = 400;
+const MAX_HEIGHT_SERIES_MODE = 400;
 
-// const a = new daikon.Image()
-// console.log("a:", a.decompressJPEG)
-
-// const decompressJPEG = (jpg: any, isCompressedJPEGLossless: boolean, isCompressedJPEGBaseline: boolean, bitsAllocated: number) => {
-//   if (isCompressedJPEGLossless) {
-//     const decoder = new jpeg.lossless.Decoder();
-//     return decoder.decode(jpg).buffer;
-//   } else if (isCompressedJPEGBaseline) {
-//     const decoder = new JpegDecoder();
-//     decoder.parse(new Uint8Array(jpg));
-//     const width = decoder.width;
-//     const height = decoder.height;
-
-//     let decoded;
-//     if (bitsAllocated === 8) {
-//       decoded = decoder.getData(width, height);
-//     } else if (bitsAllocated === 16) {
-//       decoded = decoder.getData16(width, height);
-//     }
-//     return decoded.buffer;
-//   }
-// }
+const dropZoneStyle = {
+  borderWidth: 2,
+  borderColor: "#666",
+  borderStyle: "dashed",
+  borderRadius: 5,
+  width: 800,
+  height: 150,
+};
 
 enum SeriesMode {
   NoSeries,
@@ -128,18 +115,6 @@ function NormalizationComponent(props: NormalizationProps) {
   );
 }
 
-const dropZoneStyle = {
-  borderWidth: 2,
-  borderColor: "#666",
-  borderStyle: "dashed",
-  borderRadius: 5,
-  width: 800,
-  height: 150,
-};
-
-const MAX_WIDTH_SERIES_MODE = 400;
-const MAX_HEIGHT_SERIES_MODE = 400;
-
 function checkIfValidDicomFileName(name: string) {
   if (
     name.toLowerCase().endsWith(".dcm") === false &&
@@ -168,6 +143,10 @@ function App() {
   const dicomObj = useRef<any>(null);
   const PyodideDicom = useRef<Function>()
   const files = useRef<File[] | string[]>([]);
+
+  const maxViewWidth = useRef<number>(MAX_WIDTH_SINGLE_MODE)
+  const maxViewHeight = useRef<number>(MAX_HEIGHT_SINGLE_MODE)
+  const currScale = useRef<number>(1)
 
   const [totalFiles, setTotalFiles] = useState<number>(0)
   const [totalCoronaFrames, setTotalCoronaFrames] = useState<number>(0)
@@ -365,6 +344,20 @@ function App() {
 
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
+
+  const needScale = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+    let scale = 1;
+
+    if (width <= maxWidth && height <= maxHeight) {
+      return scale;
+    }
+    const scaleW = width / maxWidth;
+    const scaleH = height / maxHeight;
+    scale = scaleW >= scaleH ? scaleW : scaleH;
+
+    return 1 / scale;
+  }
+
   const renderFrame = ({ ndarray, ax_ndarray, sag_ndarray, cor_ndarray }: { ndarray?: PyProxyBuffer, ax_ndarray?: PyProxyBuffer, sag_ndarray?: PyProxyBuffer, cor_ndarray?: PyProxyBuffer }) => {
     // TODO: add parameters to specify which should be updated 
     const image: PyProxyObj = dicomObj.current;
@@ -380,50 +373,63 @@ function App() {
     // console.log("kk:", kk)
 
     if (ndarray) {
-
       // const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
       const buffer = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
       (ndarray as PyProxyBuffer).destroy();
       // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
       const uncompressedData = buffer.data as Uint8ClampedArray
       // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
-      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+
+      const scale = needScale(image.width, image.height, maxViewWidth.current, maxViewHeight.current)
+      // console.log("need scale:", scale)
+      currScale.current = scale
+      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef, undefined, undefined, scale);
       buffer.release(); // Release the memory when we're done
+    } else {
+
+      const ax_scale = needScale(image.series_dim_x, image.series_dim_y, maxViewWidth.current, maxViewHeight.current)
+      const sag_scale = needScale(image.series_dim_y, image.series_dim_z * image.sag_aspect, maxViewWidth.current, maxViewHeight.current)
+      const cor_scale = needScale(image.series_dim_x, image.series_dim_z * image.cor_aspect, maxViewWidth.current, maxViewHeight.current)
+      const scale = Math.min(ax_scale, sag_scale, cor_scale)
+      // console.log("need 3d scale:", scale)
+      currScale.current = scale
+
+      // const ndarray = (image as any).get_ax_ndarray()
+      if (ax_ndarray) {
+        // console.log("ax_ndarray")
+        const buffer = ax_ndarray.getBuffer("u8clamped");
+        ax_ndarray.destroy();
+        const uncompressedData = buffer.data as Uint8ClampedArray
+        // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
+        // console.log("w:", image.width, image.height)
+
+        canvasRender.renderUncompressedData(uncompressedData, image.series_dim_x as number, image.series_dim_y as number, myCanvasRef, undefined, undefined, scale);
+        buffer.release();
+      }
+
+      if (sag_ndarray) {
+        // const shape = image.get_3d_shape().toJs();
+        // console.log("sag_ndarray:", shape);
+
+        const buffer = (sag_ndarray as PyProxyBuffer).getBuffer("u8clamped");
+        (sag_ndarray as PyProxyBuffer).destroy();
+        const uncompressedData = buffer.data as Uint8ClampedArray
+        canvasRender.renderUncompressedData(uncompressedData, image.series_dim_y as number, image.series_dim_z as number, myCanvasRefSagittal, image.sag_aspect, undefined, scale);
+        buffer.release();
+      }
+
+      if (cor_ndarray) {
+        // const shape = image.get_3d_shape().toJs();
+        // console.log("cor_ndarray")
+        const buffer = (cor_ndarray as PyProxyBuffer).getBuffer("u8clamped");
+        (cor_ndarray as PyProxyBuffer).destroy();
+        const uncompressedData = buffer.data as Uint8ClampedArray
+        canvasRender.renderUncompressedData(uncompressedData, image.series_dim_x as number, image.series_dim_z as number, myCanvasRefCorona, image.cor_aspect, undefined, scale);
+        buffer.release();
+      }
     }
 
-    // const ndarray = (image as any).get_ax_ndarray()
-    if (ax_ndarray) {
-      // console.log("ax_ndarray")
-      const buffer = ax_ndarray.getBuffer("u8clamped");
-      ax_ndarray.destroy();
-      const uncompressedData = buffer.data as Uint8ClampedArray
-      // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
-      // console.log("w:", image.width, image.height)
 
-      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-      buffer.release();
-    }
-
-    if (sag_ndarray) {
-      // const shape = image.get_3d_shape().toJs();
-      // console.log("sag_ndarray:", shape);
-
-      const buffer = (sag_ndarray as PyProxyBuffer).getBuffer("u8clamped");
-      (sag_ndarray as PyProxyBuffer).destroy();
-      const uncompressedData = buffer.data as Uint8ClampedArray
-      canvasRender.renderUncompressedData(uncompressedData, image.series_dim_y as number, image.series_dim_z as number, myCanvasRefSagittal, image.sag_aspect);
-      buffer.release();
-    }
-
-    if (cor_ndarray) {
-      // const shape = image.get_3d_shape().toJs();
-      // console.log("cor_ndarray")
-      const buffer = (cor_ndarray as PyProxyBuffer).getBuffer("u8clamped");
-      (cor_ndarray as PyProxyBuffer).destroy();
-      const uncompressedData = buffer.data as Uint8ClampedArray
-      canvasRender.renderUncompressedData(uncompressedData, image.series_dim_x as number, image.series_dim_z as number, myCanvasRefCorona, image.cor_aspect);
-      buffer.release();
-    }
 
     // } else {
     //   // (ndarray as PyProxy).destroy()
@@ -824,10 +830,15 @@ function App() {
       console.log("to series:", value)
       setIfShowSagittalCoronal(seriesMode)
 
+      maxViewWidth.current = MAX_WIDTH_SERIES_MODE
+      maxViewHeight.current = MAX_HEIGHT_SERIES_MODE
+
     } else {
       console.log("to no series", value)
       seriesMode = SeriesMode.NoSeries;
 
+      maxViewWidth.current = MAX_WIDTH_SINGLE_MODE
+      maxViewHeight.current = MAX_HEIGHT_SINGLE_MODE
 
       setIfShowSagittalCoronal(SeriesMode.NoSeries)
       // if (files.current.length > 0) {

@@ -16,8 +16,9 @@ function renderUncompressedData(
   rawDataWidth: number,
   rawDataHeight: number,
   myCanvasRef: React.RefObject<HTMLCanvasElement>,
-  extraHeightScale?: number,
-  extraWidthScale?: number
+  extraHeightScale = 1,
+  extraWidthScale = 1,
+  scale = 1
 ) {
   if (!myCanvasRef.current) {
     console.log("canvasRef is not ready, return");
@@ -43,14 +44,11 @@ function renderUncompressedData(
   // const extraHeightScale = 1
   // const extraWidthScale = 1
   const c2: any = myCanvasRef.current;
-  c2.width = rawDataWidth
-  c2.height = rawDataHeight
-  if (extraHeightScale) {
-    c2.height = c2.height * extraHeightScale;
-  }
-  if (extraWidthScale) {
-    c2.width = c2.width * extraWidthScale;
-  }
+  c2.width = rawDataWidth;
+  c2.height = rawDataHeight;
+  c2.height = c2.height * extraHeightScale * scale
+  c2.width = c2.width * extraWidthScale * scale;
+
   const ctx2 = c2.getContext("2d");
   ctx2.drawImage(c, 0, 0, c2.width, c2.height);
 };
