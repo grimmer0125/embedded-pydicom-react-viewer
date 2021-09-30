@@ -663,33 +663,37 @@ class PyodideDicom:
 
         # center 127, width 254, max:255, min = 0
         # TODO: move back to JS side ?
-        if self.normalize_mode == NormalizeMode.max_min_mode:
-            # print(f"mode0:max_min_mode:{self.frame_max}")
+        # if self.normalize_mode == NormalizeMode.max_min_mode:
+        #     # print(f"mode0:max_min_mode:{self.frame_max}")
+        #     max = _max
+        #     min = _min
+        #     normalize_image = self.normalize_image(image, max, min)
+        # else:
+        # print("mode:window_center_mode")
+        if normalize_window_center and normalize_window_width:
+            # print("mode2:")
+            max = normalize_window_center + math.floor(normalize_window_width / 2)
+            min = normalize_window_center - math.floor(normalize_window_width / 2)
+            normalize_image = self.normalize_image(image, max, min)
+        elif self.normalize_mode == NormalizeMode.max_min_mode:
             max = _max
             min = _min
             normalize_image = self.normalize_image(image, max, min)
-        else:
-            # print("mode:window_center_mode")
-            if normalize_window_center and normalize_window_width:
-                # print("mode2:")
-                max = normalize_window_center + math.floor(normalize_window_width / 2)
-                min = normalize_window_center - math.floor(normalize_window_width / 2)
-                normalize_image = self.normalize_image(image, max, min)
-            elif self.window_center and self.window_width:
-                # print("mode3:")
+        elif self.window_center and self.window_width:
+            # print("mode3:")
 
-                # print(f"mode3. max0: {self.window_width}, {self.window_center}")
-                max = self.window_center + math.floor(self.window_width / 2)
-                min = self.window_center - math.floor(self.window_width / 2)
-                normalize_image = self.normalize_image(image, max, min)
-                # print(
-                #     f"mode3. max: {max}, {min}, {self.frame_max}, {self.frame_min}, {self.window_width}, {self.window_center}"
-                # )
-            else:
-                max = _max
-                min = _min
-                # print("mode4:")
-                normalize_image = self.normalize_image(image, max, min)
+            # print(f"mode3. max0: {self.window_width}, {self.window_center}")
+            max = self.window_center + math.floor(self.window_width / 2)
+            min = self.window_center - math.floor(self.window_width / 2)
+            normalize_image = self.normalize_image(image, max, min)
+            # print(
+            #     f"mode3. max: {max}, {min}, {self.frame_max}, {self.frame_min}, {self.window_width}, {self.window_center}"
+            # )
+        else:
+            max = _max
+            min = _min
+            # print("mode4:")
+            normalize_image = self.normalize_image(image, max, min)
         # print(f"normalize max:{max};min:{min}")
 
         # else:
@@ -1278,6 +1282,8 @@ class PyodideDicom:
         buffer: Any = None,
         buffer_list: Any = None,
         decompressJPEG: Any = None,
+        normalize_window_center: int = None,
+        normalize_window_width: int = None,
         normalize_mode=None,
     ):
         self.jpeg_decoder = decompressJPEG
@@ -1333,7 +1339,11 @@ class PyodideDicom:
             ds, str(self.photometric), str(self.transferSyntaxUID), self.frame_num
         )
 
-        self.render_frame_to_rgba_1d()
+        self.render_frame_to_rgba_1d(
+            normalize_window_center=normalize_window_center,
+            normalize_window_width=normalize_window_width,
+            normalize_mode=normalize_mode,
+        )
 
 
 if __name__ == "__main__":

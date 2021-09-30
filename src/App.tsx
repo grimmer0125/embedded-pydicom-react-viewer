@@ -463,10 +463,14 @@ function App() {
   }
 
 
-  const processDicomBuffer = (buffer?: ArrayBuffer, bufferList?: ArrayBuffer[]) => {
+  const processDicomBuffer = (buffer?: ArrayBuffer, bufferList?: ArrayBuffer[], inheritWindowCenter = false) => {
     if (PyodideDicom.current) {
       // console.log("has imported PyodideDicom class")
-      dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
+      if (inheritWindowCenter) {
+        dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG, useWindowCenter, useWindowWidth, currNormalizeMode)
+      } else {
+        dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
+      }
       const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       // console.log(`image max:${image.max}`)
@@ -491,8 +495,13 @@ function App() {
 
       setCurrFrameIndex(1)
       if (currNormalizeMode === NormalizationMode.WindowCenter) {
-        setUseWindowCenter(image.window_center)
-        setUseWindowWidth(image.window_width)
+        // should always (except switch file) go into here since we rest it to windowCenter mode every time
+        if (!windowCenter) {
+          setUseWindowCenter(image.window_center)
+        }
+        if (windowWidth) {
+          setUseWindowWidth(image.window_width)
+        }
       }
 
       /** original logic is to const res = await pyodide.runPythonAsync, then res.toJs(1) !! v0.18 use toJs({depth : n})
@@ -549,13 +558,17 @@ function App() {
 
     if (dicomObj.current) {
       dicomObj.current.destroy()
+      dicomObj.current = null
     }
 
+    setCurrNormalizeMode(NormalizationMode.WindowCenter)
+    setUseWindowCenter(undefined)
+    setUseWindowWidth(undefined)
     setCurrFrameIndex(1)
     setNumFrames(1)
   };
 
-  const loadFile = async (file: File | string) => {
+  const loadFile = async (file: File | string, inheritWindowCenter = false) => {
     // if (!checkIfValidDicomFileName(file.name)) {
     //   return
     // }
@@ -573,7 +586,7 @@ function App() {
     // pyodide.globals.get("image")
     // console.log("start to use python to parse parse dicom data");
 
-    processDicomBuffer(buffer)
+    processDicomBuffer(buffer, undefined, inheritWindowCenter)
   }
 
   const fileName = (file: File | string) => {
@@ -639,6 +652,15 @@ function App() {
     e: React.FormEvent<HTMLInputElement>,
     data: CheckboxProps
   ) => {
+
+    const image: PyProxyObj = dicomObj.current
+    if (!image || (!image.width && !image.series_dim_x)) {
+      // since we reset the mode to window center/width when loading a new file(s), 
+      // -> some files do not have other mode (hidden), so it is more safe to avoid this
+      // so pre-switch is invalid 
+      return
+    }
+
     const { value } = data;
 
     const normalize_mode = value as number;
@@ -668,8 +690,6 @@ function App() {
     //   }
     // } else 
 
-    const image: PyProxyObj = dicomObj.current
-
     let normalize_window_center = undefined;
     let normalize_window_width = undefined;
 
@@ -688,6 +708,17 @@ function App() {
       // } else {
       //   image.render_frame_to_rgba_1d.callKwargs({ normalize_mode })
       // }
+      // pixelMax =
+      //  pixelMin =
+      if (pixelMax && pixelMin) {
+        const tmpCenter = Math.floor(pixelMax + pixelMin) / 2
+        const tmpWidth = Math.floor(pixelMax - pixelMin)
+
+        // this is to let peple can jumpt to max/min mode then use mouse 
+        // move and use current pair to adjust window center/width
+        setUseWindowCenter(tmpCenter)
+        setUseWindowWidth(tmpWidth)
+      }
     } else {
 
       if (normalize_mode === NormalizationMode.WindowCenter) {
@@ -723,15 +754,12 @@ function App() {
       });
       renderFrame({ cor_ndarray })
     } else {
-      image.render_frame_to_rgba_1d.callKwargs({
+      const ndarray = image.render_frame_to_rgba_1d.callKwargs({
         normalize_window_center, normalize_window_width,
         normalize_mode
       })
+      renderFrame({ ndarray })
     }
-
-
-
-
   }, [windowCenter, windowWidth]);
 
   let info = ""
@@ -759,10 +787,10 @@ function App() {
     if (value !== currFrameIndex) {
       setCurrFrameIndex(value)
       const image: PyProxyObj = dicomObj.current
-      image.render_frame_to_rgba_1d.callKwargs({ frame_index: value - 1 })
+      const ndarray = image.render_frame_to_rgba_1d.callKwargs({ frame_index: value - 1 })
       setPixelMax(image.frame_max)
       setPixelMin(image.frame_min)
-      const ndarray = image.get_rgba_1d_ndarray()
+      // const ndarray = image.get_rgba_1d_ndarray()
       renderFrame({ ndarray })
     }
   };
@@ -808,7 +836,7 @@ function App() {
       // console.log("switch to image:", value, newFile);
       // if (!this.isOnlineMode) {
       setCurrFilePath(fileName(newFile))
-      loadFile(newFile);
+      loadFile(newFile, true);
       // } else {
       //   this.fetchFile(newFile);
       // }
