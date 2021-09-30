@@ -238,19 +238,22 @@ function App() {
       setUseWindowWidth(newWindowWidth)
 
       if (ifShowSagittalCoronal === SeriesMode.Series) {
-        dicomObj.current.redner_sag_view.callKwargs({
+        const sag_ndarray = dicomObj.current.redner_sag_view.callKwargs({
           normalize_window_center: newWindowCenter, normalize_window_width: newWindowWidth
         });
-        dicomObj.current.redner_cor_view.callKwargs({
+        renderFrame({ sag_ndarray })
+        const cor_ndarray = dicomObj.current.redner_cor_view.callKwargs({
           normalize_window_center: newWindowCenter, normalize_window_width: newWindowWidth
         });
-        dicomObj.current.render_axial_view.callKwargs({
+        renderFrame({ cor_ndarray })
+        const ax_ndarray = dicomObj.current.render_axial_view.callKwargs({
           normalize_window_center: newWindowCenter, normalize_window_width: newWindowWidth
         });
+        renderFrame({ ax_ndarray })
       } else {
-        dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+        const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+        renderFrame({ ndarray })
       }
-      renderFrame()
 
       // processDicomBuffer(fileBuffer.current)
     } else {
@@ -296,7 +299,7 @@ function App() {
 
   }, []); // [] means only 1 time, if no [], means every update this will be called
 
-  const renderFrame = () => {
+  const renderFrame = ({ ndarray, ax_ndarray, sag_ndarray, cor_ndarray }: { ndarray?: PyProxyBuffer, ax_ndarray?: PyProxyBuffer, sag_ndarray?: PyProxyBuffer, cor_ndarray?: PyProxyBuffer }) => {
     // TODO: add parameters to specify which should be updated 
     const image: PyProxyObj = dicomObj.current;
 
@@ -310,29 +313,31 @@ function App() {
     // const kk = image.toJs({ depth: 1 })
     // console.log("kk:", kk)
 
-    const ax_ndarray = (image as any).get_ax_ndarray()
-    if (ax_ndarray) {
-      // console.log("ax_ndarray")
-      const buffer = (ax_ndarray as PyProxyBuffer).getBuffer("u8clamped");
-      (ax_ndarray as PyProxyBuffer).destroy();
+    if (ndarray) {
+
+      // const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+      const buffer = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
+      (ndarray as PyProxyBuffer).destroy();
+      // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
       const uncompressedData = buffer.data as Uint8ClampedArray
       // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
       canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-      buffer.release();
-    } else {
-      const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
-      if (ndarray_proxy) {
-        // console.log("ndarray_proxy")
-        const buffer = (ndarray_proxy as PyProxyBuffer).getBuffer("u8clamped");
-        (ndarray_proxy as PyProxyBuffer).destroy();
-        // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
-        const uncompressedData = buffer.data as Uint8ClampedArray
-        canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
-        buffer.release(); // Release the memory when we're done
-      }
+      buffer.release(); // Release the memory when we're done
     }
 
-    const sag_ndarray = (image as any).get_sag_ndarray()
+    // const ndarray = (image as any).get_ax_ndarray()
+    if (ax_ndarray) {
+      // console.log("ax_ndarray")
+      const buffer = ax_ndarray.getBuffer("u8clamped");
+      ax_ndarray.destroy();
+      const uncompressedData = buffer.data as Uint8ClampedArray
+      // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
+      // console.log("w:", image.width, image.height)
+
+      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef);
+      buffer.release();
+    }
+
     if (sag_ndarray) {
       // const shape = image.get_3d_shape().toJs();
       // console.log("sag_ndarray:", shape);
@@ -344,7 +349,6 @@ function App() {
       buffer.release();
     }
 
-    const cor_ndarray = (image as any).get_cor_ndarray()
     if (cor_ndarray) {
       // const shape = image.get_3d_shape().toJs();
       // console.log("cor_ndarray")
@@ -443,13 +447,21 @@ function App() {
 
         setIsCommonAxialView(image.is_common_axial_direction)
 
+
+        const ax_ndarray = image.get_ax_ndarray()
+        renderFrame({ ax_ndarray });
+        const sag_ndarray = image.get_sag_ndarray()
+        renderFrame({ sag_ndarray });
+        const cor_ndarray = image.get_cor_ndarray()
+        renderFrame({ cor_ndarray });
+
         // console.log(image.series_dim_y, image.series_dim_x, image.series_y, image.series_x)
         // TODO: setCurrFilePath ??????????
+      } else {
+        const ndarray = image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+        // console.log("get_rgba_1d_ndarray:", ndarray)
+        renderFrame({ ndarray })
       }
-
-      renderFrame()
-
-
     } else {
       console.log("has not imported PyodideDicom class, ignore")
     }
@@ -610,25 +622,28 @@ function App() {
     }
 
     if (ifShowSagittalCoronal === SeriesMode.Series) {
-      image.render_axial_view.callKwargs({
+      const ax_ndarray = image.render_axial_view.callKwargs({
         normalize_window_center, normalize_window_width,
         normalize_mode
       });
-      image.redner_sag_view.callKwargs({
+      renderFrame({ ax_ndarray })
+      const sag_ndarray = image.redner_sag_view.callKwargs({
         normalize_window_center, normalize_window_width,
         normalize_mode
       });
-      image.redner_cor_view.callKwargs({
+      renderFrame({ sag_ndarray })
+      const cor_ndarray = image.redner_cor_view.callKwargs({
         normalize_window_center, normalize_window_width,
         normalize_mode
       });
+      renderFrame({ cor_ndarray })
     } else {
       image.render_frame_to_rgba_1d.callKwargs({
         normalize_window_center, normalize_window_width,
         normalize_mode
       })
     }
-    renderFrame()
+
 
 
 
@@ -662,20 +677,27 @@ function App() {
       image.render_frame_to_rgba_1d.callKwargs({ frame_index: value - 1 })
       setPixelMax(image.frame_max)
       setPixelMin(image.frame_min)
-      renderFrame()
+      const ndarray = image.get_rgba_1d_ndarray()
+      renderFrame({ ndarray })
     }
   };
 
   const switchSagittal = (value: number) => {
+    // ISSUE: when first time loading series, it will be trigger so sagittal redner twice
+    // console.log("switchSagittal")
+
     setCurrentSagittalNo(value)
-    dicomObj.current.redner_sag_view(value - 1)
-    renderFrame()
+    const sag_ndarray = dicomObj.current.redner_sag_view(value - 1)
+    renderFrame({ sag_ndarray })
   }
 
   const switchCorona = (value: number) => {
+    // console.log("switch cor")
+    // ISSUE: when first time loading series, it will be trigger so sagittal redner twice
+
     setCurrentCoronaNo(value)
-    dicomObj.current.redner_cor_view(value - 1)
-    renderFrame()
+    const cor_ndarray = dicomObj.current.redner_cor_view(value - 1)
+    renderFrame({ cor_ndarray })
   }
 
   const switchFile = (value: number) => {
@@ -706,8 +728,8 @@ function App() {
       // }
     } else {
       setCurrFileNo(value)
-      dicomObj.current.render_axial_view(value - 1)
-      renderFrame()
+      const ax_ndarray = dicomObj.current.render_axial_view(value - 1)
+      renderFrame({ ax_ndarray })
     }
   };
 

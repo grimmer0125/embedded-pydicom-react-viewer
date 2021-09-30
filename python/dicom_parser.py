@@ -790,6 +790,7 @@ class PyodideDicom:
             self.cor_ndarray = final_rgba_1d_ndarray
         else:
             self.final_rgba_1d_ndarray = final_rgba_1d_ndarray
+        return final_rgba_1d_ndarray
 
         # width, height = get_image2d_dimension(image2d)
 
@@ -973,6 +974,7 @@ class PyodideDicom:
                 normalize_window_width=normalize_window_width,
                 normalize_mode=normalize_mode,
             )
+        return self.ax_ndarray
 
     def redner_sag_view(
         self,
@@ -997,6 +999,7 @@ class PyodideDicom:
                 normalize_window_width=normalize_window_width,
                 normalize_mode=normalize_mode,
             )
+        return self.sag_ndarray
 
     def redner_cor_view(
         self,
@@ -1021,6 +1024,7 @@ class PyodideDicom:
                 normalize_window_width=normalize_window_width,
                 normalize_mode=normalize_mode,
             )
+        return self.cor_ndarray
 
     def get_tag(self, ds, tag):
         el = ds.get(tag)
