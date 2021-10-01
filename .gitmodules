@@ -1,3 +1,3 @@
 [submodule "src/decoder"]
 	path = src/decoder
-	url = git@github.com:grimmer0125/jpegJsDecoder.git
+	url = https://github.com/grimmer0125/jpegJsDecoder.git
