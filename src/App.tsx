@@ -16,11 +16,11 @@ import "rc-slider/assets/index.css";
 
 import { useDropzone } from "react-dropzone";
 import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, fetchDicomFileAsync } from "./pyodideHelper";
-// import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
+import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 import decompressJPEG from "./jpegDecoder"
 
-type PyProxyBuffer = any
+// type PyProxyBuffer = any
 type PyProxyObj = any
 
 const MAX_WIDTH_SINGLE_MODE = 1280;

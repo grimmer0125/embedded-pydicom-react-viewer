@@ -58,6 +58,9 @@ const d4c = new D4C();
 const initPyodideAndLoadPydicom = d4c.wrap(async () => {
     console.log("initPyodide:")
 
+    let pyodide_pkg = await import("pyodide/pyodide.js");
+
+
     // globalThis.pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" });
     // globalThis.pyodide = await loadPyodide({ indexURL: "pyodide/" }); <- not work in 0.18, works in 0.17
     globalThis.pyodide = await loadPyodide({ indexURL: baseURL() + "pyodide/" });

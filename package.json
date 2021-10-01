@@ -12,6 +12,7 @@
     "cross-env": "^7.0.3",
     "d4c-queue": "^1.4.0",
     "jpeg-lossless-decoder-js": "^2.0.4",
+    "pyodide": "^0.18.1",
     "rc-slider": "^9.7.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
