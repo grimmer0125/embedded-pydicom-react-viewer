@@ -9,6 +9,8 @@ import {
   Radio,
 } from "semantic-ui-react";
 
+import Hotkeys from "react-hot-keys";
+
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
@@ -32,7 +34,7 @@ const dropZoneStyle = {
   borderStyle: "dashed",
   borderRadius: 5,
   width: 800,
-  height: 170,
+  height: 180,
 };
 
 enum SeriesMode {
@@ -849,6 +851,28 @@ function App() {
     }
   };
 
+  const onKeyDown = (keyName: string) => {
+    // const { totalFiles, currFileNo } = this.state;
+    let newFileNo = currFileNo;
+    if (totalFiles > 1) {
+      if (keyName === "right") {
+        newFileNo += 1;
+        if (newFileNo > totalFiles) {
+          return;
+        }
+      } else if (keyName === "left") {
+        newFileNo -= 1;
+        if (newFileNo < 1) {
+          return;
+        }
+      }
+    } else {
+      return;
+    }
+
+    switchFile(newFileNo);
+  };
+
   const handleSeriesModeChange = async (e: any, obj: any) => {
     const { value } = obj;
     console.log("handleSeriesModeChange:", value)
@@ -888,230 +912,236 @@ function App() {
   }
 
   return (
-    <div className="flex-container">
-      <div>
-        <div className="flex-container">
-          <div>
-            DICOM Image Viewer (feat: 1. click a DICOM file url to view 2. click extension
-            icon (or ctrl+u/cmd+u) to open <br></br>viewer page 3.
-            <a href="https://github.com/grimmer0125/dicom-web-viewer/wiki">
-              {" "}
-              More (e.g. use CLI to open files & Instruction)!
-            </a>
-            {isPyodideLoading ? <><br />, loading python runtime </> : null}
-          </div>
-        </div>
+    <Hotkeys
+      allowRepeat
+      keyName="right,left"
+      onKeyDown={onKeyDown}
+    >
+      <div className="flex-container">
         <div>
           <div className="flex-container">
-            <div style={dropZoneStyle} {...getRootProps()} className="flex-column_align-center">
-              <input {...getInputProps()} />
-              <div style={{ width: "80%" }}>
-                {isDragActive ? (
-                  <p>Drop the DICOM files/folder here ...</p>
-                ) : (
-                  <p>
-                    {" "}
-                    To access DICOM local files, <br /> 1) drop DICOM files/folder here, <br />
-                    2) click here to select files to view. <br />
-                    3) drag files into Chrome without opening viewer first, to allow this feature,
-                    you need to enable file url access in extenstion DETAILS
-                    setting page.
-                    <br /> To swtich files, use slider or right/left key.
-                    <br /> To change window center (level), use mouse press+move
-                  </p>
+            <div>
+              DICOM Image Viewer (feat: 1. click a DICOM file url to view 2. click extension
+              icon (or ctrl+u/cmd+u) to open <br></br>viewer page 3.
+              <a href="https://github.com/grimmer0125/dicom-web-viewer/wiki">
+                {" "}
+                More (e.g. use CLI to open files & Instruction)!
+              </a>
+            </div>
+          </div>
+          <div>
+            <div className="flex-container">
+              <div style={dropZoneStyle} {...getRootProps()} className="flex-column_align-center">
+                <input {...getInputProps()} />
+                <div style={{ width: "80%" }}>
+                  {isDragActive ? (
+                    <p>Drop the DICOM files/folder here ...</p>
+                  ) : (
+                    <p>
+                      {" "}
+                      To access DICOM local files, <br /> 1) drop DICOM files/folder here, <br />
+                      2) click here to select files to view. <br />
+                      3) drag files into Chrome without opening viewer first, to allow this feature,
+                      you need to enable file url access in extenstion DETAILS
+                      setting page.
+                      <br /> To swtich files, use slider or right/left key.
+                      <br /> To change window center (level), use mouse press+move
+                      {isPyodideLoading ? <><br /> <b>Loading python runtime</b> </> : null}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex-container">
+              {info}
+              <br />
+              {` current window_center:${useWindowCenter ?? ""} ; window_width ${useWindowWidth ?? ""} ;`}
+              {` ${modality === "CT" ? "HU" : "pixel"} max:${pixelMax ?? ""}, min:${pixelMin ?? ""} ;`}
+              {/* {` file: ${currFilePath} ;`} */}
+            </div>
+            <div className="flex-container">
+              <NormalizationComponent
+                mode={NormalizationMode.WindowCenter}
+                windowItem={
+                  (windowCenter !== undefined && windowWidth !== undefined)
+                    ? { L: windowCenter, W: windowWidth }
+                    : undefined
+                }
+                currNormalizeMode={currNormalizeMode}
+                onChange={handleNormalizeModeChange}
+              />
+
+              <NormalizationComponent
+                mode={NormalizationMode.Pixel_MaxMin_Mode}
+                currNormalizeMode={currNormalizeMode}
+                onChange={handleNormalizeModeChange}
+              />
+              <div>
+                {numFrames > 1 ? (
+                  <Dropdown
+                    placeholder="Switch Frame"
+                    selection
+                    onChange={handleSwitchFrame}
+                    options={options}
+                  />) : null}
+              </div>
+            </div>
+            <div className="flex-container">
+              {modality === "CT" && (
+                <>
+                  <NormalizationComponent
+                    mode={NormalizationMode.AbdomenSoftTissues}
+                    currNormalizeMode={currNormalizeMode}
+                    onChange={handleNormalizeModeChange}
+                  />
+                  <NormalizationComponent
+                    mode={NormalizationMode.SpineSoftTissues}
+                    currNormalizeMode={currNormalizeMode}
+                    onChange={handleNormalizeModeChange}
+                  />
+
+                  <NormalizationComponent
+                    mode={NormalizationMode.SpineBone}
+                    currNormalizeMode={currNormalizeMode}
+                    onChange={handleNormalizeModeChange}
+                  />
+                  <NormalizationComponent
+                    mode={NormalizationMode.Brain}
+                    currNormalizeMode={currNormalizeMode}
+                    onChange={handleNormalizeModeChange}
+                  />
+                  <NormalizationComponent
+                    mode={NormalizationMode.Lungs}
+                    currNormalizeMode={currNormalizeMode}
+                    onChange={handleNormalizeModeChange}
+                  />
+                </>)}
+            </div>
+            <div className="flex-container">
+              <Radio
+                toggle
+                value={SeriesMode[ifShowSagittalCoronal]}
+                checked={ifShowSagittalCoronal === SeriesMode.Series}
+                onChange={handleSeriesModeChange}
+              />
+              {"  Series mode"}
+            </div>
+          </div>
+          {totalFiles > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ width: 600 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  {`${currFilePath}. ${currFileNo}/${totalFiles}`}
+                </div>
+                <div className="flex-container">
+                  {axisLabel("S")}
+                  <Slider
+                    value={currFileNo}
+                    step={1}
+                    min={1}
+                    max={totalFiles}
+                    onChange={switchFile}
+                  />
+                  {axisLabel("I")}
+                </div>
+                {ifShowSagittalCoronal === SeriesMode.Series && (
+                  <>
+                    <div className="flex-container">
+                      {axisLabel("R")}
+                      <Slider
+                        value={currentSagittalNo}
+                        step={1}
+                        min={1}
+                        max={totalSagittalFrames}
+                        onChange={switchSagittal}
+                      />
+                      {axisLabel("L")}
+                    </div>
+                    <div className="flex-container">
+                      {axisLabel("A")}
+                      <Slider
+                        value={currentCoronaNo}
+                        step={1}
+                        min={1}
+                        max={totalCoronaFrames}
+                        onChange={switchCorona}
+                      />
+                      {axisLabel("P")}
+                    </div>
+                  </>
                 )}
               </div>
+            </div>) : null}
+          <div className="flex-container">
+            <div className="flex-column-justify-align-center">
+              {axisLabel("A")}
+              <div className="flex-column_align-center">
+                {axisLabel("R")}
+                {/* Axial */}
+                <canvas
+                  ref={myCanvasRef}
+                  onMouseDown={onMouseCanvasDown}
+                  onMouseMove={onMouseMove}
+                  // onMouseUp={onMouseUp}
+                  width={MAX_WIDTH_SERIES_MODE}
+                  height={MAX_HEIGHT_SERIES_MODE}
+                  style={{ backgroundColor: "black" }}
+                />
+                {axisLabel("L")}
+              </div>
+              {axisLabel("P")}
             </div>
-          </div>
-          <div className="flex-container">
-            {info}
-            <br />
-            {` current window_center:${useWindowCenter ?? ""} ; window_width ${useWindowWidth ?? ""} ;`}
-            {` ${modality === "CT" ? "HU" : "pixel"} max:${pixelMax ?? ""}, min:${pixelMin ?? ""} ;`}
-            {/* {` file: ${currFilePath} ;`} */}
-          </div>
-          <div className="flex-container">
-            <NormalizationComponent
-              mode={NormalizationMode.WindowCenter}
-              windowItem={
-                (windowCenter !== undefined && windowWidth !== undefined)
-                  ? { L: windowCenter, W: windowWidth }
-                  : undefined
-              }
-              currNormalizeMode={currNormalizeMode}
-              onChange={handleNormalizeModeChange}
-            />
-
-            <NormalizationComponent
-              mode={NormalizationMode.Pixel_MaxMin_Mode}
-              currNormalizeMode={currNormalizeMode}
-              onChange={handleNormalizeModeChange}
-            />
-            <div>
-              {numFrames > 1 ? (
-                <Dropdown
-                  placeholder="Switch Frame"
-                  selection
-                  onChange={handleSwitchFrame}
-                  options={options}
-                />) : null}
-            </div>
-          </div>
-          <div className="flex-container">
-            {modality === "CT" && (
+            {ifShowSagittalCoronal === SeriesMode.Series && (
               <>
-                <NormalizationComponent
-                  mode={NormalizationMode.AbdomenSoftTissues}
-                  currNormalizeMode={currNormalizeMode}
-                  onChange={handleNormalizeModeChange}
-                />
-                <NormalizationComponent
-                  mode={NormalizationMode.SpineSoftTissues}
-                  currNormalizeMode={currNormalizeMode}
-                  onChange={handleNormalizeModeChange}
-                />
-
-                <NormalizationComponent
-                  mode={NormalizationMode.SpineBone}
-                  currNormalizeMode={currNormalizeMode}
-                  onChange={handleNormalizeModeChange}
-                />
-                <NormalizationComponent
-                  mode={NormalizationMode.Brain}
-                  currNormalizeMode={currNormalizeMode}
-                  onChange={handleNormalizeModeChange}
-                />
-                <NormalizationComponent
-                  mode={NormalizationMode.Lungs}
-                  currNormalizeMode={currNormalizeMode}
-                  onChange={handleNormalizeModeChange}
-                />
-              </>)}
-          </div>
-          <div className="flex-container">
-            <Radio
-              toggle
-              value={SeriesMode[ifShowSagittalCoronal]}
-              checked={ifShowSagittalCoronal === SeriesMode.Series}
-              onChange={handleSeriesModeChange}
-            />
-            {"  Series mode"}
-          </div>
-        </div>
-        {totalFiles > 0 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ width: 600 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                {`${currFilePath}. ${currFileNo}/${totalFiles}`}
-              </div>
-              <div className="flex-container">
-                {axisLabel("S")}
-                <Slider
-                  value={currFileNo}
-                  step={1}
-                  min={1}
-                  max={totalFiles}
-                  onChange={switchFile}
-                />
-                {axisLabel("I")}
-              </div>
-              {ifShowSagittalCoronal === SeriesMode.Series && (
-                <>
-                  <div className="flex-container">
-                    {axisLabel("R")}
-                    <Slider
-                      value={currentSagittalNo}
-                      step={1}
-                      min={1}
-                      max={totalSagittalFrames}
-                      onChange={switchSagittal}
-                    />
-                    {axisLabel("L")}
-                  </div>
-                  <div className="flex-container">
+                <div className="flex-column-justify-align-center">
+                  {axisLabel("S")}
+                  <div className="flex-column_align-center">
                     {axisLabel("A")}
-                    <Slider
-                      value={currentCoronaNo}
-                      step={1}
-                      min={1}
-                      max={totalCoronaFrames}
-                      onChange={switchCorona}
+                    {/* Sagittal */}
+                    <canvas
+                      ref={myCanvasRefSagittal}
+                      onMouseDown={onMouseCanvasDown}
+                      onMouseMove={onMouseMove}
+                      width={MAX_WIDTH_SERIES_MODE}
+                      height={MAX_HEIGHT_SERIES_MODE}
+                      style={{ backgroundColor: "yellow" }}
                     />
                     {axisLabel("P")}
                   </div>
-                </>
-              )}
-            </div>
-          </div>) : null}
-        <div className="flex-container">
-          <div className="flex-column-justify-align-center">
-            {axisLabel("A")}
-            <div className="flex-column_align-center">
-              {axisLabel("R")}
-              {/* Axial */}
-              <canvas
-                ref={myCanvasRef}
-                onMouseDown={onMouseCanvasDown}
-                onMouseMove={onMouseMove}
-                // onMouseUp={onMouseUp}
-                width={MAX_WIDTH_SERIES_MODE}
-                height={MAX_HEIGHT_SERIES_MODE}
-                style={{ backgroundColor: "black" }}
-              />
-              {axisLabel("L")}
-            </div>
-            {axisLabel("P")}
+                  {axisLabel("I")}
+                </div>
+                <div className="flex-column-justify-align-center">
+                  {axisLabel("S")}
+                  <div className="flex-column_align-center">
+                    {/* Corona */}
+                    {axisLabel("R")}
+                    <canvas
+                      ref={myCanvasRefCorona}
+                      onMouseDown={onMouseCanvasDown}
+                      onMouseMove={onMouseMove}
+                      width={MAX_WIDTH_SERIES_MODE}
+                      height={MAX_HEIGHT_SERIES_MODE}
+                      style={{ backgroundColor: "green" }}
+                    />
+                    {axisLabel("L")}
+                  </div>
+                  {axisLabel("I")}
+                </div>
+              </>)}
           </div>
-          {ifShowSagittalCoronal === SeriesMode.Series && (
-            <>
-              <div className="flex-column-justify-align-center">
-                {axisLabel("S")}
-                <div className="flex-column_align-center">
-                  {axisLabel("A")}
-                  {/* Sagittal */}
-                  <canvas
-                    ref={myCanvasRefSagittal}
-                    onMouseDown={onMouseCanvasDown}
-                    onMouseMove={onMouseMove}
-                    width={MAX_WIDTH_SERIES_MODE}
-                    height={MAX_HEIGHT_SERIES_MODE}
-                    style={{ backgroundColor: "yellow" }}
-                  />
-                  {axisLabel("P")}
-                </div>
-                {axisLabel("I")}
-              </div>
-              <div className="flex-column-justify-align-center">
-                {axisLabel("S")}
-                <div className="flex-column_align-center">
-                  {/* Corona */}
-                  {axisLabel("R")}
-                  <canvas
-                    ref={myCanvasRefCorona}
-                    onMouseDown={onMouseCanvasDown}
-                    onMouseMove={onMouseMove}
-                    width={MAX_WIDTH_SERIES_MODE}
-                    height={MAX_HEIGHT_SERIES_MODE}
-                    style={{ backgroundColor: "green" }}
-                  />
-                  {axisLabel("L")}
-                </div>
-                {axisLabel("I")}
-              </div>
-            </>)}
         </div>
-      </div>
-    </div >
+      </div >
+    </Hotkeys>
   );
 }
 
