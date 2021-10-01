@@ -1,6 +1,9 @@
 {
-  "name": "embedded-pydicom-react-viewer",
-  "version": "0.1.0",
+  "name": "Embedded Pydicom React Viewer",
+  "version": "1.7",
+  "description": "Use Pyodide to run Python with pydicom in browsers - rendering medical DICOM files",
+  "repository": "https://github.com/grimmer0125/embedded-pydicom-react-viewer",
+  "license": "BSD-3-Clause",
   "dependencies": {
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
