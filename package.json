@@ -1,5 +1,5 @@
 {
-  "name": "Embedded Pydicom React Viewer",
+  "name": "embedded-pydicom-react-viewer",
   "version": "1.7",
   "description": "Use Pyodide to run Python with pydicom in browsers - rendering medical DICOM files",
   "repository": "https://github.com/grimmer0125/embedded-pydicom-react-viewer",
