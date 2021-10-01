@@ -35,6 +35,8 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | b
 # Issue 3 (nvm/node path): neither source ~/.bashrc or source $NVM_DIR/nvm.sh does work 
 # Answer: https://stackoverflow.com/questions/25899912/how-to-install-nvm-in-docker
 
+RUN git submodule update --init --recursive
+
 # ref: https://gist.github.com/remarkablemark/aacf14c29b3f01d6900d13137b21db3a
 RUN source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION
 # add node and npm to path so the commands are available
@@ -44,7 +46,6 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 RUN node -v
 RUN npm -v
 RUN npm install --global yarn
-RUN yarn set version berry
 
 # RUN apt install -y software-properties-common
 # RUN add-apt-repository -y ppa:deadsnakes/ppa
