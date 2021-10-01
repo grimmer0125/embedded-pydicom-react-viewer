@@ -6,7 +6,7 @@
   "background_color": "#ffffff",
 
   "manifest_version": 2,
-  "name": "DICOM image viewer(dev)",
+  "name": "DICOM image viewer",
   "description": "This extension allows the user to view DICOM image",
   "version": "1.7",
   "background": {

@@ -101,7 +101,7 @@ Then
 
 ### Start coding
 
-Just `yarn start`
+Just `yarn start` (it may take a whlie for the 1st time since WebAssembly decoder is added)
 
 ## Production - Use Python FastAPI to host built React app
 
@@ -124,7 +124,9 @@ $ poetry run uvicorn main:app
 
 Using `uvicorn main:app --reload` is for development but we already have create react app built-in development live server.
 
-## Docker images - another testing way
+## Docker images 
+
+Building from latest code is not working now and wait for fix. `yarn build` happens out of memory error when building, and it probably is due to WebAssembly decoder.
 
 ### Build a docker image to run (either on amd64 or arm64)
 
