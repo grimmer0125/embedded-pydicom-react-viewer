@@ -245,7 +245,7 @@ function App() {
   }
 
   const onMouseCanvasDown = useCallback((event: any) => {
-    console.log("onMouseDown:", event, typeof event);
+    // console.log("onMouseDown:", event, typeof event);
 
     clientX.current = event.clientX;
     clientY.current = event.clientY;
@@ -254,7 +254,7 @@ function App() {
   }, []);
 
   const onMouseUp = useCallback((event: any) => {
-    console.log("onMouseUp:", event);
+    // console.log("onMouseUp:", event);
     isValidMouseDown.current = false;
     // window.removeEventListener("mousemove", onMouseMove);
   }, []);
@@ -341,7 +341,7 @@ function App() {
       }
     }
     init();
-    console.log("register mouseup")
+    // console.log("register mouseup")
     window.addEventListener("mouseup", onMouseUp);
 
   }, []); // [] means only 1 time, if no [], means every update this will be called

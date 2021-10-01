@@ -71,7 +71,7 @@ const initPyodideAndLoadPydicom = d4c.wrap(async () => {
 
 
 const loadPyodideDicomModule = d4c.wrap(async () => {
-    console.log("loadPyodideDicomModule")
+    // console.log("loadPyodideDicomModule")
     const pythonCode = await (await fetch('python/dicom_parser.py')).text();
     await pyodide.loadPackagesFromImports(pythonCode);
     await pyodide.runPythonAsync(pythonCode);

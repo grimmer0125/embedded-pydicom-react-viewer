@@ -1264,7 +1264,8 @@ class PyodideDicom:
             transferSyntaxUID: str = ds.file_meta.TransferSyntaxUID
             # print(f"transferSyntax:{transferSyntaxUID}")
         except:
-            print("no TransferSyntaxUID")
+            # print("no TransferSyntaxUID")
+            pass
         try:
             photometric: str = ds.PhotometricInterpretation
             # print(f"photometric:{photometric}")
