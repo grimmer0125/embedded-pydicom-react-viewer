@@ -32,7 +32,7 @@ const dropZoneStyle = {
   borderStyle: "dashed",
   borderRadius: 5,
   width: 800,
-  height: 150,
+  height: 170,
 };
 
 enum SeriesMode {
@@ -892,19 +892,35 @@ function App() {
       <div>
         <div className="flex-container">
           <div>
-            DICOM Image Viewer{" "}
-            {isPyodideLoading ? ", loading python runtime" : ""}
+            DICOM Image Viewer (feat: 1. click a DICOM file url to view 2. click extension
+            icon (or ctrl+u/cmd+u) to open <br></br>viewer page 3.
+            <a href="https://github.com/grimmer0125/dicom-web-viewer/wiki">
+              {" "}
+              More (e.g. use CLI to open files & Instruction)!
+            </a>
+            {isPyodideLoading ? <><br />, loading python runtime </> : null}
           </div>
         </div>
         <div>
           <div className="flex-container">
             <div style={dropZoneStyle} {...getRootProps()} className="flex-column_align-center">
               <input {...getInputProps()} />
-              {isDragActive ? (
-                <p>Drop the files here ...</p>
-              ) : (
-                <p>Drag 'n' drop some files here, or click to select files</p>
-              )}
+              <div style={{ width: "80%" }}>
+                {isDragActive ? (
+                  <p>Drop the DICOM files/folder here ...</p>
+                ) : (
+                  <p>
+                    {" "}
+                    To access DICOM local files, <br /> 1) drop DICOM files/folder here, <br />
+                    2) click here to select files to view. <br />
+                    3) drag files into Chrome without opening viewer first, to allow this feature,
+                    you need to enable file url access in extenstion DETAILS
+                    setting page.
+                    <br /> To swtich files, use slider or right/left key.
+                    <br /> To change window center (level), use mouse press+move
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex-container">
@@ -1095,7 +1111,7 @@ function App() {
             </>)}
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
