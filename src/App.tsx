@@ -468,10 +468,16 @@ function App() {
   const processDicomBuffer = (buffer?: ArrayBuffer, bufferList?: ArrayBuffer[], inheritWindowCenter = false) => {
     if (PyodideDicom.current) {
       // console.log("has imported PyodideDicom class")
-      if (inheritWindowCenter) {
-        dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG, useWindowCenter, useWindowWidth, currNormalizeMode)
-      } else {
-        dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
+      try {
+        if (inheritWindowCenter) {
+          dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG, useWindowCenter, useWindowWidth, currNormalizeMode)
+        } else {
+          dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
+        }
+      }
+      catch {
+        alert("pyodide exception: contact maintainer")
+        return;
       }
       const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
