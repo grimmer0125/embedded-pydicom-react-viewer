@@ -11,6 +11,18 @@ Its usage is simple. Just drag a DICOM file into the panel to view.
 
 Download DICOM files from [DICOM sample file sites](#dicom-sample-file-sites)
 
+## Features
+
+- view DICOM files & show some basic info.
+- window center & width mode
+- multiple frame
+- coronal & sagittal views & judge if current is AxialView or not
+- scale (resize to viewer size)
+- ...
+
+more complete list is on https://github.com/grimmer0125/dicom-web-viewer/wiki and 
+(0028,3000) Modality LUT Sequence present DICOM & PALETTE COLOR are already supported in this project. 
+
 ## Motivation
 
 Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantages.
@@ -59,7 +71,7 @@ Or you can comment these
 
 await loadPyodide({ indexURL : "pyodide/" });
 
-await micropip.install('pyodide/pydicom-2.1.2-py3-none-any.whl')
+await micropip.install('pyodide/pydicom-2.2.1-py3-none-any.whl')
 ```
 
 and replace by below to fetch from CDN
@@ -72,16 +84,13 @@ await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/dev/full/" });
 await micropip.install('pydicom')
 
 ```
-
-#### Why use 0.17.0+ Pyodide version
-
-Since we need to use `getBuffer` method which is added in `v0.17.0` to eliminate memory allocation/copy, that method only exists in the latest dev. During flattening a 2D grey array to 1D RGBA array, we need to allocate 1D RGBA arrray, we have moved this operation into Python Pyoidie side, so we need to avoid extra memory allocation due to `new Uint8ClampedArray` in the previous JS code.
-
 ### Install Python, Node.js and their dependencies for intel and Mac M1 (arm) machines
 
 https://github.com/nvm-sh/nvm January 2021: there are no pre-compiled NodeJS binaries for versions prior to 15.x for Apple's new M1 chip (arm64 architecture). v14.16 supports M1 but need compilation (auto done by nvm). p.s. nvm seems to still build 15.14.0
 
 Make sure you have Node.js (v15.14.0+), Python (3.9.2+) and [Poetry](https://python-poetry.org/) installed first. (Optional) [pyenv](https://github.com/pyenv/pyenv) is recommended to switch different Python and it will automatically switch to 3.9.2 since .python-version is created.
+
+Python is to help Python static code analysing and code completion and host built-react code. For example, you install pydicom from wheel url and use it in runtime but you can install pydicom (`poetry add pydicom -dev`) to help the auto type completion in VSCode. 
 
 Then
 1. `git submodule update --init --recursive`
@@ -94,7 +103,7 @@ Then
 
 Just `yarn start`
 
-## Production - Use Python FastAPI to host React app
+## Production - Use Python FastAPI to host built React app
 
 1. `yarn build` to build reactapp
 
@@ -154,7 +163,7 @@ Image: https://hub.docker.com/repository/docker/grimmer0125/pyodide-react-dicom-
 
 ### Tested sample files
 
-Most of them are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/v0.2/dicom_samples.zip. All jpeg compressed DICOM files need a extra JPEG decoder (except 50 baseline) to render on browser and currently it is parsed but not visible on browser. [Daikon][https://github.com/rii-mango/daikon] has done this, and https://github.com/cornerstonejs/dicomParser seems too.
+Most of them are archived on https://github.com/grimmer0125/embedded-pydicom-react-viewer/releases/download/v0.2/dicom_samples.zip. ~~All jpeg compressed DICOM files need a extra JPEG decoder (except 50 baseline) to render on browser and currently it is parsed but not visible on browser. [Daikon][https://github.com/rii-mango/daikon] has done this, and https://github.com/cornerstonejs/dicomParser seems too.~~ The project already borrow the decoder from Dakon. 
 
 https://barre.dev/medical/samples/:
 
@@ -173,9 +182,9 @@ https://github.com/pydicom/pydicom-data/tree/master/data_store/data
 https://github.com/pydicom/pydicom/tree/master/pydicom/data/test_files
 
 - JPEG-lossy: 1.2.840.10008.1.2.4.51, MONOCHROME2
-  - contrast of saved jpeg is not obvious (need to improve normalization?)
+  - contrast of saved jpeg is not obvious
 - JPEG2000: 1.2.840.10008.1.2.4.91, MONOCHROME2
-  - contrast of saved jpeg is not obvious (need to improve normalization?)
+  - contrast of saved jpeg is not obvious
 
 GDCM data, use `git://git.code.sf.net/p/gdcm/gdcmdata` to download
 
@@ -194,25 +203,19 @@ pydicom suported transfer syntax: https://pydicom.github.io/pydicom/dev/old/imag
 Below non handled items are done in another project https://github.com/grimmer0125/dicom-web-viewer (canvas operation is borrowed from this)
 
 - DICOM FILE
-  - Transfer Syntax:
-    - ~~51 (supported)~~, 57, 70 JPEG DICOM.
-    - ~~1.2.840.10008.1.2.5 RLE Lossless~~
-    - \*1.2.840.10008.1.2.4.80 JPEG LS Lossless (parsed but not confirm if it is ok yet)
-    - \*1.2.840.10008.1.2.4.81 JPEG LS Lossy (parsed but not confirm if it is ok yet)
-    - ~~1.2.840.10008.1.2.4.90 JPEG2000 Lossless (not tested)~~
-    - ~~1.2.840.10008.1.2.4.91 JPEG2000 (not tested)~~
-    - ~~1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian~~
+  - Main Transfer Syntax:
+    - [done] 51,  57, 70 JPEG DICOM.
+    - 1.2.840.10008.1.2.5 RLE Lossless (US-PAL-8-10x-echo.dcm is ok but not sure others) 
+    - [done] 1.2.840.10008.1.2.4.80 JPEG LS Lossless
+    - [done] 1.2.840.10008.1.2.4.81 JPEG LS Lossy
+    - [done] 1.2.840.10008.1.2.4.90 JPEG2000 Lossless
+    - [done] 1.2.840.10008.1.2.4.91 JPEG2000
+    - [done] 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian
   - [done] Photometric: MONOCHROME1, inverted color
   - [done] Photometric: RGB with planar 0, 1
   - [done] Photometric: PALETTE
-  - ~~1.2.840.10008.1.2.1 Explicit VR, Little Endian (not testd)~~
-  - ~~1.2.840.10008.1.2.2 Explicit VR, Big Endian (testd)~~
-- possible window center & width mode (need work with rescale equation)
-- multiple frame
-- coronal & sagittal views & judge if current is AxialView or not
-- scale (resize to viewer size)
-- get width & height of compressed DICOM before rendering
-- PhotometricInterpretation: YBR case
+  - [done] 1.2.840.10008.1.2.1 Explicit VR, Little Endian
+  - [done] 1.2.840.10008.1.2.2 Explicit VR, Big Endian
 
 Transfer Syntax for videos (1.2.840.10008.1.2.4.100 / 1.2.840.10008.1.2.4.102 / 1.2.840.10008.1.2.4.103) and some other not often seen syntax will not be handled.
 ref https://www.dicomlibrary.com/dicom/transfer-syntax/
@@ -221,12 +224,12 @@ ref https://www.dicomlibrary.com/dicom/transfer-syntax/
 
 ### performance
 
-[Solved][performance] Using Python numpy in browser is slow, it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
+[Solved][performance] Using Python numpy in browser is slow in some cases (see below **Speed test**), it takes `3~4s` for 1 512\*512 array operation. Using pure JavaScript takes less than 0.5s. Ref: https://github.com/pyodide/pyodide/issues/112 (the author said WebAssembly may takes `3~5x` slow). The solution might be
 
 1.  (can rollback to git commit: `219299f9adec489134206faf0cfab79d8345a7df`), using pydicom to parse DICOM files, sending pixel data to JS, then use JS to flatten 2D grey data to 1D RGBA canvas image data.~~
 2.  [Use this way, solved] Or is there any quick way in numpy for flattening a 2D grey array to 1D RGBA array with normalization? Such as https://stackoverflow.com/questions/59219210/extend-a-greyscale-image-to-fit-a-rgb-image? Also image2D.min()/max() is fast. Need more study/profiling.
 
-**Speed (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/)**:
+**Speed test (using above sample file to test, file: `OT-MONO2-8-hip.dcm` on https://barre.dev/medical/samples/)**:
 
 1. numpy array + manual iteration calculation in local python ~= numpy array + numpy array operation ~= JS ArrayBuffer/int8ClampedArray + manual iteration calculation (very fast) >>
 2. Python list + manual iteration calculation > (5s)
@@ -236,10 +239,6 @@ p.s.
 
 1. I did not record JS accurate time cost but it is fast.
 2. Local Python is much faster than Pyodide Python in browser.
-
-### Some compressed JPEG DICOM are not shown in the browser
-
-Need extra jpeg decoder added.
 
 ## todo list
 
@@ -251,15 +250,14 @@ Besides adding back above medical file cases/features, there are some optional t
    3. non pyodide built-in pure python packages (which needs to be a wheel package and we use `pyodide micropip` to install them from PyPI). e.g. pydicom-2.1.2-py3-none-any.whl (1.9MB)
 2. Move python code to a browser webworker, https://pyodide.org/en/stable/usage/webworker.html.
 3. [Done] Dockerization
-4. Bundle some testing DICOM files
-5. Introduction to medical files and pyodide
+4. [Done] Bundle some testing DICOM files
+5. [Done] Introduction to medical files and pyodide
 6. Make a Python package
 7. 3D visualization
-8. Help to improve Pyodide
+8. **Help to improve Pyodide
 9. Refactor
 10. Add tests
 11. Fix [DICOM medical files - Not handle cases](#dicom-medical-files---not-handle-cases)
-12. Add jpeg extra decoder in the browser.
 
 ## Misc
 
