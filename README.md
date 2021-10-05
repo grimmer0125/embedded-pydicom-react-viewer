@@ -23,6 +23,8 @@ Download DICOM files from [DICOM sample file sites](#dicom-sample-file-sites)
 more complete list is on https://github.com/grimmer0125/dicom-web-viewer/wiki and 
 (0028,3000) Modality LUT Sequence present DICOM & PALETTE COLOR are already supported in this project. 
 
+The Chrome extension is published, click [there](https://chrome.google.com/webstore/detail/dicom-image-viewer/ehppmcooahfnlfhhcflpkcjmonkoindc) to install.
+
 ## Motivation
 
 Besides it is an interesting thing to use Python in browser, using Python DICOM parser has some advantages.
