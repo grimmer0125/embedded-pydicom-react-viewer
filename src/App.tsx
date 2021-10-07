@@ -15,7 +15,7 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 import { useDropzone } from "react-dropzone";
-import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, fetchDicomFileAsync } from "./pyodideHelper";
+import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, fetchDicomFileAsync, newPyodideDicom } from "./pyodideHelper";
 // import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 import decompressJPEG from "./jpegDecoder"
@@ -42,7 +42,7 @@ enum SeriesMode {
   Series
 }
 
-enum NormalizationMode {
+export enum NormalizationMode {
   Pixel_MaxMin_Mode, //start from 0 
   WindowCenter,
   // below are for CT,   // https://radiopaedia.org/articles/windowing-ct
@@ -182,7 +182,7 @@ function App() {
   const [currFrameIndex, setCurrFrameIndex] = useState<number>(1)
 
 
-  const onMouseMove = (event: any) => {
+  const onMouseMove = async (event: any) => {
     const isGrey = photometric === "MONOCHROME1" || photometric === "MONOCHROME2"
     // console.log("onMouseMove1:", isGrey, isValidMouseDown.current, clientX.current, clientY.current, pixelMax, pixelMin)
     if (isGrey && isValidMouseDown.current && clientX.current != undefined && clientY.current != undefined && pixelMax != undefined && pixelMin != undefined) {
@@ -232,8 +232,24 @@ function App() {
         });
         renderFrame({ ax_ndarray })
       } else {
-        const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
-        renderFrame({ ndarray })
+        // console.log("3")
+        const image = dicomObj.current
+        //const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+        image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+        // console.log("4")
+
+        const uncompressed_ndarray = await (image.final_rgba_1d_ndarray.toJs());
+        // console.log("2:", uncompressed_ndarray)
+        const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
+
+
+        // const ndarray = await image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+        // console.log("3")
+        // console.log("get_rgba_1d_ndarray:", ndarray)
+        // renderFrame({ ndarray })
+        renderFrame({ uncompressedData })
+
+        // renderFrame({ ndarray })
       }
 
       // processDicomBuffer(fileBuffer.current)
@@ -331,7 +347,8 @@ function App() {
       if (isPyodideLoading) {
         try {
           initPyodideAndLoadPydicom(); // do some initialization
-          PyodideDicom.current = await loadPyodideDicomModule();
+          // PyodideDicom.current = await loadPyodideDicomModule();
+          await loadPyodideDicomModule();
           setPyodideLoading(false);
           console.log("finish initializing Pyodide");
           checkOnlineFiles()
@@ -360,7 +377,7 @@ function App() {
     return 1 / scale;
   }
 
-  const renderFrame = ({ ndarray, ax_ndarray, sag_ndarray, cor_ndarray }: { ndarray?: PyProxyBuffer, ax_ndarray?: PyProxyBuffer, sag_ndarray?: PyProxyBuffer, cor_ndarray?: PyProxyBuffer }) => {
+  const renderFrame = async ({ ndarray, ax_ndarray, sag_ndarray, cor_ndarray, uncompressedData }: { ndarray?: PyProxyBuffer, ax_ndarray?: PyProxyBuffer, sag_ndarray?: PyProxyBuffer, cor_ndarray?: PyProxyBuffer, uncompressedData?: Uint8ClampedArray }) => {
     // TODO: add parameters to specify which should be updated 
     const image: PyProxyObj = dicomObj.current;
 
@@ -374,19 +391,26 @@ function App() {
     // const kk = image.toJs({ depth: 1 })
     // console.log("kk:", kk)
 
-    if (ndarray) {
-      // const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
-      const buffer = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
-      (ndarray as PyProxyBuffer).destroy();
-      // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
-      const uncompressedData = buffer.data as Uint8ClampedArray
-      // console.log("uncompressedData:", uncompressedData, uncompressedData.length, uncompressedData.byteLength)
 
-      const scale = needScale(image.width, image.height, maxViewWidth.current, maxViewHeight.current)
-      // console.log("need scale:", scale)
+    if (ndarray || uncompressedData) {
+
+      // const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+      let scale, width, height;
+      if (uncompressedData) {
+        width = await image.width
+        height = await image.height
+      } else {
+        const buffer = (ndarray as PyProxyBuffer).getBuffer("u8clamped");
+        (ndarray as PyProxyBuffer).destroy();
+        // console.log("pyBufferData data type1, ", typeof pyBufferData.data, pyBufferData.data) // Uint8ClampedArray
+        uncompressedData = buffer.data as Uint8ClampedArray
+        buffer.release(); // Release the memory when we're done
+      }
+      scale = needScale(width, height, maxViewWidth.current, maxViewHeight.current)
+
       currScale.current = scale
-      canvasRender.renderUncompressedData(uncompressedData, image.width as number, image.height as number, myCanvasRef, undefined, undefined, scale);
-      buffer.release(); // Release the memory when we're done
+
+      canvasRender.renderUncompressedData(uncompressedData, width as number, height as number, myCanvasRef, undefined, undefined, scale);
     } else {
 
       const ax_scale = needScale(image.series_dim_x, image.series_dim_y, maxViewWidth.current, maxViewHeight.current)
@@ -465,50 +489,61 @@ function App() {
   }
 
 
-  const processDicomBuffer = (buffer?: ArrayBuffer, bufferList?: ArrayBuffer[], inheritWindowCenter = false) => {
-    if (PyodideDicom.current) {
-      // console.log("has imported PyodideDicom class")
-      try {
-        if (inheritWindowCenter) {
-          dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG, useWindowCenter, useWindowWidth, currNormalizeMode)
-        } else {
-          dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
-        }
-      }
-      catch {
-        alert("pyodide exception: contact maintainer")
-        return;
-      }
-      const image: PyProxyObj = dicomObj.current;
+  const processDicomBuffer = async (buffer?: ArrayBuffer, bufferList?: ArrayBuffer[], inheritWindowCenter = false) => {
+    if (!buffer) {
+      return
+    }
+    console.log("11")
+    if (true) { //!isPyodideLoading) {
+      console.log("2 has imported PyodideDicom class")
+
+      const image: any = await newPyodideDicom(buffer);
+      dicomObj.current = image;
+
+      // works  
+      const aa = await image.get_test()
+      console.log("aa:", aa)
+      // try {
+      //   if (inheritWindowCenter) {
+      //     dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG, useWindowCenter, useWindowWidth, currNormalizeMode)
+      //   } else {
+      //     dicomObj.current = PyodideDicom.current(buffer, bufferList, decompressJPEG)
+      //   }
+      // }
+      // catch {
+      //   alert("pyodide exception: contact maintainer")
+      //   return;
+      // }
+      // const image: PyProxyObj = dicomObj.current;
       // console.log(`image:${image}`) // print a lot of message: PyodideDicom(xxxx
       // console.log(`image max:${image.max}`)
       // console.log(`image center:${image.window_center}`) // works !!!
 
-      setModality(image.modality)
-      setPhotometric(image.photometric)
-      setTransferSyntax(image.transferSyntaxUID)
-      setResX(image.width)
-      setResY(image.height)
-      setNumFrames(image.frame_num)
+      setModality(await image.modality)
+      setPhotometric(await image.photometric)
+      setTransferSyntax(await image.transferSyntaxUID)
+      setResX(await image.width)
+      setResY(await image.height)
+      setNumFrames(await image.frame_num)
 
       // normalization: using global series max in 3d 
       // but https://grimmer.io/dicom-web-viewer/ show axial plan's max on UI
       // now we correct this by using global max/min 
-      setPixelMax(image.frame_max ?? image.max_3d)
-      setPixelMin(image.frame_min ?? image.min_3d)
+      setPixelMax(await image.frame_max ?? await image.max_3d)
+      setPixelMin(await image.frame_min ?? await image.min_3d)
 
       // by default it is referring 1st dicom in series mode
-      setWindowCenter(image.window_center)
-      setWindowWidth(image.window_width)
+      setWindowCenter(await image.window_center)
+      setWindowWidth(await image.window_width)
 
       setCurrFrameIndex(1)
       if (currNormalizeMode === NormalizationMode.WindowCenter) {
         // should always (except switch file) go into here since we rest it to windowCenter mode every time
         if (!windowCenter) {
-          setUseWindowCenter(image.window_center)
+          setUseWindowCenter(await image.window_center)
         }
         if (windowWidth) {
-          setUseWindowWidth(image.window_width)
+          setUseWindowWidth(await image.window_width)
         }
       }
 
@@ -523,7 +558,7 @@ function App() {
       // console.log(`PhotometricInterpretation: ${(image.ds as PyProxy).PhotometricInterpretation}`) // works
       // }
 
-      setIsCommonAxialView(image.is_common_axial_direction)
+      setIsCommonAxialView(await image.is_common_axial_direction)
 
       if (bufferList) {
         setTotalFiles(image.series_dim_z)
@@ -548,14 +583,21 @@ function App() {
         // console.log(image.series_dim_y, image.series_dim_x, image.series_y, image.series_x)
         // TODO: setCurrFilePath ??????????
       } else {
-        const ndarray = image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+        // console.log("1:")
+        const uncompressed_ndarray = await (image.final_rgba_1d_ndarray.toJs());
+        // console.log("2:", uncompressed_ndarray)
+        const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
+
+
+        // const ndarray = await image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+        // console.log("3")
         // console.log("get_rgba_1d_ndarray:", ndarray)
-        renderFrame({ ndarray })
+        // renderFrame({ ndarray })
+        renderFrame({ uncompressedData })
       }
     } else {
       console.log("has not imported PyodideDicom class, ignore")
     }
-
   }
 
 

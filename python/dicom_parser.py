@@ -571,6 +571,9 @@ class PyodideDicom:
             return True
         return False
 
+    def get_test(self):
+        return 31
+
     def render_frame_to_rgba_1d(
         self,
         normalize_window_center: int = None,
@@ -583,6 +586,7 @@ class PyodideDicom:
         _max: int = None,
         _min: int = None,
     ):
+        # print("render_frame_to_rgba_1d")
         start = time.time()  ## 0.13s !!!!
         if ax_image is not None:
             image = ax_image
@@ -794,7 +798,7 @@ class PyodideDicom:
             self.cor_ndarray = final_rgba_1d_ndarray
         else:
             self.final_rgba_1d_ndarray = final_rgba_1d_ndarray
-        return final_rgba_1d_ndarray
+        # return final_rgba_1d_ndarray
 
         # width, height = get_image2d_dimension(image2d)
 
