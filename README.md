@@ -210,7 +210,7 @@ Below non handled items are done in another project https://github.com/grimmer01
     - 1.2.840.10008.1.2.5 RLE Lossless (US-PAL-8-10x-echo.dcm is ok but not sure others) 
     - [done] 1.2.840.10008.1.2.4.80 JPEG LS Lossless
     - [done] 1.2.840.10008.1.2.4.81 JPEG LS Lossy
-    - [done] 1.2.840.10008.1.2.4.90 JPEG2000 Lossless
+    - 1.2.840.10008.1.2.4.90 JPEG2000 Lossless
     - [done] 1.2.840.10008.1.2.4.91 JPEG2000
     - [done] 1.2.840.10008.1.2.1.99 Deflated Explicit VR Little Endian
   - [done] Photometric: MONOCHROME1, inverted color
