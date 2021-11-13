@@ -19,7 +19,7 @@ import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, 
 // import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
 import decompressJPEG from "./jpegDecoder"
-
+let count = 0;
 type PyProxyBuffer = any
 type PyProxyObj = any
 
@@ -234,12 +234,24 @@ function App() {
       } else {
         // console.log("3")
         const image = dicomObj.current
+        const start0 = new Date().getTime();
+
         //const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
         image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
         // console.log("4")
 
-        const uncompressed_ndarray = await (image.final_rgba_1d_ndarray.toJs());
-        // console.log("2:", uncompressed_ndarray)
+        const start = new Date().getTime();
+        const dd = image.final_rgba_1d_ndarray.toJs()
+        const end = new Date().getTime();
+        const time1 = end - start;
+        const uncompressed_ndarray = await dd;
+        const end2 = new Date().getTime();
+        // but for 1024x1024, JPEG57-MR-MONO2-12-shoulder, it is about 70~100ms
+        const time2 = end2 - end;
+        count++;
+        if (count % 10 == 0) {
+          console.log("r:", start - start0, time1, time2) // 0~1, 0~1, 5~18/29/40 ms (440x440), CR-MONO1-10-chest
+        }
         const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
 
 
@@ -397,6 +409,7 @@ function App() {
       // const ndarray_proxy = (image as any).get_rgba_1d_ndarray() //render_rgba_1d_ndarray
       let scale, width, height;
       if (uncompressedData) {
+        console.log("uncompressedData")
         width = await image.width
         height = await image.height
       } else {
