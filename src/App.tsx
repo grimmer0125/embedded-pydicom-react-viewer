@@ -15,9 +15,11 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 import { useDropzone } from "react-dropzone";
-import { initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, fetchDicomFileAsync, newPyodideDicom } from "./pyodideHelper";
+import { remoteFunction, initPyodideAndLoadPydicom, loadPyodideDicomModule, loadDicomFileAsync, fetchDicomFileAsync, newPyodideDicom } from "./pyodideHelper";
 // import { PyProxyBuffer } from '../public/pyodide/pyodide.d'
 import canvasRender from "./canvasRenderer"
+import * as Comlink from 'comlink'
+
 import decompressJPEG from "./jpegDecoder"
 let count = 0;
 type PyProxyBuffer = any
@@ -241,10 +243,26 @@ function App() {
         // console.log("4")
 
         const start = new Date().getTime();
-        const dd = image.final_rgba_1d_ndarray.toJs()
+
+        console.log("5:", image.final_rgba_1d_ndarray); //comlink proxy
+        // //comlink proxy
+        // const dd4 = Comlink.transfer(image.final_rgba_1d_ndarray, [image.final_rgba_1d_ndarray]);
+        // const d55 = dd4.getBuffer("u8clamped");
+        const dd4 = await remoteFunction();
+        console.log({ dd4 })
+        // const d55 = dd4.getBuffer("u8clamped");
+        // const aa = Comlink.proxy(dd4);
+        // console.log("d02", await aa);
+
+        // const dd5 = await Comlink.transfer(dd4, [dd4]);
+        console.log("d0");
+        const dd = image.final_rgba_1d_ndarray.toJs() // 因為這是 copy, 所以會跟原本的 comlink proxy 就無關了
+        console.log({ dd })
         const end = new Date().getTime();
         const time1 = end - start;
         const uncompressed_ndarray = await dd;
+        console.log({ uncompressed_ndarray })
+
         const end2 = new Date().getTime();
         // but for 1024x1024, JPEG57-MR-MONO2-12-shoulder, it is about 70~100ms
         const time2 = end2 - end;

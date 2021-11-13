@@ -84,17 +84,57 @@ const baseURL = self.location.origin + "/"
 
 importScripts(baseURL + "pyodide/pyodide.js");
 
-// postMessage("I\'m working before postMessage(\'ali\').");
+// var uint8 = new Uint8Array(2);
+// uint8[0] = 42;
+
+var buffer = new ArrayBuffer(8);
+var uint8 = new Uint8Array(buffer);
+uint8[0] = 42;
+
+var uint82 = new Uint8Array(buffer);
+
+console.log({ "d0:": uint8[0] })
+
+console.log({ "d2:": uint82[0] })
+
+postMessage(buffer);
 // onmessage = function (oEvent) {
 //   postMessage("Hi " + oEvent.data);
 // };
 
-export async function remoteFunction(name: string): Promise<string> {
-  console.log("executes async function in web worker ")
-  return `Hello ${name}!`;
+let dicomGlobal: any = null;
+
+// TODO: 看起來要可以把每次新的 ndarray 直接給當前 worker 再丟給 JS main app.tsx 的話
+// 一開始就不能直接把整個 dicomObj 用 comlink.proxy 包起來 (不然就是要每次都臨時 unproxy, 得到 getBuffer 後 ui canvas copy 後再 proxy link!!)
+// 不然 property 看起來之後每次都是自動也是 proxy 等級 (這樣就會看到 ArrayBuffer is not detachable and could not be cloned.) <-也不能在接收端指定要 return value 是 transfer 
+//   如果在這邊 transfer, 如果上層 object 是 proxy, 就會遇到 Uncaught (in promise) DOMException: Failed to execute 'postMessage' on 'DedicatedWorkerGlobalScope': ArrayBuffer is not detachable and could not be cloned.
+// NOTE: transfer 只能一次
+// NOTE2: a.  (uint8,[uint8.buffer]) or uint8.buffer, [uint8.buffer]) works 
+// b. Comlink.transfer(uint8, [uint8])  // Uncaught (in promise) TypeError: Failed to execute 'postMessage' on 'DedicatedWorkerGlobalScope': Value at index 0 does not have a transferable type.
+
+// 下面失敗是因為已經是 proxy 的關係
+// Comlink.transfer(data.buffer, [data.buffer]);
+// Uncaught (in promise) DOMException: Failed to execute 'postMessage' on 'DedicatedWorkerGlobalScope': ArrayBuffer is not detachable and could not be cloned.
+
+export async function remoteFunction(): Promise<any> {
+  // const pyBuffer = dicomGlobal.final_rgba_1d_ndarray.getBuffer("u8clamped");;
+  // 因為沒有 copy, 所以還是受限於之前就已經是 comlink proxy
+  // const data = pyBuffer.data
+  // console.log("try:", data)
+  return Comlink.transfer(uint8.buffer, [uint8.buffer]) // or uint8, [uint8.buffer] works 
+  // return Comlink.transfer(uint8, [uint8])
+
+  // return Comlink.transfer(data.buffer, [data.buffer]);
+  // return Comlink.transfer(dicomGlobal, [dicomGlobal.final_rgba_1d_ndarray])
+  // return Comlink.transfer(data, [data.buffer])
+
+  // console.log("executes async function in web worker ")
+  // return `Hello ${name}!`;
 }
 
 let PyodideDicomClass: any;
+
+
 
 const initPyodideAndLoadPydicom = d4c.wrap(async () => {
   console.log("initPyodideAndLoadPydicom")
@@ -139,6 +179,8 @@ const newPyodideDicom = d4c.wrap((buffer: ArrayBuffer, useWindowCenter?: number,
 
   // console.log(`dicom max:${dicomObj.max}`)
   // postMessage({name:"testla"});
+
+  dicomGlobal = dicomObj;
 
   return Comlink.proxy(dicomObj)
 });

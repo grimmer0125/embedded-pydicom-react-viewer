@@ -8,8 +8,14 @@ const workrApi = Comlink.wrap<typeof api>(myWorkerInstance);
 const initPyodideAndLoadPydicom = workrApi.initPyodideAndLoadPydicom
 const loadPyodideDicomModule = workrApi.loadPyodideDicomModule
 const newPyodideDicom = workrApi.newPyodideDicom
+const remoteFunction = workrApi.remoteFunction;
 
-
+myWorkerInstance.onmessage = function (e) {
+    // result.textContent = e.data;
+    console.log('Message received from worker', e.data);
+    const uint8 = new Uint8Array(e.data);
+    console.log({ "d:": uint8[0] })
+}
 
 // import { D4C } from "d4c-queue";
 // declare var loadPyodide: any;
@@ -108,5 +114,6 @@ export {
     loadPyodideDicomModule,
     loadDicomFileAsync,
     fetchDicomFileAsync,
-    newPyodideDicom
+    newPyodideDicom,
+    remoteFunction
 }
