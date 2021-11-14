@@ -120,8 +120,27 @@ export async function remoteFunction(): Promise<any> {
   // const pyBuffer = dicomGlobal.final_rgba_1d_ndarray.getBuffer("u8clamped");;
   // 因為沒有 copy, 所以還是受限於之前就已經是 comlink proxy
   // const data = pyBuffer.data
-  // console.log("try:", data)
-  return Comlink.transfer(uint8.buffer, [uint8.buffer]) // or uint8, [uint8.buffer] works 
+  // console.log("try:")
+  const ndarray = self.pyodide.globals.get("global_array")
+
+  // const pyBuffer = ndarray.getBuffer("u8clamped");
+  const uint8 = ndarray.toJs();
+
+  const uncompressedData = new Uint8ClampedArray(uint8.buffer)
+  // const uint8 = pyBuffer.data;
+  // console.log("send:", { uncompressedData })
+  // console.log("data:", { data: pyBuffer.data })
+  // const start0 = new Date().getTime();
+  // console.log("send:" + start0)
+
+  return Comlink.transfer(uncompressedData, [uncompressedData.buffer])
+
+
+  //postMessage(data2.data.buffer);
+
+  // return "1"; //data;
+
+  // return Comlink.transfer(uint8.buffer, [uint8.buffer]) // or uint8, [uint8.buffer] works 
   // return Comlink.transfer(uint8, [uint8])
 
   // return Comlink.transfer(data.buffer, [data.buffer]);

@@ -46,6 +46,9 @@ handling_list = [
 from enum import IntEnum, auto
 
 
+global_array = None
+
+
 class NormalizeMode(IntEnum):
     max_min_mode = 0  # start from 1 if using auto()
     window_center_mode = 1
@@ -797,8 +800,15 @@ class PyodideDicom:
         elif cor_image is not None:
             self.cor_ndarray = final_rgba_1d_ndarray
         else:
-            self.final_rgba_1d_ndarray = final_rgba_1d_ndarray
-        # return final_rgba_1d_ndarray
+            if self.final_rgba_1d_ndarray is None:
+                self.final_rgba_1d_ndarray = final_rgba_1d_ndarray
+            else:
+                print("global")
+                global global_array
+                global_array = final_rgba_1d_ndarray
+                return 5
+
+        return final_rgba_1d_ndarray
 
         # width, height = get_image2d_dimension(image2d)
 

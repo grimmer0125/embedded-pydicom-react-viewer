@@ -234,50 +234,53 @@ function App() {
         });
         renderFrame({ ax_ndarray })
       } else {
-        // console.log("3")
         const image = dicomObj.current
-        const start0 = new Date().getTime();
+        // const start0 = new Date().getTime();
+        // console.log("3")
 
         //const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
         image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
-        // console.log("4")
+        console.log("4")
 
         const start = new Date().getTime();
 
-        console.log("5:", image.final_rgba_1d_ndarray); //comlink proxy
+        // console.log("5:", image.final_rgba_1d_ndarray); //comlink proxy
         // //comlink proxy
         // const dd4 = Comlink.transfer(image.final_rgba_1d_ndarray, [image.final_rgba_1d_ndarray]);
         // const d55 = dd4.getBuffer("u8clamped");
-        const dd4 = await remoteFunction();
-        console.log({ dd4 })
-        // const d55 = dd4.getBuffer("u8clamped");
-        // const aa = Comlink.proxy(dd4);
-        // console.log("d02", await aa);
+        const uncompressedData = await remoteFunction();
+        console.log("5:", (new Date()).getTime() - start)
+        // console.log({ dd4 })
+        // // const d55 = dd4.getBuffer("u8clamped");
+        // // const aa = Comlink.proxy(dd4);
+        // // console.log("d02", await aa);
 
-        // const dd5 = await Comlink.transfer(dd4, [dd4]);
-        console.log("d0");
-        const dd = image.final_rgba_1d_ndarray.toJs() // 因為這是 copy, 所以會跟原本的 comlink proxy 就無關了
-        console.log({ dd })
-        const end = new Date().getTime();
-        const time1 = end - start;
-        const uncompressed_ndarray = await dd;
-        console.log({ uncompressed_ndarray })
+        // // const dd5 = await Comlink.transfer(dd4, [dd4]);
+        // console.log("d0");
+        // const dd = image.final_rgba_1d_ndarray.toJs() // 因為這是 copy, 所以會跟原本的 comlink proxy 就無關了
+        // console.log({ dd })
+        // const end = new Date().getTime();
+        // const time1 = end - start;
+        // const uncompressed_ndarray = dd;
+        // const uncompressed_ndarray = await dd;
 
-        const end2 = new Date().getTime();
-        // but for 1024x1024, JPEG57-MR-MONO2-12-shoulder, it is about 70~100ms
-        const time2 = end2 - end;
-        count++;
-        if (count % 10 == 0) {
-          console.log("r:", start - start0, time1, time2) // 0~1, 0~1, 5~18/29/40 ms (440x440), CR-MONO1-10-chest
-        }
-        const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
+        // console.log({ uncompressed_ndarray })
+
+        // const end2 = new Date().getTime();
+        // // but for 1024x1024, JPEG57-MR-MONO2-12-shoulder, it is about 70~100ms
+        // const time2 = end2 - end;
+        // count++;
+        // if (count % 10 == 0) {
+        //   console.log("r:", start - start0, time1, time2) // 0~1, 0~1, 5~18/29/40 ms (440x440), CR-MONO1-10-chest
+        // }
+        const uncompressedData2 = new Uint8ClampedArray(uncompressedData)
 
 
-        // const ndarray = await image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
-        // console.log("3")
-        // console.log("get_rgba_1d_ndarray:", ndarray)
-        // renderFrame({ ndarray })
-        renderFrame({ uncompressedData })
+        // // const ndarray = await image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+        // // console.log("3")
+        // // console.log("get_rgba_1d_ndarray:", ndarray)
+        // // renderFrame({ ndarray })
+        renderFrame({ uncompressedData: uncompressedData2 })
 
         // renderFrame({ ndarray })
       }
@@ -408,6 +411,7 @@ function App() {
   }
 
   const renderFrame = async ({ ndarray, ax_ndarray, sag_ndarray, cor_ndarray, uncompressedData }: { ndarray?: PyProxyBuffer, ax_ndarray?: PyProxyBuffer, sag_ndarray?: PyProxyBuffer, cor_ndarray?: PyProxyBuffer, uncompressedData?: Uint8ClampedArray }) => {
+    console.log("renderFrame")
     // TODO: add parameters to specify which should be updated 
     const image: PyProxyObj = dicomObj.current;
 
