@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import 'semantic-ui-css/semantic.min.css'
+import { D4C } from 'd4c-queue'
 
 import {
   Dropdown,
@@ -27,6 +28,11 @@ const MAX_WIDTH_SINGLE_MODE = 1280;
 const MAX_HEIGHT_SINGLE_MODE = 1024;
 const MAX_WIDTH_SERIES_MODE = 400;
 const MAX_HEIGHT_SERIES_MODE = 400;
+
+
+const d4c = new D4C([{ concurrency: { limit: 5 } }])
+// const d4c = new D4C([{ concurrency: { limit: 2 } }])
+// const fn1 = d4c.wrap(timeout, { skipIfFull: true })
 
 const dropZoneStyle = {
   borderWidth: 2,
@@ -190,7 +196,8 @@ function App() {
       let deltaX = event.clientX - clientX.current;
       let deltaY = clientY.current - event.clientY;
 
-      let newWindowWidth, newWindowCenter;
+      let newWindowWidth = 0
+      let newWindowCenter = 0;
 
       let previousWindowWidth = useWindowWidth ?? windowWidth;
       if (previousWindowWidth) {
@@ -232,34 +239,43 @@ function App() {
         });
         renderFrame({ ax_ndarray })
       } else {
-        // console.log("3")
-        const image = dicomObj.current
-        const start0 = new Date().getTime();
 
-        //const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
-        image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
-        // console.log("4")
+        try {
+          await d4c.apply(async () => {
+            // console.log("3")
+            const image = dicomObj.current
+            const start0 = new Date().getTime();
 
-        const start = new Date().getTime();
-        const dd = image.final_rgba_1d_ndarray.toJs()
-        const end = new Date().getTime();
-        const time1 = end - start;
-        const uncompressed_ndarray = await dd;
-        const end2 = new Date().getTime();
-        // but for 1024x1024, JPEG57-MR-MONO2-12-shoulder, it is about 70~100ms
-        const time2 = end2 - end;
-        count++;
-        if (count % 10 == 0) {
-          console.log("r:", start - start0, time1, time2) // 0~1, 0~1, 5~18/29/40 ms (440x440), CR-MONO1-10-chest
+            //const ndarray = dicomObj.current.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+            image.render_frame_to_rgba_1d(newWindowCenter, newWindowWidth)
+            // console.log("4")
+
+            const start = new Date().getTime();
+            const dd = image.final_rgba_1d_ndarray.toJs()
+            const end = new Date().getTime();
+            const time1 = end - start;
+            const uncompressed_ndarray = await dd;
+            const end2 = new Date().getTime();
+            // but for 1024x1024, JPEG57-MR-MONO2-12-shoulder, it is about 70~100ms
+            const time2 = end2 - end;
+            count++;
+            if (count % 10 == 0) {
+              console.log("r:", start - start0, time1, time2) // 0~1, 0~1, 5~18/29/40 ms (440x440), CR-MONO1-10-chest
+            }
+            const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
+
+
+            // const ndarray = await image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
+            // console.log("3")
+            // console.log("get_rgba_1d_ndarray:", ndarray)
+            // renderFrame({ ndarray })
+            renderFrame({ uncompressedData })
+          }, { skipIfFull: true });
+        } catch (err) {
+          console.log("catch")
         }
-        const uncompressedData = new Uint8ClampedArray(uncompressed_ndarray.buffer)
 
 
-        // const ndarray = await image.get_rgba_1d_ndarray() //render_rgba_1d_ndarray
-        // console.log("3")
-        // console.log("get_rgba_1d_ndarray:", ndarray)
-        // renderFrame({ ndarray })
-        renderFrame({ uncompressedData })
 
         // renderFrame({ ndarray })
       }

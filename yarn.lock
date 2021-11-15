@@ -4037,11 +4037,6 @@ cyclist@^1.0.1:
   resolved "https://registry.yarnpkg.com/cyclist/-/cyclist-1.0.1.tgz#596e9698fd0c80e12038c2b82d6eb1b35b6224d9"
   integrity sha1-WW6WmP0MgOEgOMK4LW6xs1tiJNk=
 
-d4c-queue@^1.4.0:
-  version "1.6.8"
-  resolved "https://registry.yarnpkg.com/d4c-queue/-/d4c-queue-1.6.8.tgz#ede9e04348db8df15a055413534b7998661689c0"
-  integrity sha512-EkjNunulO0OziAI+3kl+kItB4qrs9GU6XD1Vs82gt8JmwvzFxEOcXK8DexXoP+JSdf6ov/RI1sdAln6IbNa6Sw==
-
 d@1, d@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/d/-/d-1.0.1.tgz#8698095372d58dbee346ffd0c7093f99f8f9eb5a"
